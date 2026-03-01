@@ -283,7 +283,7 @@ func TestFindAPFSVolumeRootFallsBackToDataVolume(t *testing.T) {
 	r := &mockRunner{responses: map[string]mockResponse{
 		"diskutil info -plist /":                     {output: []byte(infoPlist("disk3s1s1"))},
 		"diskutil info -plist /System/Volumes/Data":  {output: []byte(infoPlist("disk3s5"))},
-		"diskutil apfs listSnapshots disk3s5 -plist": {output: []byte(emptySnapshotsPlist)},
+		"diskutil apfs listSnapshots disk3s5 -plist": {output: []byte(tmSnapshotsPlist)},
 		"diskutil apfs listSnapshots disk3s1s1 -plist": {
 			err: fmt.Errorf("listSnapshots not supported for sealed snapshot mount"),
 		},
@@ -298,10 +298,25 @@ func TestFindAPFSVolumeRootFallsBackToDataVolume(t *testing.T) {
 	}
 }
 
-func TestFindAPFSVolumeAcceptsEmptySnapshotList(t *testing.T) {
+func TestFindAPFSVolumeSkipsVolumeWithNoTMSnapshots(t *testing.T) {
 	r := &mockRunner{responses: map[string]mockResponse{
 		"diskutil info -plist /Volumes/External":     {output: []byte(infoPlist("disk4s1"))},
 		"diskutil apfs listSnapshots disk4s1 -plist": {output: []byte(emptySnapshotsPlist)},
+	}}
+
+	got, err := FindAPFSVolume(context.Background(), r, "/Volumes/External")
+	if err != nil {
+		t.Fatalf("FindAPFSVolume() error = %v", err)
+	}
+	if got != "" {
+		t.Fatalf("FindAPFSVolume() = %q, want empty (no TM snapshots)", got)
+	}
+}
+
+func TestFindAPFSVolumeSelectsVolumeWithTMSnapshots(t *testing.T) {
+	r := &mockRunner{responses: map[string]mockResponse{
+		"diskutil info -plist /Volumes/External":     {output: []byte(infoPlist("disk4s1"))},
+		"diskutil apfs listSnapshots disk4s1 -plist": {output: []byte(tmSnapshotsPlist)},
 	}}
 
 	got, err := FindAPFSVolume(context.Background(), r, "/Volumes/External")
@@ -347,5 +362,21 @@ const emptySnapshotsPlist = `<?xml version="1.0" encoding="UTF-8"?>
 <dict>
 	<key>Snapshots</key>
 	<array/>
+</dict>
+</plist>`
+
+const tmSnapshotsPlist = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Snapshots</key>
+	<array>
+		<dict>
+			<key>SnapshotName</key>
+			<string>com.apple.TimeMachine.2026-03-01-140000.local</string>
+			<key>SnapshotUUID</key>
+			<string>ABC-123</string>
+		</dict>
+	</array>
 </dict>
 </plist>`

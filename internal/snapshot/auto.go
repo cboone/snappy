@@ -87,7 +87,7 @@ func (a *AutoManager) ThinCadence() time.Duration {
 // threshold and cadence to determine which dates should be deleted.
 // The input snapshots must be sorted ascending by date.
 func (a *AutoManager) ComputeThinTargets(snapshots []Snapshot, now time.Time) []string {
-	if len(snapshots) == 0 {
+	if !a.enabled || len(snapshots) == 0 {
 		return nil
 	}
 

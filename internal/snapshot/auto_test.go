@@ -97,6 +97,21 @@ func TestNextIn(t *testing.T) {
 	}
 }
 
+func TestComputeThinTargetsDisabled(t *testing.T) {
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	am := NewAutoManager(false, 60*time.Second, 600*time.Second, 300*time.Second, now)
+
+	snapshots := []Snapshot{
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
+		{Date: "2026-03-01-143100", Time: now.Add(-29 * time.Minute)},
+	}
+
+	targets := am.ComputeThinTargets(snapshots, now)
+	if targets != nil {
+		t.Errorf("ComputeThinTargets() = %v, want nil when disabled", targets)
+	}
+}
+
 func TestComputeThinTargets(t *testing.T) {
 	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
 	am := NewAutoManager(true, 60*time.Second, 600*time.Second, 300*time.Second, now)

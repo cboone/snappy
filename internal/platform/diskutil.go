@@ -56,12 +56,12 @@ func FindAPFSVolume(ctx context.Context, r CommandRunner, mount string) (string,
 	// live on the Data volume at /System/Volumes/Data instead.
 	if mount == "/" {
 		dataDevice, err := getDeviceIdentifier(ctx, r, "/System/Volumes/Data")
-		if err == nil && dataDevice != "" && canListSnapshots(ctx, r, dataDevice) {
+		if err == nil && dataDevice != "" && hasTimeMachineSnapshots(ctx, r, dataDevice) {
 			return dataDevice, nil
 		}
 	}
 
-	if canListSnapshots(ctx, r, device) {
+	if hasTimeMachineSnapshots(ctx, r, device) {
 		return device, nil
 	}
 
@@ -121,9 +121,30 @@ func getDeviceIdentifier(ctx context.Context, r CommandRunner, mount string) (st
 	return info.DeviceIdentifier, nil
 }
 
-func canListSnapshots(ctx context.Context, r CommandRunner, device string) bool {
-	_, err := r.Run(ctx, "diskutil", "apfs", "listSnapshots", device, "-plist")
-	return err == nil
+// hasTimeMachineSnapshots checks whether the given volume contains at least
+// one Time Machine snapshot by parsing the APFS snapshot listing.
+func hasTimeMachineSnapshots(ctx context.Context, r CommandRunner, volume string) bool {
+	if volume == "" {
+		return false
+	}
+
+	out, err := r.Run(ctx, "diskutil", "apfs", "listSnapshots", volume, "-plist")
+	if err != nil {
+		return false
+	}
+
+	var pl apfsSnapshotsPlist
+	if _, err := plist.Unmarshal(out, &pl); err != nil {
+		return false
+	}
+
+	for _, snap := range pl.Snapshots {
+		if tmNameRe.MatchString(snap.SnapshotName) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // parseBoolish handles plist values that may be bool or string ("YES"/"NO").
