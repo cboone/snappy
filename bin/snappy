@@ -286,6 +286,22 @@ function tm_get_disk_info() {
 # APFS snapshot details
 # =============================================================================
 
+# Check whether an APFS volume contains at least one Time Machine snapshot.
+# Arguments:
+#   $1 - Device identifier (e.g., disk3s5)
+# Returns:
+#   0 if TM snapshots are present, 1 otherwise
+function has_tm_snapshots() {
+  local device="${1}"
+  local output
+  output=$(diskutil apfs listSnapshots "${device}" -plist 2>/dev/null) || return 1
+  # Check whether any snapshot name contains the TM prefix
+  if echo "${output}" | grep -q "com\.apple\.TimeMachine\." 2>/dev/null; then
+    return 0
+  fi
+  return 1
+}
+
 # Determine the APFS volume to query for snapshot metadata.
 # On macOS, "/" is mounted from a sealed system snapshot; Time Machine
 # snapshots live on the Data volume (/System/Volumes/Data) instead.
@@ -300,20 +316,23 @@ function find_apfs_volume() {
     return
   fi
 
-  # Try the device directly (works for most volumes)
-  if diskutil apfs listSnapshots "${device}" > /dev/null 2>&1; then
+  # Try the device directly (works for external or non-root volumes)
+  # shellcheck disable=SC2310 # intentional: testing return code
+  if has_tm_snapshots "${device}"; then
     APFS_VOLUME="${device}"
     return
   fi
 
-  # Root is mounted from a sealed snapshot (e.g., disk3s1s1); try the
-  # Data volume at /System/Volumes/Data where TM snapshots live.
+  # Root is mounted from a sealed snapshot (e.g., disk3s1s1) which may
+  # hold OS-update snapshots but not TM ones. Try the Data volume at
+  # /System/Volumes/Data where TM snapshots actually live.
   if [[ "${MOUNT_POINT}" == "/" ]]; then
     local data_device
     data_device=$(diskutil info -plist "/System/Volumes/Data" 2>/dev/null \
       | plutil -extract DeviceIdentifier raw - 2>/dev/null) || true
 
-    if [[ -n "${data_device}" ]] && diskutil apfs listSnapshots "${data_device}" > /dev/null 2>&1; then
+    # shellcheck disable=SC2310 # intentional: testing return code
+    if [[ -n "${data_device}" ]] && has_tm_snapshots "${data_device}"; then
       APFS_VOLUME="${data_device}"
       return
     fi
