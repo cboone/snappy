@@ -34,5 +34,7 @@ jobs:
       - name: Check formatting
         run: make fmt
 
-      - name: Run lint
-        run: make lint
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: latest

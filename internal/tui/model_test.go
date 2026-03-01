@@ -238,6 +238,7 @@ func TestRefreshResultMsgSnapshotErrorKeepsExistingSnapshots(t *testing.T) {
 
 func TestSnapshotCreatedMsg(t *testing.T) {
 	m := testModel()
+	m.refreshing = false
 
 	updated, cmd := m.Update(SnapshotCreatedMsg{Date: "2026-03-01-150000"})
 	_ = updated.(Model)
