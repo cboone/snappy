@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -35,6 +36,7 @@ func ListSnapshots(ctx context.Context, r CommandRunner, mount string) ([]string
 			dates = append(dates, line)
 		}
 	}
+	sort.Strings(dates)
 	return dates, nil
 }
 

@@ -29,10 +29,11 @@ type Model struct {
 	diskInfo       string
 	lastRefresh    time.Time
 
-	width    int
-	height   int
-	quitting bool
-	version  string
+	width      int
+	height     int
+	quitting   bool
+	refreshing bool
+	version    string
 
 	now func() time.Time
 }
@@ -47,6 +48,7 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 		auto:       snapshot.NewAutoManager(cfg.AutoEnabled, cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence, now),
 		apfsVolume: apfsVolume,
 		tmStatus:   tmStatus,
+		refreshing: true,
 		version:    version,
 		now:        time.Now,
 	}

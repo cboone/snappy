@@ -44,6 +44,10 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, doCreateSnapshot(m.runner)
 
 	case "r", "R":
+		if m.refreshing {
+			return m, nil
+		}
+		m.refreshing = true
 		return m, doRefresh(m.runner, m.cfg, m.apfsVolume)
 
 	case "a", "A":
@@ -81,13 +85,17 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 		cmds = append(cmds, doCreateSnapshot(m.runner))
 	}
 
-	cmds = append(cmds, doRefresh(m.runner, m.cfg, m.apfsVolume))
+	if !m.refreshing {
+		m.refreshing = true
+		cmds = append(cmds, doRefresh(m.runner, m.cfg, m.apfsVolume))
+	}
 	cmds = append(cmds, refreshTick(m.cfg.RefreshInterval))
 
 	return m, tea.Batch(cmds...)
 }
 
 func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
+	m.refreshing = false
 	m.tmStatus = msg.TMStatus
 
 	if msg.APFSInfo.Volume != "" {
@@ -95,7 +103,9 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 		m.otherSnapCount = msg.APFSInfo.OtherSnapCount
 	}
 
-	if !msg.DiskErr {
+	if msg.DiskErr {
+		m.diskInfo = "unavailable"
+	} else {
 		m.diskInfo = msg.DiskInfo.String()
 	}
 

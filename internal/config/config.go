@@ -28,9 +28,9 @@ func Load() *Config {
 		MountPoint:           viper.GetString("mount"),
 		LogDir:               viper.GetString("log_dir"),
 		AutoEnabled:          viper.GetBool("auto_enabled"),
-		AutoSnapshotInterval: 60 * time.Second,
-		ThinAgeThreshold:     600 * time.Second,
-		ThinCadence:          300 * time.Second,
+		AutoSnapshotInterval: parseSecondsOrDuration(viper.Get("auto_snapshot_interval"), 60*time.Second),
+		ThinAgeThreshold:     parseSecondsOrDuration(viper.Get("thin_age_threshold"), 600*time.Second),
+		ThinCadence:          parseSecondsOrDuration(viper.Get("thin_cadence"), 300*time.Second),
 	}
 }
 
@@ -41,6 +41,9 @@ func SetDefaults() {
 	viper.SetDefault("mount", "/")
 	viper.SetDefault("log_dir", "")
 	viper.SetDefault("auto_enabled", true)
+	viper.SetDefault("auto_snapshot_interval", 60*time.Second)
+	viper.SetDefault("thin_age_threshold", 600*time.Second)
+	viper.SetDefault("thin_cadence", 300*time.Second)
 }
 
 func parseSecondsOrDuration(raw any, fallback time.Duration) time.Duration {
