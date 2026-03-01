@@ -27,9 +27,9 @@ readonly SEPARATOR="============================================================
 readonly THIN_SEPARATOR="------------------------------------------------------------------------------"
 
 AUTO_SNAPSHOT_ENABLED="${SNAPPY_AUTO_ENABLED:-true}"   # toggleable at runtime
-readonly AUTO_SNAPSHOT_INTERVAL_INITIAL=60   # every 1 min for the first ramp-up period
-readonly AUTO_SNAPSHOT_INTERVAL_NORMAL=300   # every 5 min after ramp-up
-readonly AUTO_SNAPSHOT_RAMPUP=600            # ramp-up lasts 10 minutes
+readonly AUTO_SNAPSHOT_INTERVAL=60   # always snapshot every 1 minute
+readonly THIN_AGE_THRESHOLD=600      # thin snapshots older than 10 minutes
+readonly THIN_CADENCE=300            # keep one snapshot every 5 minutes when thinning
 
 # =============================================================================
 # Global state
@@ -65,9 +65,8 @@ declare -i OTHER_SNAPSHOT_COUNT=0
 # Sets: APFS_VOLUME
 APFS_VOLUME=""
 
-# Sets: LAST_AUTO_SNAPSHOT_EPOCH, AUTO_SNAPSHOT_START_EPOCH
+# Sets: LAST_AUTO_SNAPSHOT_EPOCH
 declare -i LAST_AUTO_SNAPSHOT_EPOCH=0
-declare -i AUTO_SNAPSHOT_START_EPOCH=0
 
 # Color variables (set by setup_colors)
 COLOR_RESET=""
@@ -244,6 +243,23 @@ function tm_create_snapshot() {
     return 0
   else
     log_event "ERROR" "Failed to create snapshot: ${output}"
+    return 1
+  fi
+}
+
+# Delete a local snapshot by date.
+# Arguments:
+#   $1 - Snapshot date in YYYY-MM-DD-HHMMSS format
+# Returns:
+#   0 on success, 1 on failure
+function tm_delete_snapshot() {
+  local snapshot_date="${1}"
+
+  if tmutil deletelocalsnapshots "${snapshot_date}" > /dev/null 2>&1; then
+    log_event "THINNED" "Deleted old snapshot: ${snapshot_date}"
+    return 0
+  else
+    log_event "ERROR" "Failed to delete snapshot: ${snapshot_date}"
     return 1
   fi
 }
@@ -434,8 +450,7 @@ function update_snapshot_state() {
 # Auto-snapshot
 # =============================================================================
 
-# Create an auto-snapshot if the interval has elapsed.
-# Uses a shorter interval during the initial ramp-up period.
+# Create an auto-snapshot if the interval has elapsed, then thin old snapshots.
 # Called from do_refresh on each cycle.
 function maybe_auto_snapshot() {
   if [[ "${AUTO_SNAPSHOT_ENABLED}" != true ]]; then
@@ -445,15 +460,8 @@ function maybe_auto_snapshot() {
   local -i now_epoch
   now_epoch=$(date "+%s")
 
-  # Pick interval based on how long auto-snapshots have been running
-  local -i since_start=$((now_epoch - AUTO_SNAPSHOT_START_EPOCH))
-  local -i interval="${AUTO_SNAPSHOT_INTERVAL_NORMAL}"
-  if ((since_start < AUTO_SNAPSHOT_RAMPUP)); then
-    interval="${AUTO_SNAPSHOT_INTERVAL_INITIAL}"
-  fi
-
   local -i elapsed=$((now_epoch - LAST_AUTO_SNAPSHOT_EPOCH))
-  if ((elapsed < interval)); then
+  if ((elapsed < AUTO_SNAPSHOT_INTERVAL)); then
     return
   fi
 
@@ -463,6 +471,72 @@ function maybe_auto_snapshot() {
   log_event "AUTO" "Creating auto-snapshot..."
   # shellcheck disable=SC2310 # intentional: allow failure without tripping set -e
   if tm_create_snapshot; then
+    tm_list_snapshots
+    apfs_get_snapshot_details
+  fi
+
+  thin_old_snapshots
+}
+
+# Delete excess snapshots older than THIN_AGE_THRESHOLD, keeping one per
+# THIN_CADENCE-second bucket. Snapshots within the threshold are never touched.
+function thin_old_snapshots() {
+  local -i now_epoch
+  now_epoch=$(date "+%s")
+
+  local -i count="${#CURR_SNAPSHOTS[@]}"
+  if ((count == 0)); then
+    return
+  fi
+
+  # Walk snapshots oldest-first (CURR_SNAPSHOTS is sorted ascending)
+  local -i last_kept_epoch=0
+  local -a to_delete=()
+
+  local -i i
+  for ((i = 0; i < count; i++)); do
+    local snap="${CURR_SNAPSHOTS[${i}]}"
+    local -i snap_epoch
+    snap_epoch=$(snapshot_date_to_epoch "${snap}")
+
+    if ((snap_epoch == 0)); then
+      continue
+    fi
+
+    local -i age=$((now_epoch - snap_epoch))
+
+    # Only thin snapshots older than the age threshold
+    if ((age < THIN_AGE_THRESHOLD)); then
+      continue
+    fi
+
+    # Keep the first old snapshot we encounter
+    if ((last_kept_epoch == 0)); then
+      last_kept_epoch="${snap_epoch}"
+      continue
+    fi
+
+    # Keep this snapshot if it is far enough from the last one we kept
+    local -i gap=$((snap_epoch - last_kept_epoch))
+    if ((gap >= THIN_CADENCE)); then
+      last_kept_epoch="${snap_epoch}"
+      continue
+    fi
+
+    # Too close to the previous kept snapshot; mark for deletion
+    to_delete+=("${snap}")
+  done
+
+  # Delete marked snapshots
+  local snap_to_del
+  for snap_to_del in "${to_delete[@]}"; do
+    # shellcheck disable=SC2310 # intentional: allow failure without tripping set -e
+    tm_delete_snapshot "${snap_to_del}" || true
+  done
+
+  # Re-fetch snapshot list if anything was deleted
+  if ((${#to_delete[@]} > 0)); then
+    log_event "AUTO" "Thinned ${#to_delete[@]} snapshot(s) older than $((THIN_AGE_THRESHOLD / 60))m to ${THIN_CADENCE}s cadence"
     tm_list_snapshots
     apfs_get_snapshot_details
   fi
@@ -553,17 +627,13 @@ function draw_header() {
     auto_state="${COLOR_GREEN}on${COLOR_RESET}"
     local -i now_epoch
     now_epoch=$(date "+%s")
-    local -i since_start=$((now_epoch - AUTO_SNAPSHOT_START_EPOCH))
-    local -i interval="${AUTO_SNAPSHOT_INTERVAL_NORMAL}"
-    if ((since_start < AUTO_SNAPSHOT_RAMPUP)); then
-      interval="${AUTO_SNAPSHOT_INTERVAL_INITIAL}"
-    fi
-    local -i next_in=$((interval - (now_epoch - LAST_AUTO_SNAPSHOT_EPOCH)))
+    local -i next_in=$((AUTO_SNAPSHOT_INTERVAL - (now_epoch - LAST_AUTO_SNAPSHOT_EPOCH)))
     if ((next_in < 0)); then
       next_in=0
     fi
-    printf "  Auto-snapshot: %s  |  every %ss  |  next in %ss\n" \
-      "${auto_state}" "${interval}" "${next_in}"
+    printf "  Auto-snapshot: %s  |  every %ss  |  next in %ss  |  thin >%sm to %ss\n" \
+      "${auto_state}" "${AUTO_SNAPSHOT_INTERVAL}" "${next_in}" \
+      "$((THIN_AGE_THRESHOLD / 60))" "${THIN_CADENCE}"
   else
     auto_state="${COLOR_RED}off${COLOR_RESET}"
     printf "  Auto-snapshot: %s\n" "${auto_state}"
@@ -670,6 +740,8 @@ function draw_recent_log() {
         printf "  %s%s%s\n" "${COLOR_GREEN}" "${entry}" "${COLOR_RESET}"
       elif [[ "${entry}" == *"REMOVED"* ]]; then
         printf "  %s%s%s\n" "${COLOR_YELLOW}" "${entry}" "${COLOR_RESET}"
+      elif [[ "${entry}" == *"THINNED"* ]]; then
+        printf "  %s%s%s\n" "${COLOR_YELLOW}" "${entry}" "${COLOR_RESET}"
       elif [[ "${entry}" == *"AUTO"* ]]; then
         printf "  %s%s%s\n" "${COLOR_CYAN}" "${entry}" "${COLOR_RESET}"
       elif [[ "${entry}" == *"STARTUP"* ]]; then
@@ -730,8 +802,7 @@ function handle_keypress() {
       else
         AUTO_SNAPSHOT_ENABLED=true
         LAST_AUTO_SNAPSHOT_EPOCH=$(date "+%s")
-        AUTO_SNAPSHOT_START_EPOCH="${LAST_AUTO_SNAPSHOT_EPOCH}"
-        log_event "INFO" "Auto-snapshots enabled (every ${AUTO_SNAPSHOT_INTERVAL_INITIAL}s, then ${AUTO_SNAPSHOT_INTERVAL_NORMAL}s)"
+        log_event "INFO" "Auto-snapshots enabled (every ${AUTO_SNAPSHOT_INTERVAL}s, thin >${THIN_AGE_THRESHOLD}s to ${THIN_CADENCE}s)"
       fi
       draw_ui
       ;;
@@ -816,12 +887,11 @@ function main() {
   tm_check_status
 
   log_event "STARTUP" "snappy v${VERSION} | volume=${MOUNT_POINT} | refresh=${REFRESH_INTERVAL}s"
-  log_event "STARTUP" "auto-snapshot=${AUTO_SNAPSHOT_ENABLED} | interval=${AUTO_SNAPSHOT_INTERVAL_INITIAL}s/${AUTO_SNAPSHOT_INTERVAL_NORMAL}s (ramp-up ${AUTO_SNAPSHOT_RAMPUP}s)"
+  log_event "STARTUP" "auto-snapshot=${AUTO_SNAPSHOT_ENABLED} | every ${AUTO_SNAPSHOT_INTERVAL}s | thin >${THIN_AGE_THRESHOLD}s to ${THIN_CADENCE}s"
 
-  # Initialize auto-snapshot timers so the first snapshot fires after one
+  # Initialize auto-snapshot timer so the first snapshot fires after one
   # full interval, not immediately on startup
   LAST_AUTO_SNAPSHOT_EPOCH=$(date "+%s")
-  AUTO_SNAPSHOT_START_EPOCH="${LAST_AUTO_SNAPSHOT_EPOCH}"
 
   # Hide cursor
   if command -v tput > /dev/null 2>&1; then

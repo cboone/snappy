@@ -1,0 +1,58 @@
+[09:31:47] STARTUP  snappy v0.1.0 | volume=/ | refresh=60s
+[09:31:47] STARTUP  auto-snapshot=true | interval=60s/300s (ramp-up 600s)
+[09:31:47] ADDED    Snapshot appeared: 2026-02-28-204827
+[09:31:47] ADDED    Snapshot appeared: 2026-03-01-004906
+[09:31:47] ADDED    Snapshot appeared: 2026-03-01-024926
+[09:31:47] ADDED    Snapshot appeared: 2026-03-01-034936
+[09:31:47] ADDED    Snapshot appeared: 2026-03-01-044946
+[09:31:47] ADDED    Snapshot appeared: 2026-03-01-054957
+[09:31:47] ADDED    Snapshot appeared: 2026-03-01-065007
+[09:31:47] ADDED    Snapshot appeared: 2026-03-01-074516
+[09:31:47] INFO     Refresh: 8 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[09:32:48] INFO     Refresh: 8 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[09:32:48] AUTO     Creating auto-snapshot...
+[09:32:48] CREATED  Snapshot created: 2026-03-01-093248
+[09:32:48] ADDED    Snapshot appeared: 2026-03-01-093248
+[09:33:48] INFO     Refresh: 9 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[09:33:48] AUTO     Creating auto-snapshot...
+[09:33:48] CREATED  Snapshot created: 2026-03-01-093348
+[09:33:49] ADDED    Snapshot appeared: 2026-03-01-093348
+[09:34:49] INFO     Refresh: 10 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[09:34:49] AUTO     Creating auto-snapshot...
+[09:34:49] CREATED  Snapshot created: 2026-03-01-093449
+[09:34:49] ADDED    Snapshot appeared: 2026-03-01-093449
+[09:35:50] INFO     Refresh: 11 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[09:35:50] AUTO     Creating auto-snapshot...
+[09:35:50] CREATED  Snapshot created: 2026-03-01-093550
+[09:35:50] ADDED    Snapshot appeared: 2026-03-01-093550
+[09:36:51] INFO     Refresh: 12 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[09:36:51] AUTO     Creating auto-snapshot...
+[09:36:51] CREATED  Snapshot created: 2026-03-01-093651
+[09:36:51] ADDED    Snapshot appeared: 2026-03-01-093651
+[09:37:51] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[09:37:51] AUTO     Creating auto-snapshot...
+[09:37:52] CREATED  Snapshot created: 2026-03-01-093752
+[09:37:52] ADDED    Snapshot appeared: 2026-03-01-093752
+[09:38:52] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[09:38:52] AUTO     Creating auto-snapshot...
+[09:38:53] CREATED  Snapshot created: 2026-03-01-093852
+[09:38:53] ADDED    Snapshot appeared: 2026-03-01-093852
+[09:39:53] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[09:39:53] AUTO     Creating auto-snapshot...
+[09:39:54] CREATED  Snapshot created: 2026-03-01-093953
+[09:39:54] ADDED    Snapshot appeared: 2026-03-01-093953
+[09:40:54] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[09:40:54] AUTO     Creating auto-snapshot...
+[09:40:55] CREATED  Snapshot created: 2026-03-01-094055
+[09:40:55] ADDED    Snapshot appeared: 2026-03-01-094055
+[09:41:56] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[09:42:56] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[09:43:56] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[09:44:57] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[09:45:57] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[09:45:57] AUTO     Creating auto-snapshot...
+[09:45:57] CREATED  Snapshot created: 2026-03-01-094557
+[09:45:58] ADDED    Snapshot appeared: 2026-03-01-094557
+[09:46:58] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[09:47:59] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[09:49:38] INFO     Shutting down
