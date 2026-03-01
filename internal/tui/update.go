@@ -45,6 +45,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "r", "R":
 		if m.refreshing {
+			m.refreshPending = true
 			return m, nil
 		}
 		m.refreshing = true
@@ -109,12 +110,16 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 		m.diskInfo = msg.DiskInfo.String()
 	}
 
-	m.lastRefresh = m.now()
+	if msg.APFSErr != nil {
+		m.log.Log(logger.Error, fmt.Sprintf("APFS details unavailable: %v", msg.APFSErr))
+	}
 
 	if msg.SnapshotErr != nil {
 		m.log.Log(logger.Error, fmt.Sprintf("Failed to list snapshots: %v", msg.SnapshotErr))
 		return m, nil
 	}
+
+	m.lastRefresh = m.now()
 
 	// Compute diff
 	prev := m.snapshots

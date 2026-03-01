@@ -39,9 +39,12 @@ func doRefresh(runner platform.CommandRunner, cfg *config.Config, apfsVolume str
 		}
 
 		var apfsInfo platform.APFSInfo
+		var apfsErr error
 		if apfsVolume != "" {
 			details, otherCount, detailErr := platform.GetSnapshotDetails(ctx, runner, apfsVolume)
-			if detailErr == nil {
+			if detailErr != nil {
+				apfsErr = detailErr
+			} else {
 				apfsInfo = platform.APFSInfo{
 					Volume:         apfsVolume,
 					Details:        details,
@@ -67,6 +70,7 @@ func doRefresh(runner platform.CommandRunner, cfg *config.Config, apfsVolume str
 			DiskInfo:    diskInfo,
 			DiskErr:     diskErr != nil,
 			SnapshotErr: nil,
+			APFSErr:     apfsErr,
 		}
 	}
 }

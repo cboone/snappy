@@ -16,6 +16,7 @@ type RefreshResultMsg struct {
 	DiskInfo    platform.DiskInfo
 	DiskErr     bool
 	SnapshotErr error
+	APFSErr     error
 }
 
 // SnapshotCreatedMsg signals that a snapshot creation attempt completed.
