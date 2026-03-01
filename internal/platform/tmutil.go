@@ -8,7 +8,10 @@ import (
 	"strings"
 )
 
-var snapshotDateRe = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}-\d{6}$`)
+var (
+	snapshotDateRe    = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}-\d{6}$`)
+	snapshotDateExtRe = regexp.MustCompile(`\d{4}-\d{2}-\d{2}-\d{6}`)
+)
 
 // CheckStatus runs tmutil destinationinfo and returns a status string.
 func CheckStatus(ctx context.Context, r CommandRunner) string {
@@ -49,8 +52,7 @@ func CreateSnapshot(ctx context.Context, r CommandRunner) (string, error) {
 	}
 
 	// Extract date from output like "Created local snapshot with date: 2026-03-01-143025"
-	re := regexp.MustCompile(`\d{4}-\d{2}-\d{2}-\d{6}`)
-	if match := re.FindString(string(out)); match != "" {
+	if match := snapshotDateExtRe.FindString(string(out)); match != "" {
 		return match, nil
 	}
 	return "", nil
