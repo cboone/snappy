@@ -55,6 +55,14 @@ declare -i TERM_COLS=80 # reserved for future line truncation
 # Sets: REDRAW_NEEDED
 REDRAW_NEEDED=false
 
+# Sets: SNAPSHOT_UUID, SNAPSHOT_PURGEABLE, OTHER_SNAPSHOT_COUNT
+declare -A SNAPSHOT_UUID=()
+declare -A SNAPSHOT_PURGEABLE=()
+declare -i OTHER_SNAPSHOT_COUNT=0
+
+# Sets: APFS_VOLUME
+APFS_VOLUME=""
+
 # Color variables (set by setup_colors)
 COLOR_RESET=""
 COLOR_BOLD=""
@@ -275,6 +283,84 @@ function tm_get_disk_info() {
 }
 
 # =============================================================================
+# APFS snapshot details
+# =============================================================================
+
+# Determine the APFS volume to query for snapshot metadata.
+# On macOS, "/" is mounted from a sealed system snapshot; Time Machine
+# snapshots live on the Data volume (/System/Volumes/Data) instead.
+# Sets: APFS_VOLUME
+function find_apfs_volume() {
+  local device
+  device=$(diskutil info -plist "${MOUNT_POINT}" 2>/dev/null \
+    | plutil -extract DeviceIdentifier raw - 2>/dev/null) || true
+
+  if [[ -z "${device}" ]]; then
+    APFS_VOLUME=""
+    return
+  fi
+
+  # Try the device directly (works for most volumes)
+  if diskutil apfs listSnapshots "${device}" > /dev/null 2>&1; then
+    APFS_VOLUME="${device}"
+    return
+  fi
+
+  # Root is mounted from a sealed snapshot (e.g., disk3s1s1); try the
+  # Data volume at /System/Volumes/Data where TM snapshots live.
+  if [[ "${MOUNT_POINT}" == "/" ]]; then
+    local data_device
+    data_device=$(diskutil info -plist "/System/Volumes/Data" 2>/dev/null \
+      | plutil -extract DeviceIdentifier raw - 2>/dev/null) || true
+
+    if [[ -n "${data_device}" ]] && diskutil apfs listSnapshots "${data_device}" > /dev/null 2>&1; then
+      APFS_VOLUME="${data_device}"
+      return
+    fi
+  fi
+
+  # No usable volume found; degrade gracefully
+  APFS_VOLUME=""
+}
+
+# Populate per-snapshot UUID and purgeable details from APFS metadata.
+# Correlates APFS snapshots to tmutil dates via the TM name prefix.
+# Sets: SNAPSHOT_UUID, SNAPSHOT_PURGEABLE, OTHER_SNAPSHOT_COUNT
+function apfs_get_snapshot_details() {
+  SNAPSHOT_UUID=()
+  SNAPSHOT_PURGEABLE=()
+  OTHER_SNAPSHOT_COUNT=0
+
+  [[ -z "${APFS_VOLUME}" ]] && return
+
+  local plist_output
+  plist_output=$(diskutil apfs listSnapshots "${APFS_VOLUME}" -plist 2>/dev/null) || return 0
+
+  local -i i=0
+  while true; do
+    local name
+    name=$(plutil -extract "Snapshots.${i}.SnapshotName" raw - 2>/dev/null <<< "${plist_output}") || break
+
+    local uuid
+    uuid=$(plutil -extract "Snapshots.${i}.SnapshotUUID" raw - 2>/dev/null <<< "${plist_output}") || true
+
+    local purgeable
+    purgeable=$(plutil -extract "Snapshots.${i}.Purgeable" raw - 2>/dev/null <<< "${plist_output}") || true
+
+    # Match com.apple.TimeMachine.YYYY-MM-DD-HHMMSS.local
+    if [[ "${name}" =~ com\.apple\.TimeMachine\.([0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6})\.local ]]; then
+      local tm_date="${BASH_REMATCH[1]}"
+      SNAPSHOT_UUID["${tm_date}"]="${uuid}"
+      SNAPSHOT_PURGEABLE["${tm_date}"]="${purgeable}"
+    else
+      ((OTHER_SNAPSHOT_COUNT += 1))
+    fi
+
+    ((i += 1))
+  done
+}
+
+# =============================================================================
 # Snapshot diffing
 # =============================================================================
 
@@ -413,6 +499,10 @@ function draw_header() {
   printf "  Volume: %s    |  Refresh: %ss  |  Last: %s\n" \
     "${MOUNT_POINT}" "${REFRESH_INTERVAL}" "${LAST_REFRESH}"
   printf "  Time Machine: %s\n" "${TM_STATUS}"
+  if [[ -n "${APFS_VOLUME}" ]]; then
+    printf "  APFS Volume: %s  |  Other snapshots: %d (non-Time Machine)\n" \
+      "${APFS_VOLUME}" "${OTHER_SNAPSHOT_COUNT}"
+  fi
   printf "  Disk: %s\n" "${DISK_INFO}"
   printf "%s\n" "${SEPARATOR}"
 }
@@ -453,8 +543,20 @@ function draw_snapshot_list() {
       local relative
       relative=$(format_relative_time "${snap}")
 
-      printf "  %s %2d.%s  %s   %s(%s)%s\n" \
-        "${COLOR_GREEN}" "$((count - i))" "${COLOR_RESET}" "${snap}" "${COLOR_DIM}" "${relative}" "${COLOR_RESET}"
+      local details=""
+      if [[ -n "${APFS_VOLUME}" ]] && [[ -n "${SNAPSHOT_UUID[${snap}]:-}" ]]; then
+        local uuid="${SNAPSHOT_UUID[${snap}]}"
+        local purgeable_val="${SNAPSHOT_PURGEABLE[${snap}]:-}"
+        if [[ "${purgeable_val}" == "true" || "${purgeable_val}" == "YES" ]]; then
+          details=$(printf "   %s   purgeable" "${uuid}")
+        else
+          details=$(printf "   %s   %spinned%s" "${uuid}" "${COLOR_YELLOW}" "${COLOR_RESET}")
+        fi
+      fi
+
+      printf "  %s %2d.%s  %s   %s(%s)%s%s\n" \
+        "${COLOR_GREEN}" "$((count - i))" "${COLOR_RESET}" "${snap}" \
+        "${COLOR_DIM}" "${relative}" "${COLOR_RESET}" "${details}"
       ((displayed += 1))
     done
   fi
@@ -567,6 +669,7 @@ function handle_keypress() {
 # Perform a full refresh cycle: list snapshots, diff, update disk info, redraw.
 function do_refresh() {
   tm_list_snapshots
+  apfs_get_snapshot_details
   update_snapshot_state
   tm_get_disk_info
 
@@ -617,6 +720,7 @@ function main() {
   check_dependencies
   setup_colors
   setup_log_dir
+  find_apfs_volume
 
   # Register cleanup and resize handlers
   trap cleanup EXIT INT TERM
