@@ -15,7 +15,8 @@ import (
 
 func doRefresh(runner platform.CommandRunner, cfg *config.Config, apfsVolume string) tea.Cmd {
 	return func() tea.Msg {
-		ctx := context.Background()
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
 		tmStatus := platform.CheckStatus(ctx, runner)
 
 		dates, err := platform.ListSnapshots(ctx, runner, cfg.MountPoint)
@@ -41,15 +42,14 @@ func doRefresh(runner platform.CommandRunner, cfg *config.Config, apfsVolume str
 		var apfsInfo platform.APFSInfo
 		var apfsErr error
 		if apfsVolume != "" {
+			apfsInfo.Volume = apfsVolume
+
 			details, otherCount, detailErr := platform.GetSnapshotDetails(ctx, runner, apfsVolume)
 			if detailErr != nil {
 				apfsErr = detailErr
 			} else {
-				apfsInfo = platform.APFSInfo{
-					Volume:         apfsVolume,
-					Details:        details,
-					OtherSnapCount: otherCount,
-				}
+				apfsInfo.Details = details
+				apfsInfo.OtherSnapCount = otherCount
 				// Merge APFS details into snapshots
 				for i, s := range snapshots {
 					if d, ok := details[s.Date]; ok {
@@ -77,7 +77,8 @@ func doRefresh(runner platform.CommandRunner, cfg *config.Config, apfsVolume str
 
 func doCreateSnapshot(runner platform.CommandRunner) tea.Cmd {
 	return func() tea.Msg {
-		ctx := context.Background()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
 		date, err := platform.CreateSnapshot(ctx, runner)
 		return SnapshotCreatedMsg{Date: date, Err: err}
 	}
@@ -85,11 +86,13 @@ func doCreateSnapshot(runner platform.CommandRunner) tea.Cmd {
 
 func doThinSnapshots(runner platform.CommandRunner, targets []string) tea.Cmd {
 	return func() tea.Msg {
-		ctx := context.Background()
 		deleted := 0
 		var failed []string
 		for _, date := range targets {
-			if err := platform.DeleteSnapshot(ctx, runner, date); err != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			err := platform.DeleteSnapshot(ctx, runner, date)
+			cancel()
+			if err != nil {
 				failed = append(failed, fmt.Sprintf("%s (%v)", date, err))
 				continue
 			}
