@@ -14,3 +14,30 @@
 *.p12
 credentials.json
 token.json
+
+# Binary
+/snappy
+/bin/
+/dist/
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Code coverage profiles and other test artifacts
+*.out
+coverage.*
+*.coverprofile
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Dependency directories
+# vendor/
