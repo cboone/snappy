@@ -26,6 +26,17 @@ readonly LOG_FILE="${LOG_DIR}/snappy.log"
 readonly SEPARATOR="================================================================================"
 readonly THIN_SEPARATOR="------------------------------------------------------------------------------"
 
+AUTO_SNAPSHOT_INTERVAL="${SNAPPY_AUTO_INTERVAL:-300}"  # seconds between auto-snapshots
+AUTO_SNAPSHOT_ENABLED="${SNAPPY_AUTO_ENABLED:-true}"   # toggleable at runtime
+
+readonly -a RETENTION_TIERS=(
+  "0:3600:300"          # 0-1h:   keep one every 5 min
+  "3600:21600:3600"     # 1-6h:   keep one every 1h
+  "21600:86400:14400"   # 6-24h:  keep one every 4h
+  "86400:1209600:86400" # 1-14d:  keep one every 1d
+)
+readonly MAX_SNAPSHOT_AGE=1209600  # 14 days in seconds
+
 # =============================================================================
 # Global state
 # =============================================================================
@@ -63,6 +74,9 @@ declare -i OTHER_SNAPSHOT_COUNT=0
 
 # Sets: APFS_VOLUME
 APFS_VOLUME=""
+
+# Sets: LAST_AUTO_SNAPSHOT_EPOCH
+declare -i LAST_AUTO_SNAPSHOT_EPOCH=0
 
 # Color variables (set by setup_colors)
 COLOR_RESET=""
@@ -167,7 +181,7 @@ readonly MAX_LOG_ENTRIES=50
 
 # Write a log entry to both terminal buffer and file.
 # Arguments:
-#   $1 - Event type (STARTUP, INFO, CREATED, ADDED, REMOVED, ERROR)
+#   $1 - Event type (STARTUP, INFO, CREATED, ADDED, REMOVED, AUTO, THINNED, ERROR)
 #   $2 - Message text
 function log_event() {
   local event_type="${1}"
@@ -243,6 +257,22 @@ function tm_create_snapshot() {
   fi
 }
 
+# Delete a snapshot by its date string.
+# Arguments:
+#   $1 - Snapshot date in YYYY-MM-DD-HHMMSS format
+# Returns:
+#   0 on success, 1 on failure
+function tm_delete_snapshot() {
+  local snapshot_date="${1}"
+  local output
+  if output=$(tmutil deletelocalsnapshots "${snapshot_date}" 2>&1); then
+    return 0
+  else
+    log_event "ERROR" "Failed to delete snapshot ${snapshot_date}: ${output}"
+    return 1
+  fi
+}
+
 # Delete the oldest snapshot from the current list.
 # Returns:
 #   0 on success, 1 on failure or no snapshots
@@ -252,18 +282,15 @@ function tm_delete_oldest() {
     return 1
   fi
 
-  # Snapshots are date-sorted; oldest is last after reverse sort, or first if ascending
   # tmutil listlocalsnapshotdates returns ascending order, so index 0 is oldest
   local oldest="${CURR_SNAPSHOTS[0]}"
 
-  local output
-  if output=$(tmutil deletelocalsnapshots "${oldest}" 2>&1); then
+  # shellcheck disable=SC2310 # intentional: testing return code
+  if tm_delete_snapshot "${oldest}"; then
     log_event "INFO" "Deleted snapshot: ${oldest}"
     return 0
-  else
-    log_event "ERROR" "Failed to delete snapshot ${oldest}: ${output}"
-    return 1
   fi
+  return 1
 }
 
 # Get disk usage information for the mount point.
@@ -449,6 +476,139 @@ function update_snapshot_state() {
 }
 
 # =============================================================================
+# Tiered retention
+# =============================================================================
+
+# Thin snapshots according to RETENTION_TIERS, deleting those that are too
+# close together in older tiers and anything beyond MAX_SNAPSHOT_AGE.
+function thin_snapshots() {
+  local -i now_epoch
+  now_epoch=$(date "+%s")
+
+  # Build parallel arrays of (date, epoch) for all current snapshots
+  local -a snap_dates=()
+  local -a snap_epochs=()
+  local snap
+  for snap in "${CURR_SNAPSHOTS[@]}"; do
+    local -i epoch
+    epoch=$(snapshot_date_to_epoch "${snap}")
+    if ((epoch > 0)); then
+      snap_dates+=("${snap}")
+      snap_epochs+=("${epoch}")
+    fi
+  done
+
+  local -i total="${#snap_dates[@]}"
+  if ((total == 0)); then
+    return
+  fi
+
+  # Track which indices to delete (1 = delete, 0 = keep)
+  local -a to_delete=()
+  local -i idx
+  for ((idx = 0; idx < total; idx++)); do
+    to_delete+=(0)
+  done
+
+  # Mark snapshots older than MAX_SNAPSHOT_AGE
+  for ((idx = 0; idx < total; idx++)); do
+    local -i age=$((now_epoch - snap_epochs[idx]))
+    if ((age > MAX_SNAPSHOT_AGE)); then
+      to_delete[idx]=1
+    fi
+  done
+
+  # Apply each retention tier
+  local tier
+  for tier in "${RETENTION_TIERS[@]}"; do
+    local tier_min_age tier_max_age tier_min_gap
+    IFS=: read -r tier_min_age tier_max_age tier_min_gap <<< "${tier}"
+
+    # Collect indices within this tier's age range, sorted chronologically
+    # (CURR_SNAPSHOTS is ascending, so snap_dates is already chronological)
+    local -a tier_indices=()
+    for ((idx = 0; idx < total; idx++)); do
+      # Skip already-marked snapshots
+      if ((to_delete[idx] == 1)); then
+        continue
+      fi
+      local -i age=$((now_epoch - snap_epochs[idx]))
+      if ((age >= tier_min_age)) && ((age < tier_max_age)); then
+        tier_indices+=("${idx}")
+      fi
+    done
+
+    if ((${#tier_indices[@]} <= 1)); then
+      continue
+    fi
+
+    # Walk chronologically, keep snapshots >= min_gap apart
+    local -i last_kept_epoch="${snap_epochs[${tier_indices[0]}]}"
+    local -i ti
+    for ((ti = 1; ti < ${#tier_indices[@]}; ti++)); do
+      local -i cur_idx="${tier_indices[ti]}"
+      local -i gap=$((snap_epochs[cur_idx] - last_kept_epoch))
+      if ((gap < tier_min_gap)); then
+        to_delete[cur_idx]=1
+      else
+        last_kept_epoch="${snap_epochs[cur_idx]}"
+      fi
+    done
+  done
+
+  # Execute deletions
+  local -i deleted=0
+  for ((idx = 0; idx < total; idx++)); do
+    if ((to_delete[idx] == 1)); then
+      # shellcheck disable=SC2310 # intentional: testing return code
+      if tm_delete_snapshot "${snap_dates[idx]}"; then
+        log_event "THINNED" "Removed ${snap_dates[idx]}"
+        ((deleted += 1))
+      fi
+    fi
+  done
+
+  if ((deleted > 0)); then
+    log_event "INFO" "Thinning complete: removed ${deleted} snapshot(s)"
+  fi
+}
+
+# =============================================================================
+# Auto-snapshot
+# =============================================================================
+
+# Create an auto-snapshot if the interval has elapsed, then thin old snapshots.
+# Called from do_refresh on each cycle.
+function maybe_auto_snapshot() {
+  if [[ "${AUTO_SNAPSHOT_ENABLED}" != true ]]; then
+    return
+  fi
+
+  local -i now_epoch
+  now_epoch=$(date "+%s")
+
+  local -i elapsed=$((now_epoch - LAST_AUTO_SNAPSHOT_EPOCH))
+  if ((elapsed < AUTO_SNAPSHOT_INTERVAL)); then
+    return
+  fi
+
+  # Advance timer regardless of success to avoid retrying every refresh cycle
+  LAST_AUTO_SNAPSHOT_EPOCH="${now_epoch}"
+
+  log_event "AUTO" "Creating auto-snapshot..."
+  # shellcheck disable=SC2310 # intentional: allow failure without tripping set -e
+  if tm_create_snapshot; then
+    # Re-list so thinning sees the new snapshot
+    tm_list_snapshots
+    apfs_get_snapshot_details
+    thin_snapshots
+    # Re-list again after thinning to reflect final state
+    tm_list_snapshots
+    apfs_get_snapshot_details
+  fi
+}
+
+# =============================================================================
 # Terminal size
 # =============================================================================
 
@@ -466,12 +626,12 @@ function update_terminal_size() {
 # Relative timestamp formatting
 # =============================================================================
 
-# Convert a snapshot date string to a human-readable relative timestamp.
+# Convert a snapshot date string to a Unix epoch timestamp.
 # Arguments:
 #   $1 - Snapshot date in YYYY-MM-DD-HHMMSS format
 # Outputs:
-#   Writes relative timestamp to stdout (e.g., "3m ago", "2h ago", "1d ago")
-function format_relative_time() {
+#   Writes epoch seconds to stdout, or 0 on parse failure
+function snapshot_date_to_epoch() {
   local snapshot_date="${1}"
 
   # Parse YYYY-MM-DD-HHMMSS into components
@@ -484,8 +644,19 @@ function format_relative_time() {
 
   local formatted="${year}-${month}-${day} ${hour}:${min}:${sec}"
 
+  date -j -f "%Y-%m-%d %H:%M:%S" "${formatted}" "+%s" 2>/dev/null || echo 0
+}
+
+# Convert a snapshot date string to a human-readable relative timestamp.
+# Arguments:
+#   $1 - Snapshot date in YYYY-MM-DD-HHMMSS format
+# Outputs:
+#   Writes relative timestamp to stdout (e.g., "3m ago", "2h ago", "1d ago")
+function format_relative_time() {
+  local snapshot_date="${1}"
+
   local -i snap_epoch
-  snap_epoch=$(date -j -f "%Y-%m-%d %H:%M:%S" "${formatted}" "+%s" 2>/dev/null || echo 0)
+  snap_epoch=$(snapshot_date_to_epoch "${snapshot_date}")
 
   if ((snap_epoch == 0)); then
     echo "unknown"
@@ -529,6 +700,23 @@ function draw_header() {
       "${APFS_VOLUME}" "${OTHER_SNAPSHOT_COUNT}"
   fi
   printf "  Disk: %s\n" "${DISK_INFO}"
+
+  # Auto-snapshot status
+  local auto_state
+  if [[ "${AUTO_SNAPSHOT_ENABLED}" == true ]]; then
+    auto_state="${COLOR_GREEN}on${COLOR_RESET}"
+    local -i now_epoch
+    now_epoch=$(date "+%s")
+    local -i next_in=$((AUTO_SNAPSHOT_INTERVAL - (now_epoch - LAST_AUTO_SNAPSHOT_EPOCH)))
+    if ((next_in < 0)); then
+      next_in=0
+    fi
+    printf "  Auto-snapshot: %s  |  every %ss  |  next in %ss\n" \
+      "${auto_state}" "${AUTO_SNAPSHOT_INTERVAL}" "${next_in}"
+  else
+    auto_state="${COLOR_RED}off${COLOR_RESET}"
+    printf "  Auto-snapshot: %s\n" "${auto_state}"
+  fi
   printf "%s\n" "${SEPARATOR}"
 }
 
@@ -623,8 +811,10 @@ function draw_recent_log() {
         printf "  %s%s%s\n" "${COLOR_RED}" "${entry}" "${COLOR_RESET}"
       elif [[ "${entry}" == *"CREATED"* ]] || [[ "${entry}" == *"ADDED"* ]]; then
         printf "  %s%s%s\n" "${COLOR_GREEN}" "${entry}" "${COLOR_RESET}"
-      elif [[ "${entry}" == *"REMOVED"* ]]; then
+      elif [[ "${entry}" == *"REMOVED"* ]] || [[ "${entry}" == *"THINNED"* ]]; then
         printf "  %s%s%s\n" "${COLOR_YELLOW}" "${entry}" "${COLOR_RESET}"
+      elif [[ "${entry}" == *"AUTO"* ]]; then
+        printf "  %s%s%s\n" "${COLOR_CYAN}" "${entry}" "${COLOR_RESET}"
       elif [[ "${entry}" == *"STARTUP"* ]]; then
         printf "  %s%s%s\n" "${COLOR_MAGENTA}" "${entry}" "${COLOR_RESET}"
       else
@@ -638,9 +828,10 @@ function draw_recent_log() {
 function draw_controls() {
   printf "\n"
   printf "%s\n" "${SEPARATOR}"
-  printf "  %s[s]%s Snapshot   %s[r]%s Refresh   %s[d]%s Delete oldest   %s[q]%s Quit\n" \
+  printf "  %s[s]%s Snapshot   %s[r]%s Refresh   %s[d]%s Delete oldest   %s[a]%s Auto-snap   %s[q]%s Quit\n" \
     "${COLOR_BOLD}" "${COLOR_RESET}" "${COLOR_BOLD}" "${COLOR_RESET}" \
-    "${COLOR_BOLD}" "${COLOR_RESET}" "${COLOR_BOLD}" "${COLOR_RESET}"
+    "${COLOR_BOLD}" "${COLOR_RESET}" "${COLOR_BOLD}" "${COLOR_RESET}" \
+    "${COLOR_BOLD}" "${COLOR_RESET}"
   printf "%s\n" "${SEPARATOR}"
 }
 
@@ -683,6 +874,17 @@ function handle_keypress() {
       tm_delete_oldest || true
       do_refresh
       ;;
+    a | A)
+      if [[ "${AUTO_SNAPSHOT_ENABLED}" == true ]]; then
+        AUTO_SNAPSHOT_ENABLED=false
+        log_event "INFO" "Auto-snapshots disabled"
+      else
+        AUTO_SNAPSHOT_ENABLED=true
+        LAST_AUTO_SNAPSHOT_EPOCH=$(date "+%s")
+        log_event "INFO" "Auto-snapshots enabled (every ${AUTO_SNAPSHOT_INTERVAL}s)"
+      fi
+      draw_ui
+      ;;
     q | Q)
       log_event "INFO" "Shutting down"
       exit "${E_SUCCESS}"
@@ -707,6 +909,9 @@ function do_refresh() {
   LAST_REFRESH=$(date +"%Y-%m-%dT%H:%M:%S")
 
   log_event "INFO" "Refresh: ${#CURR_SNAPSHOTS[@]} snapshots, disk ${DISK_INFO}"
+
+  maybe_auto_snapshot
+  update_snapshot_state
 
   draw_ui
 }
@@ -761,6 +966,11 @@ function main() {
   tm_check_status
 
   log_event "STARTUP" "snappy v${VERSION} | volume=${MOUNT_POINT} | refresh=${REFRESH_INTERVAL}s"
+  log_event "STARTUP" "auto-snapshot=${AUTO_SNAPSHOT_ENABLED} | interval=${AUTO_SNAPSHOT_INTERVAL}s"
+
+  # Initialize auto-snapshot timer to now so the first auto-snapshot fires
+  # after one full interval, not immediately on startup
+  LAST_AUTO_SNAPSHOT_EPOCH=$(date "+%s")
 
   # Hide cursor
   if command -v tput > /dev/null 2>&1; then
