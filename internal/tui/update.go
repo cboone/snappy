@@ -80,13 +80,17 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 
 	var cmds []tea.Cmd
 
-	if m.auto.ShouldSnapshot(now) {
+	snapshotDue := m.auto.ShouldSnapshot(now)
+	if snapshotDue {
 		m.auto.RecordSnapshot(now)
 		m.log.Log(logger.Auto, "Creating auto-snapshot...")
 		cmds = append(cmds, doCreateSnapshot(m.runner))
 	}
 
-	if !m.refreshing {
+	// Skip refresh when an auto-snapshot is in flight; SnapshotCreatedMsg
+	// will trigger a post-creation refresh, avoiding a race where refresh
+	// fetches the pre-snapshot list.
+	if !snapshotDue && !m.refreshing {
 		m.refreshing = true
 		cmds = append(cmds, doRefresh(m.runner, m.cfg, m.apfsVolume))
 	}
