@@ -7,9 +7,15 @@ Automatically increase your Time Machine snapshot frequency.
 ## Structure
 
 ```text
-TODO
+bin/snappy          Interactive TUI for managing local snapshots
+docs/plans/         Design plans and decision records
 ```
 
 ## Development
 
-TODO
+Validate the script:
+
+```bash
+bash -n bin/snappy
+shellcheck bin/snappy
+```
