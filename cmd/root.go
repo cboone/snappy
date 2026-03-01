@@ -90,7 +90,10 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	ctx := context.Background()
 
 	// One-time startup: discover APFS volume and check TM status
-	apfsVolume, _ := platform.FindAPFSVolume(ctx, runner, cfg.MountPoint)
+	apfsVolume, err := platform.FindAPFSVolume(ctx, runner, cfg.MountPoint)
+	if err != nil {
+		log.Log(logger.Startup, fmt.Sprintf("Warning: failed to discover APFS volume for %s: %v", cfg.MountPoint, err))
+	}
 	tmStatus := platform.CheckStatus(ctx, runner)
 
 	log.Log(logger.Startup, fmt.Sprintf("snappy v%s | volume=%s | refresh=%ds",
