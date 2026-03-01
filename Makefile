@@ -4,7 +4,9 @@ OUTDIR  := bin
 
 LDFLAGS := -ldflags "-X main.version=$(VERSION)"
 
-.PHONY: build test lint vet fmt clean cover tidy help
+.PHONY: all build test lint vet fmt clean cover tidy help
+
+all: fmt vet lint test build ## Run all checks and build
 
 build: ## Build the binary
 	mkdir -p $(OUTDIR)

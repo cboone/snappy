@@ -7,11 +7,29 @@ Automatically increase your Time Machine snapshot frequency.
 ## Structure
 
 ```text
-main.go             CLI entry point
-cmd/                Cobra command definitions
-internal/           Internal packages
-bin/snappy          Original bash TUI (reference implementation)
-docs/plans/         Design plans and decision records
+main.go                          CLI entry point
+cmd/root.go                      Cobra root command, launches TUI
+internal/
+  config/config.go               Viper-backed configuration
+  platform/
+    exec.go                      CommandRunner interface
+    tmutil.go                    tmutil command wrappers
+    diskutil.go                  APFS plist parsing (howett.net/plist)
+    disk.go                      df disk info wrapper
+  snapshot/
+    snapshot.go                  Snapshot type, date parsing, relative time
+    diff.go                      Snapshot list diffing
+    auto.go                      Auto-snapshot timer and thinning logic
+  logger/logger.go               Ring buffer + file logger
+  tui/
+    model.go                     Bubbletea model + Init
+    update.go                    Update (message dispatch)
+    view.go                      View (header/list/log/controls)
+    styles.go                    Lipgloss style definitions
+    messages.go                  Custom tea.Msg types
+    commands.go                  tea.Cmd factories for async operations
+docs/proof-of-concept/snappy     Original bash TUI (reference)
+docs/plans/                      Design plans and decision records
 ```
 
 ## Development

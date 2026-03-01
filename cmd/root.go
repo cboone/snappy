@@ -1,21 +1,31 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/cboone/snappy/internal/config"
+	"github.com/cboone/snappy/internal/logger"
+	"github.com/cboone/snappy/internal/platform"
+	"github.com/cboone/snappy/internal/tui"
 )
 
 var (
 	cfgFile string
+	version string
 	rootCmd = &cobra.Command{
 		Use:           "snappy",
 		Short:         "Automatically increase your Time Machine snapshot frequency",
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		RunE:          runTUI,
 	}
 )
 
@@ -27,6 +37,7 @@ func Execute() error {
 // SetVersion sets the version string on the root command.
 func SetVersion(v string) {
 	rootCmd.Version = v
+	version = v
 }
 
 func init() {
@@ -46,12 +57,54 @@ func initConfig() {
 		}
 	}
 
+	viper.SetEnvPrefix("SNAPPY")
 	viper.AutomaticEnv()
+	config.SetDefaults()
 
 	if err := viper.ReadInConfig(); err != nil {
-		// Missing config file is fine; surface unexpected errors (e.g., syntax).
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
 			fmt.Fprintf(os.Stderr, "Warning: config file error: %v\n", err)
 		}
 	}
+}
+
+func runTUI(_ *cobra.Command, _ []string) error {
+	if _, err := exec.LookPath("tmutil"); err != nil {
+		return fmt.Errorf("tmutil not found: this tool requires macOS with Time Machine support")
+	}
+
+	cfg := config.Load()
+
+	// Resolve default log directory
+	if cfg.LogDir == "" {
+		home, err := os.UserHomeDir()
+		if err == nil {
+			cfg.LogDir = filepath.Join(home, ".local", "share", "snappy")
+		}
+	}
+
+	log := logger.New(cfg.LogDir, 50)
+	defer log.Close()
+
+	runner := platform.OSRunner{}
+	ctx := context.Background()
+
+	// One-time startup: discover APFS volume and check TM status
+	apfsVolume, _ := platform.FindAPFSVolume(ctx, runner, cfg.MountPoint)
+	tmStatus := platform.CheckStatus(ctx, runner)
+
+	log.Log(logger.Startup, fmt.Sprintf("snappy v%s | volume=%s | refresh=%ds",
+		version, cfg.MountPoint, int(cfg.RefreshInterval.Seconds())))
+	log.Log(logger.Startup, fmt.Sprintf("auto-snapshot=%v | every %ds | thin >%ds to %ds",
+		cfg.AutoEnabled, int(cfg.AutoSnapshotInterval.Seconds()),
+		int(cfg.ThinAgeThreshold.Seconds()), int(cfg.ThinCadence.Seconds())))
+
+	model := tui.NewModel(cfg, runner, log, apfsVolume, tmStatus, version)
+	p := tea.NewProgram(model, tea.WithAltScreen())
+
+	if _, err := p.Run(); err != nil {
+		return fmt.Errorf("running TUI: %w", err)
+	}
+
+	return nil
 }
