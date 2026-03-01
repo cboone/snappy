@@ -55,9 +55,10 @@ declare -i TERM_COLS=80 # reserved for future line truncation
 # Sets: REDRAW_NEEDED
 REDRAW_NEEDED=false
 
-# Sets: SNAPSHOT_UUID, SNAPSHOT_PURGEABLE, OTHER_SNAPSHOT_COUNT
+# Sets: SNAPSHOT_UUID, SNAPSHOT_PURGEABLE, SNAPSHOT_LIMITS_SHRINK, OTHER_SNAPSHOT_COUNT
 declare -A SNAPSHOT_UUID=()
 declare -A SNAPSHOT_PURGEABLE=()
+declare -A SNAPSHOT_LIMITS_SHRINK=()
 declare -i OTHER_SNAPSHOT_COUNT=0
 
 # Sets: APFS_VOLUME
@@ -344,10 +345,11 @@ function find_apfs_volume() {
 
 # Populate per-snapshot UUID and purgeable details from APFS metadata.
 # Correlates APFS snapshots to tmutil dates via the TM name prefix.
-# Sets: SNAPSHOT_UUID, SNAPSHOT_PURGEABLE, OTHER_SNAPSHOT_COUNT
+# Sets: SNAPSHOT_UUID, SNAPSHOT_PURGEABLE, SNAPSHOT_LIMITS_SHRINK, OTHER_SNAPSHOT_COUNT
 function apfs_get_snapshot_details() {
   SNAPSHOT_UUID=()
   SNAPSHOT_PURGEABLE=()
+  SNAPSHOT_LIMITS_SHRINK=()
   OTHER_SNAPSHOT_COUNT=0
 
   [[ -z "${APFS_VOLUME}" ]] && return
@@ -366,11 +368,15 @@ function apfs_get_snapshot_details() {
     local purgeable
     purgeable=$(plutil -extract "Snapshots.${i}.Purgeable" raw - 2>/dev/null <<< "${plist_output}") || true
 
+    local limits_shrink
+    limits_shrink=$(plutil -extract "Snapshots.${i}.LimitingContainerShrink" raw - 2>/dev/null <<< "${plist_output}") || true
+
     # Match com.apple.TimeMachine.YYYY-MM-DD-HHMMSS.local
     if [[ "${name}" =~ com\.apple\.TimeMachine\.([0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6})\.local ]]; then
       local tm_date="${BASH_REMATCH[1]}"
       SNAPSHOT_UUID["${tm_date}"]="${uuid}"
       SNAPSHOT_PURGEABLE["${tm_date}"]="${purgeable}"
+      SNAPSHOT_LIMITS_SHRINK["${tm_date}"]="${limits_shrink}"
     else
       ((OTHER_SNAPSHOT_COUNT += 1))
     fi
@@ -566,11 +572,17 @@ function draw_snapshot_list() {
       if [[ -n "${APFS_VOLUME}" ]] && [[ -n "${SNAPSHOT_UUID[${snap}]:-}" ]]; then
         local uuid="${SNAPSHOT_UUID[${snap}]}"
         local purgeable_val="${SNAPSHOT_PURGEABLE[${snap}]:-}"
+        local flags=""
         if [[ "${purgeable_val}" == "true" || "${purgeable_val}" == "YES" ]]; then
-          details=$(printf "   %s   purgeable" "${uuid}")
+          flags="purgeable"
         else
-          details=$(printf "   %s   %spinned%s" "${uuid}" "${COLOR_YELLOW}" "${COLOR_RESET}")
+          flags="${COLOR_YELLOW}pinned${COLOR_RESET}"
         fi
+        local shrink_val="${SNAPSHOT_LIMITS_SHRINK[${snap}]:-}"
+        if [[ "${shrink_val}" == "true" || "${shrink_val}" == "YES" ]]; then
+          flags="${flags}  ${COLOR_RED}limits shrink${COLOR_RESET}"
+        fi
+        details=$(printf "   %s   %s" "${uuid}" "${flags}")
       fi
 
       printf "  %s %2d.%s  %s   %s(%s)%s%s\n" \
