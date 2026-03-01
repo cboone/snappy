@@ -52,17 +52,17 @@ func FindAPFSVolume(ctx context.Context, r CommandRunner, mount string) (string,
 		return "", err
 	}
 
-	if hasTMSnapshots(ctx, r, device) {
-		return device, nil
-	}
-
 	// Root is mounted from a sealed system snapshot. Time Machine snapshots
 	// live on the Data volume at /System/Volumes/Data instead.
 	if mount == "/" {
 		dataDevice, err := getDeviceIdentifier(ctx, r, "/System/Volumes/Data")
-		if err == nil && dataDevice != "" && hasTMSnapshots(ctx, r, dataDevice) {
+		if err == nil && dataDevice != "" && canListSnapshots(ctx, r, dataDevice) {
 			return dataDevice, nil
 		}
+	}
+
+	if canListSnapshots(ctx, r, device) {
+		return device, nil
 	}
 
 	return "", nil
@@ -121,12 +121,9 @@ func getDeviceIdentifier(ctx context.Context, r CommandRunner, mount string) (st
 	return info.DeviceIdentifier, nil
 }
 
-func hasTMSnapshots(ctx context.Context, r CommandRunner, device string) bool {
-	out, err := r.Run(ctx, "diskutil", "apfs", "listSnapshots", device, "-plist")
-	if err != nil {
-		return false
-	}
-	return strings.Contains(string(out), "com.apple.TimeMachine.")
+func canListSnapshots(ctx context.Context, r CommandRunner, device string) bool {
+	_, err := r.Run(ctx, "diskutil", "apfs", "listSnapshots", device, "-plist")
+	return err == nil
 }
 
 // parseBoolish handles plist values that may be bool or string ("YES"/"NO").

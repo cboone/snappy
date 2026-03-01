@@ -101,6 +101,11 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 
 	m.lastRefresh = m.now()
 
+	if msg.SnapshotErr != nil {
+		m.log.Log(logger.Error, fmt.Sprintf("Failed to list snapshots: %v", msg.SnapshotErr))
+		return m, nil
+	}
+
 	// Compute diff
 	prev := m.snapshots
 	m.prevSnapshots = prev
@@ -146,9 +151,7 @@ func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd
 }
 
 func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
-	if msg.Err != nil {
-		m.log.Log(logger.Error, fmt.Sprintf("Thinning error: %v", msg.Err))
-	} else if msg.Deleted > 0 {
+	if msg.Deleted > 0 {
 		m.log.Log(logger.Thinned, fmt.Sprintf(
 			"Thinned %d snapshot(s) older than %dm to %ds cadence",
 			msg.Deleted,
@@ -156,5 +159,10 @@ func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
 			int(m.auto.ThinCadence().Seconds()),
 		))
 	}
+
+	if msg.Err != nil {
+		m.log.Log(logger.Error, fmt.Sprintf("Thinning error: %v", msg.Err))
+	}
+
 	return m, doRefresh(m.runner, m.cfg, m.apfsVolume)
 }

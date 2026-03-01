@@ -2,6 +2,8 @@ package tui
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -14,10 +16,17 @@ import (
 func doRefresh(runner platform.CommandRunner, cfg *config.Config, apfsVolume string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
+		tmStatus := platform.CheckStatus(ctx, runner)
 
 		dates, err := platform.ListSnapshots(ctx, runner, cfg.MountPoint)
 		if err != nil {
-			return RefreshResultMsg{DiskErr: true}
+			diskInfo, diskErr := platform.GetDiskInfo(ctx, runner, cfg.MountPoint)
+			return RefreshResultMsg{
+				TMStatus:    tmStatus,
+				DiskInfo:    diskInfo,
+				DiskErr:     diskErr != nil,
+				SnapshotErr: err,
+			}
 		}
 
 		var snapshots []snapshot.Snapshot
@@ -28,8 +37,6 @@ func doRefresh(runner platform.CommandRunner, cfg *config.Config, apfsVolume str
 			}
 			snapshots = append(snapshots, snapshot.Snapshot{Date: d, Time: t})
 		}
-
-		tmStatus := platform.CheckStatus(ctx, runner)
 
 		var apfsInfo platform.APFSInfo
 		if apfsVolume != "" {
@@ -54,11 +61,12 @@ func doRefresh(runner platform.CommandRunner, cfg *config.Config, apfsVolume str
 		diskInfo, diskErr := platform.GetDiskInfo(ctx, runner, cfg.MountPoint)
 
 		return RefreshResultMsg{
-			Snapshots: snapshots,
-			TMStatus:  tmStatus,
-			APFSInfo:  apfsInfo,
-			DiskInfo:  diskInfo,
-			DiskErr:   diskErr != nil,
+			Snapshots:   snapshots,
+			TMStatus:    tmStatus,
+			APFSInfo:    apfsInfo,
+			DiskInfo:    diskInfo,
+			DiskErr:     diskErr != nil,
+			SnapshotErr: nil,
 		}
 	}
 }
@@ -75,12 +83,21 @@ func doThinSnapshots(runner platform.CommandRunner, targets []string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 		deleted := 0
+		var failed []string
 		for _, date := range targets {
-			if err := platform.DeleteSnapshot(ctx, runner, date); err == nil {
-				deleted++
+			if err := platform.DeleteSnapshot(ctx, runner, date); err != nil {
+				failed = append(failed, fmt.Sprintf("%s (%v)", date, err))
+				continue
 			}
+			deleted++
 		}
-		return ThinResultMsg{Deleted: deleted}
+
+		var err error
+		if len(failed) > 0 {
+			err = fmt.Errorf("%d snapshot deletion(s) failed: %s", len(failed), strings.Join(failed, "; "))
+		}
+
+		return ThinResultMsg{Deleted: deleted, Err: err}
 	}
 }
 

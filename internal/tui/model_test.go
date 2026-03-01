@@ -201,6 +201,41 @@ func TestRefreshResultMsg(t *testing.T) {
 	}
 }
 
+func TestRefreshResultMsgSnapshotErrorKeepsExistingSnapshots(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+	m.snapshots = []snapshot.Snapshot{
+		{Date: "2026-03-01-145000", Time: now.Add(-10 * time.Minute)},
+	}
+
+	updated, _ := m.Update(RefreshResultMsg{SnapshotErr: fmt.Errorf("tmutil failed")})
+	model := updated.(Model)
+
+	if len(model.snapshots) != 1 {
+		t.Fatalf("snapshots = %d, want 1", len(model.snapshots))
+	}
+
+	entries := model.log.Entries()
+	var removedCount int
+	var sawError bool
+	for _, e := range entries {
+		if e.Type == logger.Removed {
+			removedCount++
+		}
+		if e.Type == logger.Error && strings.Contains(e.Message, "Failed to list snapshots") {
+			sawError = true
+		}
+	}
+
+	if removedCount != 0 {
+		t.Fatalf("got %d removal log entries, want 0", removedCount)
+	}
+	if !sawError {
+		t.Fatal("expected refresh error log entry")
+	}
+}
+
 func TestSnapshotCreatedMsg(t *testing.T) {
 	m := testModel()
 
@@ -323,5 +358,25 @@ func TestDiffDisplay(t *testing.T) {
 	}
 	if !strings.Contains(v, "1 removed") {
 		t.Error("view missing diff removed count")
+	}
+}
+
+func TestDoThinSnapshotsReportsDeleteFailures(t *testing.T) {
+	runner := &mockRunner{responses: map[string]mockResponse{
+		"tmutil deletelocalsnapshots 2026-03-01-140000": {output: []byte("Deleted\n")},
+		"tmutil deletelocalsnapshots 2026-03-01-140100": {err: fmt.Errorf("permission denied")},
+	}}
+
+	msg := doThinSnapshots(runner, []string{"2026-03-01-140000", "2026-03-01-140100"})()
+	result, ok := msg.(ThinResultMsg)
+	if !ok {
+		t.Fatalf("msg type = %T, want ThinResultMsg", msg)
+	}
+
+	if result.Deleted != 1 {
+		t.Fatalf("Deleted = %d, want 1", result.Deleted)
+	}
+	if result.Err == nil {
+		t.Fatal("expected non-nil error for failed deletions")
 	}
 }

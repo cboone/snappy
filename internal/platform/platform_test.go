@@ -278,3 +278,74 @@ func TestParseBoolish(t *testing.T) {
 		})
 	}
 }
+
+func TestFindAPFSVolumeRootFallsBackToDataVolume(t *testing.T) {
+	r := &mockRunner{responses: map[string]mockResponse{
+		"diskutil info -plist /":                     {output: []byte(infoPlist("disk3s1s1"))},
+		"diskutil info -plist /System/Volumes/Data":  {output: []byte(infoPlist("disk3s5"))},
+		"diskutil apfs listSnapshots disk3s5 -plist": {output: []byte(emptySnapshotsPlist)},
+		"diskutil apfs listSnapshots disk3s1s1 -plist": {
+			err: fmt.Errorf("listSnapshots not supported for sealed snapshot mount"),
+		},
+	}}
+
+	got, err := FindAPFSVolume(context.Background(), r, "/")
+	if err != nil {
+		t.Fatalf("FindAPFSVolume() error = %v", err)
+	}
+	if got != "disk3s5" {
+		t.Fatalf("FindAPFSVolume() = %q, want %q", got, "disk3s5")
+	}
+}
+
+func TestFindAPFSVolumeAcceptsEmptySnapshotList(t *testing.T) {
+	r := &mockRunner{responses: map[string]mockResponse{
+		"diskutil info -plist /Volumes/External":     {output: []byte(infoPlist("disk4s1"))},
+		"diskutil apfs listSnapshots disk4s1 -plist": {output: []byte(emptySnapshotsPlist)},
+	}}
+
+	got, err := FindAPFSVolume(context.Background(), r, "/Volumes/External")
+	if err != nil {
+		t.Fatalf("FindAPFSVolume() error = %v", err)
+	}
+	if got != "disk4s1" {
+		t.Fatalf("FindAPFSVolume() = %q, want %q", got, "disk4s1")
+	}
+}
+
+func TestFindAPFSVolumeReturnsEmptyWhenNoDeviceSupportsSnapshots(t *testing.T) {
+	r := &mockRunner{responses: map[string]mockResponse{
+		"diskutil info -plist /":                       {output: []byte(infoPlist("disk3s1s1"))},
+		"diskutil info -plist /System/Volumes/Data":    {output: []byte(infoPlist("disk3s5"))},
+		"diskutil apfs listSnapshots disk3s5 -plist":   {err: fmt.Errorf("unsupported")},
+		"diskutil apfs listSnapshots disk3s1s1 -plist": {err: fmt.Errorf("unsupported")},
+	}}
+
+	got, err := FindAPFSVolume(context.Background(), r, "/")
+	if err != nil {
+		t.Fatalf("FindAPFSVolume() error = %v", err)
+	}
+	if got != "" {
+		t.Fatalf("FindAPFSVolume() = %q, want empty", got)
+	}
+}
+
+func infoPlist(device string) string {
+	return fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>DeviceIdentifier</key>
+	<string>%s</string>
+</dict>
+</plist>`, device)
+}
+
+const emptySnapshotsPlist = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Snapshots</key>
+	<array/>
+</dict>
+</plist>`
