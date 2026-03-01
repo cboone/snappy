@@ -116,6 +116,7 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 
 	if msg.SnapshotErr != nil {
 		m.log.Log(logger.Error, fmt.Sprintf("Failed to list snapshots: %v", msg.SnapshotErr))
+		m.refreshPending = false
 		return m, nil
 	}
 
@@ -125,6 +126,9 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 	prev := m.snapshots
 	m.prevSnapshots = prev
 	m.snapshots = msg.Snapshots
+
+	m.diffAdded = 0
+	m.diffRemoved = 0
 
 	if len(prev) > 0 || len(msg.Snapshots) > 0 {
 		diff := snapshot.ComputeDiff(prev, msg.Snapshots)
