@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
@@ -87,14 +88,15 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	defer log.Close()
 
 	runner := platform.OSRunner{}
-	ctx := context.Background()
+	startupCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
 	// One-time startup: discover APFS volume and check TM status
-	apfsVolume, err := platform.FindAPFSVolume(ctx, runner, cfg.MountPoint)
+	apfsVolume, err := platform.FindAPFSVolume(startupCtx, runner, cfg.MountPoint)
 	if err != nil {
 		log.Log(logger.Startup, fmt.Sprintf("Warning: failed to discover APFS volume for %s: %v", cfg.MountPoint, err))
 	}
-	tmStatus := platform.CheckStatus(ctx, runner)
+	tmStatus := platform.CheckStatus(startupCtx, runner)
 
 	log.Log(logger.Startup, fmt.Sprintf("snappy v%s | volume=%s | refresh=%ds",
 		version, cfg.MountPoint, int(cfg.RefreshInterval.Seconds())))
