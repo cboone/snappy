@@ -15,35 +15,57 @@ Log file: `logs/2026-03-01-081206-snappy.log`
 | Final count         | 19    |
 | Errors              | 0     |
 
-## Key finding: macOS enforces a 60-minute TTL
+## Key finding: macOS thins to one per hour, not a hard TTL
 
-Every one of the 104 system-removed snapshots disappeared at exactly 60 minutes
-after creation. Disk pressure is not a factor: available space held steady at
-~7.0Ti (1% utilization) throughout the run.
+Initial analysis incorrectly concluded that macOS enforces a hard 60-minute TTL
+on all snapshots. Closer inspection reveals that macOS thins to approximately
+**one snapshot per hour** at the 60-minute boundary, consistent with Time
+Machine's documented retention (hourly for 24 hours).
 
-The `deleted` daemon is applying a hard age-based timer to all `tmutil`
-snapshots, not a space-pressure heuristic.
+Evidence: at shutdown, hourly survivors were still present at :48/:49 past each
+hour going back many hours. Only Snappy's own 6-24h tier removed those hourly
+keepers later.
 
-One exception: the very first snapshot (`2026-02-28-204827`) survived the entire
-run. This is consistent with macOS keeping the oldest snapshot as a baseline
-reference.
+Disk pressure is not a factor: available space held at ~7.0Ti (1% utilization).
 
-## Snappy's thinning worked correctly but is mostly preempted
+## Per-hour lifecycle
 
-- 10 thinning events at the 1-hour boundary (tier: 1-6h, min gap 1h)
-- 4 thinning events at the 6-hour boundary (tier: 6-24h, min gap 4h)
+Each hour follows a consistent pattern (using hour 21 as an example):
 
-Both tiers operated as designed, but macOS usually gets to the snapshot first.
-The retention tiers beyond "0-1h: every 5 min" are effectively dead letter.
+| Step | Count | What happens                                           |
+| ---- | ----- | ------------------------------------------------------ |
+| 1    | 12    | Snappy creates one snapshot every 5 minutes            |
+| 2    | 10    | macOS removes 10 of 12 at the 60-minute mark           |
+| 3    | 1     | Snappy's 1-6h tier thins 1 more (racing macOS)         |
+| 4    | 1     | One survivor (~:48) persists as the hourly keeper       |
+| 5    | 0     | At ~6h, Snappy's 6-24h tier thins the hourly keeper    |
+
+macOS does not touch the hourly keepers. Only Snappy's tiers remove them.
+
+## Thinning tiers work as designed
+
+Both macOS and Snappy are doing complementary thinning:
+
+- **0-1h (Snappy: keep every 5 min):** All 12 snapshots per hour survive.
+  Full 5-minute granularity.
+- **At 60 min:** macOS thins 10-11 per hour, Snappy thins 1. One hourly
+  keeper survives.
+- **At 6h (Snappy: keep every 4h):** Snappy removes excess hourly keepers.
+  macOS does not intervene.
+- **At 24h (Snappy: keep every 1d):** Expected to work similarly, not yet
+  observed in this run.
+
+The tiers are not dead letter. They operate in concert with macOS's own
+retention policy.
 
 ## Steady state
 
 The snapshot count climbed to 13 in the first hour, then slowly drifted up to
-19 where it stabilized. The pattern each cycle:
+19 where it stabilized. Each cycle:
 
 1. Snappy creates a snapshot every 5 minutes (+1)
-2. 60 minutes later, macOS removes it (-1)
-3. Net count stays roughly constant
+2. At 60 minutes, macOS or Snappy removes the excess (-1)
+3. Net count stays roughly constant (~19 snapshots)
 
 ## LimitingContainerShrink is not relevant
 
@@ -67,8 +89,11 @@ There is no workaround without disabling SIP and AMFI, which is impractical.
 
 ## Practical implications
 
-Snappy's current approach (creating every 5 minutes) is the best available
-strategy. Even with the 60-minute ceiling, users always have ~12 snapshots
-covering the last hour. The thinning tiers beyond 1 hour can remain in the
-code for the off chance that macOS behavior varies across versions, but they
-will not fire under current conditions.
+Snappy's retention tiers align well with macOS's behavior:
+
+- **Last hour:** full 5-minute granularity (~12 snapshots)
+- **Hours 1-6:** one snapshot per hour (macOS and Snappy cooperate)
+- **Hours 6-24:** one snapshot per 4 hours (Snappy thins, macOS allows)
+- **Days 1-14:** one snapshot per day (expected, not yet observed)
+
+The system works. No code changes are needed for retention.
