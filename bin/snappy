@@ -26,16 +26,10 @@ readonly LOG_FILE="${LOG_DIR}/snappy.log"
 readonly SEPARATOR="================================================================================"
 readonly THIN_SEPARATOR="------------------------------------------------------------------------------"
 
-AUTO_SNAPSHOT_INTERVAL="${SNAPPY_AUTO_INTERVAL:-300}"  # seconds between auto-snapshots
 AUTO_SNAPSHOT_ENABLED="${SNAPPY_AUTO_ENABLED:-true}"   # toggleable at runtime
-
-readonly -a RETENTION_TIERS=(
-  "0:3600:300"          # 0-1h:   keep one every 5 min
-  "3600:21600:3600"     # 1-6h:   keep one every 1h
-  "21600:86400:14400"   # 6-24h:  keep one every 4h
-  "86400:1209600:86400" # 1-14d:  keep one every 1d
-)
-readonly MAX_SNAPSHOT_AGE=1209600  # 14 days in seconds
+readonly AUTO_SNAPSHOT_INTERVAL_INITIAL=60   # every 1 min for the first ramp-up period
+readonly AUTO_SNAPSHOT_INTERVAL_NORMAL=300   # every 5 min after ramp-up
+readonly AUTO_SNAPSHOT_RAMPUP=600            # ramp-up lasts 10 minutes
 
 # =============================================================================
 # Global state
@@ -59,10 +53,6 @@ LAST_REFRESH=""
 # Sets: LOG_TO_FILE
 LOG_TO_FILE=true
 
-# Sets: TERM_LINES, TERM_COLS
-declare -i TERM_LINES=24
-declare -i TERM_COLS=80 # reserved for future line truncation
-
 # Sets: REDRAW_NEEDED
 REDRAW_NEEDED=false
 
@@ -75,8 +65,9 @@ declare -i OTHER_SNAPSHOT_COUNT=0
 # Sets: APFS_VOLUME
 APFS_VOLUME=""
 
-# Sets: LAST_AUTO_SNAPSHOT_EPOCH
+# Sets: LAST_AUTO_SNAPSHOT_EPOCH, AUTO_SNAPSHOT_START_EPOCH
 declare -i LAST_AUTO_SNAPSHOT_EPOCH=0
+declare -i AUTO_SNAPSHOT_START_EPOCH=0
 
 # Color variables (set by setup_colors)
 COLOR_RESET=""
@@ -181,7 +172,7 @@ readonly MAX_LOG_ENTRIES=50
 
 # Write a log entry to both terminal buffer and file.
 # Arguments:
-#   $1 - Event type (STARTUP, INFO, CREATED, ADDED, REMOVED, AUTO, THINNED, ERROR)
+#   $1 - Event type (STARTUP, INFO, CREATED, ADDED, REMOVED, AUTO, ERROR)
 #   $2 - Message text
 function log_event() {
   local event_type="${1}"
@@ -255,42 +246,6 @@ function tm_create_snapshot() {
     log_event "ERROR" "Failed to create snapshot: ${output}"
     return 1
   fi
-}
-
-# Delete a snapshot by its date string.
-# Arguments:
-#   $1 - Snapshot date in YYYY-MM-DD-HHMMSS format
-# Returns:
-#   0 on success, 1 on failure
-function tm_delete_snapshot() {
-  local snapshot_date="${1}"
-  local output
-  if output=$(tmutil deletelocalsnapshots "${snapshot_date}" 2>&1); then
-    return 0
-  else
-    log_event "ERROR" "Failed to delete snapshot ${snapshot_date}: ${output}"
-    return 1
-  fi
-}
-
-# Delete the oldest snapshot from the current list.
-# Returns:
-#   0 on success, 1 on failure or no snapshots
-function tm_delete_oldest() {
-  if ((${#CURR_SNAPSHOTS[@]} == 0)); then
-    log_event "ERROR" "No snapshots to delete"
-    return 1
-  fi
-
-  # tmutil listlocalsnapshotdates returns ascending order, so index 0 is oldest
-  local oldest="${CURR_SNAPSHOTS[0]}"
-
-  # shellcheck disable=SC2310 # intentional: testing return code
-  if tm_delete_snapshot "${oldest}"; then
-    log_event "INFO" "Deleted snapshot: ${oldest}"
-    return 0
-  fi
-  return 1
 }
 
 # Get disk usage information for the mount point.
@@ -476,108 +431,11 @@ function update_snapshot_state() {
 }
 
 # =============================================================================
-# Tiered retention
-# =============================================================================
-
-# Thin snapshots according to RETENTION_TIERS, deleting those that are too
-# close together in older tiers and anything beyond MAX_SNAPSHOT_AGE.
-function thin_snapshots() {
-  local -i now_epoch
-  now_epoch=$(date "+%s")
-
-  # Build parallel arrays of (date, epoch) for all current snapshots
-  local -a snap_dates=()
-  local -a snap_epochs=()
-  local snap
-  for snap in "${CURR_SNAPSHOTS[@]}"; do
-    local -i epoch
-    epoch=$(snapshot_date_to_epoch "${snap}")
-    if ((epoch > 0)); then
-      snap_dates+=("${snap}")
-      snap_epochs+=("${epoch}")
-    fi
-  done
-
-  local -i total="${#snap_dates[@]}"
-  if ((total == 0)); then
-    return
-  fi
-
-  # Track which indices to delete (1 = delete, 0 = keep)
-  local -a to_delete=()
-  local -i idx
-  for ((idx = 0; idx < total; idx++)); do
-    to_delete+=(0)
-  done
-
-  # Mark snapshots older than MAX_SNAPSHOT_AGE
-  for ((idx = 0; idx < total; idx++)); do
-    local -i age=$((now_epoch - snap_epochs[idx]))
-    if ((age > MAX_SNAPSHOT_AGE)); then
-      to_delete[idx]=1
-    fi
-  done
-
-  # Apply each retention tier
-  local tier
-  for tier in "${RETENTION_TIERS[@]}"; do
-    local tier_min_age tier_max_age tier_min_gap
-    IFS=: read -r tier_min_age tier_max_age tier_min_gap <<< "${tier}"
-
-    # Collect indices within this tier's age range, sorted chronologically
-    # (CURR_SNAPSHOTS is ascending, so snap_dates is already chronological)
-    local -a tier_indices=()
-    for ((idx = 0; idx < total; idx++)); do
-      # Skip already-marked snapshots
-      if ((to_delete[idx] == 1)); then
-        continue
-      fi
-      local -i age=$((now_epoch - snap_epochs[idx]))
-      if ((age >= tier_min_age)) && ((age < tier_max_age)); then
-        tier_indices+=("${idx}")
-      fi
-    done
-
-    if ((${#tier_indices[@]} <= 1)); then
-      continue
-    fi
-
-    # Walk chronologically, keep snapshots >= min_gap apart
-    local -i last_kept_epoch="${snap_epochs[${tier_indices[0]}]}"
-    local -i ti
-    for ((ti = 1; ti < ${#tier_indices[@]}; ti++)); do
-      local -i cur_idx="${tier_indices[ti]}"
-      local -i gap=$((snap_epochs[cur_idx] - last_kept_epoch))
-      if ((gap < tier_min_gap)); then
-        to_delete[cur_idx]=1
-      else
-        last_kept_epoch="${snap_epochs[cur_idx]}"
-      fi
-    done
-  done
-
-  # Execute deletions
-  local -i deleted=0
-  for ((idx = 0; idx < total; idx++)); do
-    if ((to_delete[idx] == 1)); then
-      # shellcheck disable=SC2310 # intentional: testing return code
-      if tm_delete_snapshot "${snap_dates[idx]}"; then
-        log_event "THINNED" "Removed ${snap_dates[idx]}"
-        ((deleted += 1))
-      fi
-    fi
-  done
-
-  if ((deleted > 0)); then
-    log_event "INFO" "Thinning complete: removed ${deleted} snapshot(s)"
-  fi
-}
-
-# =============================================================================
 # Auto-snapshot
 # =============================================================================
 
-# Create an auto-snapshot if the interval has elapsed, then thin old snapshots.
+# Create an auto-snapshot if the interval has elapsed.
+# Uses a shorter interval during the initial ramp-up period.
 # Called from do_refresh on each cycle.
 function maybe_auto_snapshot() {
   if [[ "${AUTO_SNAPSHOT_ENABLED}" != true ]]; then
@@ -587,8 +445,15 @@ function maybe_auto_snapshot() {
   local -i now_epoch
   now_epoch=$(date "+%s")
 
+  # Pick interval based on how long auto-snapshots have been running
+  local -i since_start=$((now_epoch - AUTO_SNAPSHOT_START_EPOCH))
+  local -i interval="${AUTO_SNAPSHOT_INTERVAL_NORMAL}"
+  if ((since_start < AUTO_SNAPSHOT_RAMPUP)); then
+    interval="${AUTO_SNAPSHOT_INTERVAL_INITIAL}"
+  fi
+
   local -i elapsed=$((now_epoch - LAST_AUTO_SNAPSHOT_EPOCH))
-  if ((elapsed < AUTO_SNAPSHOT_INTERVAL)); then
+  if ((elapsed < interval)); then
     return
   fi
 
@@ -598,27 +463,8 @@ function maybe_auto_snapshot() {
   log_event "AUTO" "Creating auto-snapshot..."
   # shellcheck disable=SC2310 # intentional: allow failure without tripping set -e
   if tm_create_snapshot; then
-    # Re-list so thinning sees the new snapshot
     tm_list_snapshots
     apfs_get_snapshot_details
-    thin_snapshots
-    # Re-list again after thinning to reflect final state
-    tm_list_snapshots
-    apfs_get_snapshot_details
-  fi
-}
-
-# =============================================================================
-# Terminal size
-# =============================================================================
-
-# Update terminal dimensions.
-# Sets: TERM_LINES, TERM_COLS
-function update_terminal_size() {
-  if command -v tput > /dev/null 2>&1; then
-    TERM_LINES=$(tput lines 2>/dev/null || echo 24)
-    # shellcheck disable=SC2034 # reserved for future line truncation
-    TERM_COLS=$(tput cols 2>/dev/null || echo 80)
   fi
 }
 
@@ -707,12 +553,17 @@ function draw_header() {
     auto_state="${COLOR_GREEN}on${COLOR_RESET}"
     local -i now_epoch
     now_epoch=$(date "+%s")
-    local -i next_in=$((AUTO_SNAPSHOT_INTERVAL - (now_epoch - LAST_AUTO_SNAPSHOT_EPOCH)))
+    local -i since_start=$((now_epoch - AUTO_SNAPSHOT_START_EPOCH))
+    local -i interval="${AUTO_SNAPSHOT_INTERVAL_NORMAL}"
+    if ((since_start < AUTO_SNAPSHOT_RAMPUP)); then
+      interval="${AUTO_SNAPSHOT_INTERVAL_INITIAL}"
+    fi
+    local -i next_in=$((interval - (now_epoch - LAST_AUTO_SNAPSHOT_EPOCH)))
     if ((next_in < 0)); then
       next_in=0
     fi
     printf "  Auto-snapshot: %s  |  every %ss  |  next in %ss\n" \
-      "${auto_state}" "${AUTO_SNAPSHOT_INTERVAL}" "${next_in}"
+      "${auto_state}" "${interval}" "${next_in}"
   else
     auto_state="${COLOR_RED}off${COLOR_RESET}"
     printf "  Auto-snapshot: %s\n" "${auto_state}"
@@ -720,7 +571,41 @@ function draw_header() {
   printf "%s\n" "${SEPARATOR}"
 }
 
-# Draw the numbered snapshot list (newest first) with relative timestamps.
+# Draw a single snapshot line.
+# Arguments:
+#   $1 - Index into CURR_SNAPSHOTS (0 = oldest)
+#   $2 - Total snapshot count (for numbering: 1 = newest)
+function _draw_snapshot_line() {
+  local -i i="${1}"
+  local -i count="${2}"
+
+  local snap="${CURR_SNAPSHOTS[${i}]}"
+  local relative
+  relative=$(format_relative_time "${snap}")
+
+  local details=""
+  if [[ -n "${APFS_VOLUME}" ]] && [[ -n "${SNAPSHOT_UUID[${snap}]:-}" ]]; then
+    local uuid="${SNAPSHOT_UUID[${snap}]}"
+    local purgeable_val="${SNAPSHOT_PURGEABLE[${snap}]:-}"
+    local flags=""
+    if [[ "${purgeable_val}" == "true" || "${purgeable_val}" == "YES" ]]; then
+      flags="purgeable"
+    else
+      flags="${COLOR_YELLOW}pinned${COLOR_RESET}"
+    fi
+    local shrink_val="${SNAPSHOT_LIMITS_SHRINK[${snap}]:-}"
+    if [[ "${shrink_val}" == "true" || "${shrink_val}" == "YES" ]]; then
+      flags="${flags}  ${COLOR_RED}limits shrink${COLOR_RESET}"
+    fi
+    details=$(printf "   %s   %s" "${uuid}" "${flags}")
+  fi
+
+  printf "  %s %2d.%s  %s   %s(%s)%s%s\n" \
+    "${COLOR_GREEN}" "$((count - i))" "${COLOR_RESET}" "${snap}" \
+    "${COLOR_DIM}" "${relative}" "${COLOR_RESET}" "${details}"
+}
+
+# Draw the snapshot list showing newest and oldest with an ellipsis between.
 function draw_snapshot_list() {
   local -i count="${#CURR_SNAPSHOTS[@]}"
 
@@ -735,49 +620,21 @@ function draw_snapshot_list() {
 
   if ((count == 0)); then
     printf "  %s(none -- press 's' to create the first snapshot)%s\n" "${COLOR_DIM}" "${COLOR_RESET}"
-  else
-    # Display newest first: iterate in reverse
-    local -i max_display
-    # Reserve lines for header (7), log section header (3), controls (3), log entries (5+)
-    max_display=$((TERM_LINES - 20))
-    if ((max_display < 5)); then
-      max_display=5
-    fi
-
-    local -i displayed=0
+  elif ((count <= 4)); then
     local -i i
     for ((i = count - 1; i >= 0; i--)); do
-      if ((displayed >= max_display)); then
-        printf "  %s  ... and %d more%s\n" "${COLOR_DIM}" "$((count - displayed))" "${COLOR_RESET}"
-        break
-      fi
-
-      local snap="${CURR_SNAPSHOTS[${i}]}"
-      local relative
-      relative=$(format_relative_time "${snap}")
-
-      local details=""
-      if [[ -n "${APFS_VOLUME}" ]] && [[ -n "${SNAPSHOT_UUID[${snap}]:-}" ]]; then
-        local uuid="${SNAPSHOT_UUID[${snap}]}"
-        local purgeable_val="${SNAPSHOT_PURGEABLE[${snap}]:-}"
-        local flags=""
-        if [[ "${purgeable_val}" == "true" || "${purgeable_val}" == "YES" ]]; then
-          flags="purgeable"
-        else
-          flags="${COLOR_YELLOW}pinned${COLOR_RESET}"
-        fi
-        local shrink_val="${SNAPSHOT_LIMITS_SHRINK[${snap}]:-}"
-        if [[ "${shrink_val}" == "true" || "${shrink_val}" == "YES" ]]; then
-          flags="${flags}  ${COLOR_RED}limits shrink${COLOR_RESET}"
-        fi
-        details=$(printf "   %s   %s" "${uuid}" "${flags}")
-      fi
-
-      printf "  %s %2d.%s  %s   %s(%s)%s%s\n" \
-        "${COLOR_GREEN}" "$((count - i))" "${COLOR_RESET}" "${snap}" \
-        "${COLOR_DIM}" "${relative}" "${COLOR_RESET}" "${details}"
-      ((displayed += 1))
+      _draw_snapshot_line "${i}" "${count}"
     done
+  else
+    # Bookend: 2 newest, ellipsis, 2 oldest
+    _draw_snapshot_line "$((count - 1))" "${count}"
+    _draw_snapshot_line "$((count - 2))" "${count}"
+
+    local -i hidden=$((count - 4))
+    printf "  %s  ... and %d more ...%s\n" "${COLOR_DIM}" "${hidden}" "${COLOR_RESET}"
+
+    _draw_snapshot_line 1 "${count}"
+    _draw_snapshot_line 0 "${count}"
   fi
 }
 
@@ -811,7 +668,7 @@ function draw_recent_log() {
         printf "  %s%s%s\n" "${COLOR_RED}" "${entry}" "${COLOR_RESET}"
       elif [[ "${entry}" == *"CREATED"* ]] || [[ "${entry}" == *"ADDED"* ]]; then
         printf "  %s%s%s\n" "${COLOR_GREEN}" "${entry}" "${COLOR_RESET}"
-      elif [[ "${entry}" == *"REMOVED"* ]] || [[ "${entry}" == *"THINNED"* ]]; then
+      elif [[ "${entry}" == *"REMOVED"* ]]; then
         printf "  %s%s%s\n" "${COLOR_YELLOW}" "${entry}" "${COLOR_RESET}"
       elif [[ "${entry}" == *"AUTO"* ]]; then
         printf "  %s%s%s\n" "${COLOR_CYAN}" "${entry}" "${COLOR_RESET}"
@@ -828,17 +685,14 @@ function draw_recent_log() {
 function draw_controls() {
   printf "\n"
   printf "%s\n" "${SEPARATOR}"
-  printf "  %s[s]%s Snapshot   %s[r]%s Refresh   %s[d]%s Delete oldest   %s[a]%s Auto-snap   %s[q]%s Quit\n" \
+  printf "  %s[s]%s Snapshot   %s[r]%s Refresh   %s[a]%s Auto-snap   %s[q]%s Quit\n" \
     "${COLOR_BOLD}" "${COLOR_RESET}" "${COLOR_BOLD}" "${COLOR_RESET}" \
-    "${COLOR_BOLD}" "${COLOR_RESET}" "${COLOR_BOLD}" "${COLOR_RESET}" \
-    "${COLOR_BOLD}" "${COLOR_RESET}"
+    "${COLOR_BOLD}" "${COLOR_RESET}" "${COLOR_BOLD}" "${COLOR_RESET}"
   printf "%s\n" "${SEPARATOR}"
 }
 
 # Clear screen and redraw the entire UI.
 function draw_ui() {
-  update_terminal_size
-
   # Clear screen and move cursor to top-left
   printf "\033[2J\033[H"
 
@@ -869,11 +723,6 @@ function handle_keypress() {
     r | R)
       do_refresh
       ;;
-    d | D)
-      # shellcheck disable=SC2310 # intentional: allow failure without tripping set -e
-      tm_delete_oldest || true
-      do_refresh
-      ;;
     a | A)
       if [[ "${AUTO_SNAPSHOT_ENABLED}" == true ]]; then
         AUTO_SNAPSHOT_ENABLED=false
@@ -881,7 +730,8 @@ function handle_keypress() {
       else
         AUTO_SNAPSHOT_ENABLED=true
         LAST_AUTO_SNAPSHOT_EPOCH=$(date "+%s")
-        log_event "INFO" "Auto-snapshots enabled (every ${AUTO_SNAPSHOT_INTERVAL}s)"
+        AUTO_SNAPSHOT_START_EPOCH="${LAST_AUTO_SNAPSHOT_EPOCH}"
+        log_event "INFO" "Auto-snapshots enabled (every ${AUTO_SNAPSHOT_INTERVAL_INITIAL}s, then ${AUTO_SNAPSHOT_INTERVAL_NORMAL}s)"
       fi
       draw_ui
       ;;
@@ -966,11 +816,12 @@ function main() {
   tm_check_status
 
   log_event "STARTUP" "snappy v${VERSION} | volume=${MOUNT_POINT} | refresh=${REFRESH_INTERVAL}s"
-  log_event "STARTUP" "auto-snapshot=${AUTO_SNAPSHOT_ENABLED} | interval=${AUTO_SNAPSHOT_INTERVAL}s"
+  log_event "STARTUP" "auto-snapshot=${AUTO_SNAPSHOT_ENABLED} | interval=${AUTO_SNAPSHOT_INTERVAL_INITIAL}s/${AUTO_SNAPSHOT_INTERVAL_NORMAL}s (ramp-up ${AUTO_SNAPSHOT_RAMPUP}s)"
 
-  # Initialize auto-snapshot timer to now so the first auto-snapshot fires
-  # after one full interval, not immediately on startup
+  # Initialize auto-snapshot timers so the first snapshot fires after one
+  # full interval, not immediately on startup
   LAST_AUTO_SNAPSHOT_EPOCH=$(date "+%s")
+  AUTO_SNAPSHOT_START_EPOCH="${LAST_AUTO_SNAPSHOT_EPOCH}"
 
   # Hide cursor
   if command -v tput > /dev/null 2>&1; then
