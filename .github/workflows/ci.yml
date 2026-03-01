@@ -33,3 +33,6 @@ jobs:
 
       - name: Check formatting
         run: make fmt
+
+      - name: Run lint
+        run: make lint

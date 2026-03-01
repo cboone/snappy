@@ -157,6 +157,10 @@ func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd
 	} else {
 		m.log.Log(logger.Created, "Snapshot created")
 	}
+	if m.refreshing {
+		return m, nil
+	}
+	m.refreshing = true
 	return m, doRefresh(m.runner, m.cfg, m.apfsVolume)
 }
 
@@ -174,5 +178,9 @@ func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
 		m.log.Log(logger.Error, fmt.Sprintf("Thinning error: %v", msg.Err))
 	}
 
+	if m.refreshing {
+		return m, nil
+	}
+	m.refreshing = true
 	return m, doRefresh(m.runner, m.cfg, m.apfsVolume)
 }
