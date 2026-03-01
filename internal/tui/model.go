@@ -29,11 +29,12 @@ type Model struct {
 	diskInfo       string
 	lastRefresh    time.Time
 
-	width      int
-	height     int
-	quitting   bool
-	refreshing bool
-	version    string
+	width          int
+	height         int
+	quitting       bool
+	refreshing     bool
+	refreshPending bool
+	version        string
 
 	now func() time.Time
 }

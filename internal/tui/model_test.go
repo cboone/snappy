@@ -259,6 +259,44 @@ func TestSnapshotCreatedMsg(t *testing.T) {
 	}
 }
 
+func TestSnapshotCreatedDuringRefreshSetsRefreshPending(t *testing.T) {
+	m := testModel()
+	m.refreshing = true
+
+	updated, cmd := m.Update(SnapshotCreatedMsg{Date: "2026-03-01-150000"})
+	model := updated.(Model)
+	if cmd != nil {
+		t.Error("expected nil command when refresh already in flight")
+	}
+	if !model.refreshPending {
+		t.Error("expected refreshPending = true")
+	}
+}
+
+func TestRefreshResultTriggersFollowUpWhenPending(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+	m.refreshPending = true
+
+	updated, cmd := m.Update(RefreshResultMsg{
+		Snapshots: []snapshot.Snapshot{},
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	if model.refreshPending {
+		t.Error("expected refreshPending = false after processing")
+	}
+	if !model.refreshing {
+		t.Error("expected refreshing = true for follow-up refresh")
+	}
+	if cmd == nil {
+		t.Error("expected follow-up refresh command")
+	}
+}
+
 func TestSnapshotCreatedMsgError(t *testing.T) {
 	m := testModel()
 

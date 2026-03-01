@@ -139,8 +139,16 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 		len(m.snapshots), m.diskInfo,
 	))
 
-	// Check thinning
 	var cmds []tea.Cmd
+
+	// If a refresh was requested while this one was in flight, re-refresh.
+	if m.refreshPending {
+		m.refreshPending = false
+		m.refreshing = true
+		cmds = append(cmds, doRefresh(m.runner, m.cfg, m.apfsVolume))
+	}
+
+	// Check thinning
 	targets := m.auto.ComputeThinTargets(m.snapshots, m.now())
 	if len(targets) > 0 {
 		cmds = append(cmds, doThinSnapshots(m.runner, targets))
@@ -158,6 +166,7 @@ func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd
 		m.log.Log(logger.Created, "Snapshot created")
 	}
 	if m.refreshing {
+		m.refreshPending = true
 		return m, nil
 	}
 	m.refreshing = true
@@ -179,6 +188,7 @@ func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.refreshing {
+		m.refreshPending = true
 		return m, nil
 	}
 	m.refreshing = true
