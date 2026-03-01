@@ -1,0 +1,908 @@
+#!/usr/bin/env bash
+# snappy -- Interactive Time Machine local snapshot manager
+# Author: Christopher Boone
+# Date: 2026-02-28
+
+set -euo pipefail
+[[ -n "${TRACE:-}" ]] && set -x
+
+# =============================================================================
+# Constants
+# =============================================================================
+
+readonly VERSION="0.1.0"
+
+# Exit codes:
+#   0 - Success
+#   1 - Missing dependency
+readonly E_SUCCESS=0
+readonly E_MISSING_DEP=1
+
+readonly REFRESH_INTERVAL="${SNAPPY_REFRESH:-60}"
+readonly MOUNT_POINT="${SNAPPY_MOUNT:-/}"
+readonly LOG_DIR="${SNAPPY_LOG_DIR:-${HOME}/.local/share/snappy}"
+readonly LOG_FILE="${LOG_DIR}/snappy.log"
+
+readonly SEPARATOR="================================================================================"
+readonly THIN_SEPARATOR="------------------------------------------------------------------------------"
+
+AUTO_SNAPSHOT_ENABLED="${SNAPPY_AUTO_ENABLED:-true}"   # toggleable at runtime
+readonly AUTO_SNAPSHOT_INTERVAL=60   # always snapshot every 1 minute
+readonly THIN_AGE_THRESHOLD=600      # thin snapshots older than 10 minutes
+readonly THIN_CADENCE=300            # keep one snapshot every 5 minutes when thinning
+
+# =============================================================================
+# Global state
+# =============================================================================
+
+# Sets: PREV_SNAPSHOTS, CURR_SNAPSHOTS, DIFF_ADDED, DIFF_REMOVED
+declare -a PREV_SNAPSHOTS=()
+declare -a CURR_SNAPSHOTS=()
+declare -i DIFF_ADDED=0
+declare -i DIFF_REMOVED=0
+
+# Sets: TM_STATUS
+TM_STATUS=""
+
+# Sets: DISK_INFO
+DISK_INFO=""
+
+# Sets: LAST_REFRESH
+LAST_REFRESH=""
+
+# Sets: LOG_TO_FILE
+LOG_TO_FILE=true
+
+# Sets: REDRAW_NEEDED
+REDRAW_NEEDED=false
+
+# Sets: SNAPSHOT_UUID, SNAPSHOT_PURGEABLE, SNAPSHOT_LIMITS_SHRINK, OTHER_SNAPSHOT_COUNT
+declare -A SNAPSHOT_UUID=()
+declare -A SNAPSHOT_PURGEABLE=()
+declare -A SNAPSHOT_LIMITS_SHRINK=()
+declare -i OTHER_SNAPSHOT_COUNT=0
+
+# Sets: APFS_VOLUME
+APFS_VOLUME=""
+
+# Sets: LAST_AUTO_SNAPSHOT_EPOCH
+declare -i LAST_AUTO_SNAPSHOT_EPOCH=0
+
+# Color variables (set by setup_colors)
+COLOR_RESET=""
+COLOR_BOLD=""
+COLOR_DIM=""
+COLOR_GREEN=""
+COLOR_YELLOW=""
+COLOR_RED=""
+COLOR_CYAN=""
+COLOR_MAGENTA=""
+
+# =============================================================================
+# Color setup
+# =============================================================================
+
+# Detect terminal color support and set ANSI globals.
+# Degrades to no-op strings if not a TTY.
+# Sets: COLOR_RESET, COLOR_BOLD, COLOR_DIM, COLOR_GREEN, COLOR_YELLOW,
+#       COLOR_RED, COLOR_CYAN, COLOR_MAGENTA
+function setup_colors() {
+  if [[ -t 1 ]] && command -v tput > /dev/null 2>&1; then
+    local -i colors
+    colors=$(tput colors 2>/dev/null || echo 0)
+    if ((colors >= 8)); then
+      COLOR_RESET=$(tput sgr0)
+      COLOR_BOLD=$(tput bold)
+      COLOR_DIM=$(tput dim)
+      COLOR_GREEN=$(tput setaf 2)
+      COLOR_YELLOW=$(tput setaf 3)
+      COLOR_RED=$(tput setaf 1)
+      COLOR_CYAN=$(tput setaf 6)
+      COLOR_MAGENTA=$(tput setaf 5)
+    fi
+  fi
+}
+
+# =============================================================================
+# Dependency check
+# =============================================================================
+
+# Verify required commands exist.
+# Returns:
+#   0 on success, exits with E_MISSING_DEP if tmutil is missing
+function check_dependencies() {
+  if ! command -v tmutil > /dev/null 2>&1; then
+    echo "Error: tmutil not found. This tool requires macOS with Time Machine support." >&2
+    exit "${E_MISSING_DEP}"
+  fi
+
+  if ! command -v tput > /dev/null 2>&1; then
+    echo "Warning: tput not found. Terminal formatting will be limited." >&2
+  fi
+}
+
+# =============================================================================
+# Log directory setup
+# =============================================================================
+
+# Create log directory and verify write access.
+# Sets: LOG_TO_FILE
+function setup_log_dir() {
+  if ! mkdir -p "${LOG_DIR}" 2>/dev/null; then
+    echo "Warning: cannot create log directory ${LOG_DIR}. File logging disabled." >&2
+    LOG_TO_FILE=false
+    return
+  fi
+
+  if ! touch "${LOG_FILE}" 2>/dev/null; then
+    echo "Warning: cannot write to ${LOG_FILE}. File logging disabled." >&2
+    LOG_TO_FILE=false
+  fi
+}
+
+# =============================================================================
+# Cleanup trap
+# =============================================================================
+
+# Restore terminal state on exit.
+function cleanup() {
+  local exit_code="${?}"
+
+  # Restore cursor visibility
+  if command -v tput > /dev/null 2>&1; then
+    tput cnorm 2>/dev/null || true
+  fi
+
+  # Re-enable echo
+  stty echo 2>/dev/null || true
+
+  printf "\n"
+  exit "${exit_code}"
+}
+
+# =============================================================================
+# Logging
+# =============================================================================
+
+# Recent log entries kept in memory for display.
+# Sets: LOG_ENTRIES
+declare -a LOG_ENTRIES=()
+readonly MAX_LOG_ENTRIES=50
+
+# Write a log entry to both terminal buffer and file.
+# Arguments:
+#   $1 - Event type (STARTUP, INFO, CREATED, ADDED, REMOVED, AUTO, ERROR)
+#   $2 - Message text
+function log_event() {
+  local event_type="${1}"
+  local message="${2}"
+
+  local timestamp
+  timestamp=$(date +"%H:%M:%S")
+
+  local entry
+  entry=$(printf "[%s] %-8s %s" "${timestamp}" "${event_type}" "${message}")
+
+  LOG_ENTRIES+=("${entry}")
+
+  # Trim to MAX_LOG_ENTRIES
+  if ((${#LOG_ENTRIES[@]} > MAX_LOG_ENTRIES)); then
+    LOG_ENTRIES=("${LOG_ENTRIES[@]:1}")
+  fi
+
+  # Write to file
+  if [[ "${LOG_TO_FILE}" == true ]]; then
+    echo "${entry}" >> "${LOG_FILE}" 2>/dev/null || true
+  fi
+}
+
+# =============================================================================
+# tmutil wrappers
+# =============================================================================
+
+# Check Time Machine configuration status.
+# Sets: TM_STATUS
+function tm_check_status() {
+  local output
+  if output=$(tmutil destinationinfo 2>&1); then
+    if echo "${output}" | grep -q "No destinations configured"; then
+      TM_STATUS="Not configured (snapshots work regardless)"
+    else
+      TM_STATUS="Configured"
+    fi
+  else
+    TM_STATUS="Not configured (snapshots work regardless)"
+  fi
+}
+
+# List local snapshot dates for the configured mount point.
+# Sets: CURR_SNAPSHOTS
+function tm_list_snapshots() {
+  local output
+  if output=$(tmutil listlocalsnapshotdates "${MOUNT_POINT}" 2>/dev/null); then
+    readarray -t CURR_SNAPSHOTS < <(echo "${output}" | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}$' || true)
+  else
+    CURR_SNAPSHOTS=()
+    log_event "ERROR" "Failed to list snapshots"
+  fi
+}
+
+# Create a new local snapshot.
+# Returns:
+#   0 on success, 1 on failure
+function tm_create_snapshot() {
+  local output
+  if output=$(tmutil localsnapshot 2>&1); then
+    local snapshot_date
+    snapshot_date=$(echo "${output}" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}' || true)
+    if [[ -n "${snapshot_date}" ]]; then
+      log_event "CREATED" "Snapshot created: ${snapshot_date}"
+    else
+      log_event "CREATED" "Snapshot created"
+    fi
+    return 0
+  else
+    log_event "ERROR" "Failed to create snapshot: ${output}"
+    return 1
+  fi
+}
+
+# Delete a local snapshot by date.
+# Arguments:
+#   $1 - Snapshot date in YYYY-MM-DD-HHMMSS format
+# Returns:
+#   0 on success, 1 on failure
+function tm_delete_snapshot() {
+  local snapshot_date="${1}"
+
+  if tmutil deletelocalsnapshots "${snapshot_date}" > /dev/null 2>&1; then
+    log_event "THINNED" "Deleted old snapshot: ${snapshot_date}"
+    return 0
+  else
+    log_event "ERROR" "Failed to delete snapshot: ${snapshot_date}"
+    return 1
+  fi
+}
+
+# Get disk usage information for the mount point.
+# Sets: DISK_INFO
+function tm_get_disk_info() {
+  local output
+  if output=$(df -h "${MOUNT_POINT}" 2>/dev/null | tail -1); then
+    local total used available percent
+    # df -h output: Filesystem Size Used Avail Capacity ...
+    total=$(echo "${output}" | awk '{print $2}')
+    used=$(echo "${output}" | awk '{print $3}')
+    available=$(echo "${output}" | awk '{print $4}')
+    percent=$(echo "${output}" | awk '{print $5}')
+    DISK_INFO="${total} total, ${used} used, ${available} available (${percent})"
+  else
+    DISK_INFO="unavailable"
+  fi
+}
+
+# =============================================================================
+# APFS snapshot details
+# =============================================================================
+
+# Check whether an APFS volume contains at least one Time Machine snapshot.
+# Arguments:
+#   $1 - Device identifier (e.g., disk3s5)
+# Returns:
+#   0 if TM snapshots are present, 1 otherwise
+function has_tm_snapshots() {
+  local device="${1}"
+  local output
+  output=$(diskutil apfs listSnapshots "${device}" -plist 2>/dev/null) || return 1
+  # Check whether any snapshot name contains the TM prefix
+  if echo "${output}" | grep -q "com\.apple\.TimeMachine\." 2>/dev/null; then
+    return 0
+  fi
+  return 1
+}
+
+# Determine the APFS volume to query for snapshot metadata.
+# On macOS, "/" is mounted from a sealed system snapshot; Time Machine
+# snapshots live on the Data volume (/System/Volumes/Data) instead.
+# Sets: APFS_VOLUME
+function find_apfs_volume() {
+  local device
+  device=$(diskutil info -plist "${MOUNT_POINT}" 2>/dev/null \
+    | plutil -extract DeviceIdentifier raw - 2>/dev/null) || true
+
+  if [[ -z "${device}" ]]; then
+    APFS_VOLUME=""
+    return
+  fi
+
+  # Try the device directly (works for external or non-root volumes)
+  # shellcheck disable=SC2310 # intentional: testing return code
+  if has_tm_snapshots "${device}"; then
+    APFS_VOLUME="${device}"
+    return
+  fi
+
+  # Root is mounted from a sealed snapshot (e.g., disk3s1s1) which may
+  # hold OS-update snapshots but not TM ones. Try the Data volume at
+  # /System/Volumes/Data where TM snapshots actually live.
+  if [[ "${MOUNT_POINT}" == "/" ]]; then
+    local data_device
+    data_device=$(diskutil info -plist "/System/Volumes/Data" 2>/dev/null \
+      | plutil -extract DeviceIdentifier raw - 2>/dev/null) || true
+
+    # shellcheck disable=SC2310 # intentional: testing return code
+    if [[ -n "${data_device}" ]] && has_tm_snapshots "${data_device}"; then
+      APFS_VOLUME="${data_device}"
+      return
+    fi
+  fi
+
+  # No usable volume found; degrade gracefully
+  APFS_VOLUME=""
+}
+
+# Populate per-snapshot UUID and purgeable details from APFS metadata.
+# Correlates APFS snapshots to tmutil dates via the TM name prefix.
+# Sets: SNAPSHOT_UUID, SNAPSHOT_PURGEABLE, SNAPSHOT_LIMITS_SHRINK, OTHER_SNAPSHOT_COUNT
+function apfs_get_snapshot_details() {
+  SNAPSHOT_UUID=()
+  SNAPSHOT_PURGEABLE=()
+  SNAPSHOT_LIMITS_SHRINK=()
+  OTHER_SNAPSHOT_COUNT=0
+
+  [[ -z "${APFS_VOLUME}" ]] && return
+
+  local plist_output
+  plist_output=$(diskutil apfs listSnapshots "${APFS_VOLUME}" -plist 2>/dev/null) || return 0
+
+  local -i i=0
+  while true; do
+    local name
+    name=$(plutil -extract "Snapshots.${i}.SnapshotName" raw - 2>/dev/null <<< "${plist_output}") || break
+
+    local uuid
+    uuid=$(plutil -extract "Snapshots.${i}.SnapshotUUID" raw - 2>/dev/null <<< "${plist_output}") || true
+
+    local purgeable
+    purgeable=$(plutil -extract "Snapshots.${i}.Purgeable" raw - 2>/dev/null <<< "${plist_output}") || true
+
+    local limits_shrink
+    limits_shrink=$(plutil -extract "Snapshots.${i}.LimitingContainerShrink" raw - 2>/dev/null <<< "${plist_output}") || true
+
+    # Match com.apple.TimeMachine.YYYY-MM-DD-HHMMSS.local
+    if [[ "${name}" =~ com\.apple\.TimeMachine\.([0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6})\.local ]]; then
+      local tm_date="${BASH_REMATCH[1]}"
+      SNAPSHOT_UUID["${tm_date}"]="${uuid}"
+      SNAPSHOT_PURGEABLE["${tm_date}"]="${purgeable}"
+      SNAPSHOT_LIMITS_SHRINK["${tm_date}"]="${limits_shrink}"
+    else
+      ((OTHER_SNAPSHOT_COUNT += 1))
+    fi
+
+    ((i += 1))
+  done
+}
+
+# =============================================================================
+# Snapshot diffing
+# =============================================================================
+
+# Compare previous and current snapshot lists, log additions and removals.
+# Sets: DIFF_ADDED, DIFF_REMOVED
+function compute_snapshot_diff() {
+  DIFF_ADDED=0
+  DIFF_REMOVED=0
+
+  # Skip diff on first run (no previous state)
+  if ((${#PREV_SNAPSHOTS[@]} == 0)) && ((${#CURR_SNAPSHOTS[@]} == 0)); then
+    return
+  fi
+
+  # Build associative array from previous snapshots
+  declare -A prev_set
+  local snap
+  for snap in "${PREV_SNAPSHOTS[@]}"; do
+    prev_set["${snap}"]=1
+  done
+
+  # Build associative array from current snapshots
+  declare -A curr_set
+  for snap in "${CURR_SNAPSHOTS[@]}"; do
+    curr_set["${snap}"]=1
+  done
+
+  # Find additions (in current but not in previous)
+  for snap in "${CURR_SNAPSHOTS[@]}"; do
+    if [[ -z "${prev_set[${snap}]:-}" ]]; then
+      ((DIFF_ADDED += 1))
+      log_event "ADDED" "Snapshot appeared: ${snap}"
+    fi
+  done
+
+  # Find removals (in previous but not in current)
+  for snap in "${PREV_SNAPSHOTS[@]}"; do
+    if [[ -z "${curr_set[${snap}]:-}" ]]; then
+      ((DIFF_REMOVED += 1))
+      log_event "REMOVED" "Snapshot disappeared: ${snap}"
+    fi
+  done
+}
+
+# Copy current snapshot list to previous and run diff.
+# Sets: PREV_SNAPSHOTS (via copy), DIFF_ADDED, DIFF_REMOVED (via compute_snapshot_diff)
+function update_snapshot_state() {
+  local -a old_prev=("${PREV_SNAPSHOTS[@]}")
+
+  # Copy current to previous for next cycle
+  PREV_SNAPSHOTS=("${CURR_SNAPSHOTS[@]}")
+
+  # Only compute diff if we had a previous state
+  if ((${#old_prev[@]} > 0)) || ((${#CURR_SNAPSHOTS[@]} > 0)); then
+    # Temporarily set PREV to old state for diff computation
+    local -a save_prev=("${PREV_SNAPSHOTS[@]}")
+    PREV_SNAPSHOTS=("${old_prev[@]}")
+    compute_snapshot_diff
+    PREV_SNAPSHOTS=("${save_prev[@]}")
+  fi
+}
+
+# =============================================================================
+# Auto-snapshot
+# =============================================================================
+
+# Create an auto-snapshot if the interval has elapsed, then thin old snapshots.
+# Called from do_refresh on each cycle.
+function maybe_auto_snapshot() {
+  if [[ "${AUTO_SNAPSHOT_ENABLED}" != true ]]; then
+    return
+  fi
+
+  local -i now_epoch
+  now_epoch=$(date "+%s")
+
+  local -i elapsed=$((now_epoch - LAST_AUTO_SNAPSHOT_EPOCH))
+  if ((elapsed < AUTO_SNAPSHOT_INTERVAL)); then
+    return
+  fi
+
+  # Advance timer regardless of success to avoid retrying every refresh cycle
+  LAST_AUTO_SNAPSHOT_EPOCH="${now_epoch}"
+
+  log_event "AUTO" "Creating auto-snapshot..."
+  # shellcheck disable=SC2310 # intentional: allow failure without tripping set -e
+  if tm_create_snapshot; then
+    tm_list_snapshots
+    apfs_get_snapshot_details
+  fi
+
+  thin_old_snapshots
+}
+
+# Delete excess snapshots older than THIN_AGE_THRESHOLD, keeping one per
+# THIN_CADENCE-second bucket. Snapshots within the threshold are never touched.
+function thin_old_snapshots() {
+  local -i now_epoch
+  now_epoch=$(date "+%s")
+
+  local -i count="${#CURR_SNAPSHOTS[@]}"
+  if ((count == 0)); then
+    return
+  fi
+
+  # Walk snapshots oldest-first (CURR_SNAPSHOTS is sorted ascending)
+  local -i last_kept_epoch=0
+  local -a to_delete=()
+
+  local -i i
+  for ((i = 0; i < count; i++)); do
+    local snap="${CURR_SNAPSHOTS[${i}]}"
+    local -i snap_epoch
+    snap_epoch=$(snapshot_date_to_epoch "${snap}")
+
+    if ((snap_epoch == 0)); then
+      continue
+    fi
+
+    local -i age=$((now_epoch - snap_epoch))
+
+    # Only thin snapshots older than the age threshold
+    if ((age < THIN_AGE_THRESHOLD)); then
+      continue
+    fi
+
+    # Keep the first old snapshot we encounter
+    if ((last_kept_epoch == 0)); then
+      last_kept_epoch="${snap_epoch}"
+      continue
+    fi
+
+    # Keep this snapshot if it is far enough from the last one we kept
+    local -i gap=$((snap_epoch - last_kept_epoch))
+    if ((gap >= THIN_CADENCE)); then
+      last_kept_epoch="${snap_epoch}"
+      continue
+    fi
+
+    # Too close to the previous kept snapshot; mark for deletion
+    to_delete+=("${snap}")
+  done
+
+  # Delete marked snapshots
+  local snap_to_del
+  for snap_to_del in "${to_delete[@]}"; do
+    # shellcheck disable=SC2310 # intentional: allow failure without tripping set -e
+    tm_delete_snapshot "${snap_to_del}" || true
+  done
+
+  # Re-fetch snapshot list if anything was deleted
+  if ((${#to_delete[@]} > 0)); then
+    log_event "AUTO" "Thinned ${#to_delete[@]} snapshot(s) older than $((THIN_AGE_THRESHOLD / 60))m to ${THIN_CADENCE}s cadence"
+    tm_list_snapshots
+    apfs_get_snapshot_details
+  fi
+}
+
+# =============================================================================
+# Relative timestamp formatting
+# =============================================================================
+
+# Convert a snapshot date string to a Unix epoch timestamp.
+# Arguments:
+#   $1 - Snapshot date in YYYY-MM-DD-HHMMSS format
+# Outputs:
+#   Writes epoch seconds to stdout, or 0 on parse failure
+function snapshot_date_to_epoch() {
+  local snapshot_date="${1}"
+
+  # Parse YYYY-MM-DD-HHMMSS into components
+  local year="${snapshot_date:0:4}"
+  local month="${snapshot_date:5:2}"
+  local day="${snapshot_date:8:2}"
+  local hour="${snapshot_date:11:2}"
+  local min="${snapshot_date:13:2}"
+  local sec="${snapshot_date:15:2}"
+
+  local formatted="${year}-${month}-${day} ${hour}:${min}:${sec}"
+
+  date -j -f "%Y-%m-%d %H:%M:%S" "${formatted}" "+%s" 2>/dev/null || echo 0
+}
+
+# Convert a snapshot date string to a human-readable relative timestamp.
+# Arguments:
+#   $1 - Snapshot date in YYYY-MM-DD-HHMMSS format
+# Outputs:
+#   Writes relative timestamp to stdout (e.g., "3m ago", "2h ago", "1d ago")
+function format_relative_time() {
+  local snapshot_date="${1}"
+
+  local -i snap_epoch
+  snap_epoch=$(snapshot_date_to_epoch "${snapshot_date}")
+
+  if ((snap_epoch == 0)); then
+    echo "unknown"
+    return
+  fi
+
+  local -i now_epoch
+  now_epoch=$(date "+%s")
+
+  local -i delta
+  delta=$((now_epoch - snap_epoch))
+
+  if ((delta < 0)); then
+    echo "future"
+  elif ((delta < 60)); then
+    echo "${delta}s ago"
+  elif ((delta < 3600)); then
+    echo "$((delta / 60))m ago"
+  elif ((delta < 86400)); then
+    echo "$((delta / 3600))h ago"
+  else
+    echo "$((delta / 86400))d ago"
+  fi
+}
+
+# =============================================================================
+# Display functions
+# =============================================================================
+
+# Draw the title bar and status information.
+function draw_header() {
+  printf "%s\n" "${SEPARATOR}"
+  printf "  %s%sSNAPPY v%s%s -- Time Machine Local Snapshot Manager\n" \
+    "${COLOR_BOLD}" "${COLOR_CYAN}" "${VERSION}" "${COLOR_RESET}"
+  printf "%s\n" "${SEPARATOR}"
+  printf "  Volume: %s    |  Refresh: %ss  |  Last: %s\n" \
+    "${MOUNT_POINT}" "${REFRESH_INTERVAL}" "${LAST_REFRESH}"
+  printf "  Time Machine: %s\n" "${TM_STATUS}"
+  if [[ -n "${APFS_VOLUME}" ]]; then
+    printf "  APFS Volume: %s  |  Other snapshots: %d (non-Time Machine)\n" \
+      "${APFS_VOLUME}" "${OTHER_SNAPSHOT_COUNT}"
+  fi
+  printf "  Disk: %s\n" "${DISK_INFO}"
+
+  # Auto-snapshot status
+  local auto_state
+  if [[ "${AUTO_SNAPSHOT_ENABLED}" == true ]]; then
+    auto_state="${COLOR_GREEN}on${COLOR_RESET}"
+    local -i now_epoch
+    now_epoch=$(date "+%s")
+    local -i next_in=$((AUTO_SNAPSHOT_INTERVAL - (now_epoch - LAST_AUTO_SNAPSHOT_EPOCH)))
+    if ((next_in < 0)); then
+      next_in=0
+    fi
+    printf "  Auto-snapshot: %s  |  every %ss  |  next in %ss  |  thin >%sm to %ss\n" \
+      "${auto_state}" "${AUTO_SNAPSHOT_INTERVAL}" "${next_in}" \
+      "$((THIN_AGE_THRESHOLD / 60))" "${THIN_CADENCE}"
+  else
+    auto_state="${COLOR_RED}off${COLOR_RESET}"
+    printf "  Auto-snapshot: %s\n" "${auto_state}"
+  fi
+  printf "%s\n" "${SEPARATOR}"
+}
+
+# Draw a single snapshot line.
+# Arguments:
+#   $1 - Index into CURR_SNAPSHOTS (0 = oldest)
+#   $2 - Total snapshot count (for numbering: 1 = newest)
+function _draw_snapshot_line() {
+  local -i i="${1}"
+  local -i count="${2}"
+
+  local snap="${CURR_SNAPSHOTS[${i}]}"
+  local relative
+  relative=$(format_relative_time "${snap}")
+
+  local details=""
+  if [[ -n "${APFS_VOLUME}" ]] && [[ -n "${SNAPSHOT_UUID[${snap}]:-}" ]]; then
+    local uuid="${SNAPSHOT_UUID[${snap}]}"
+    local purgeable_val="${SNAPSHOT_PURGEABLE[${snap}]:-}"
+    local flags=""
+    if [[ "${purgeable_val}" == "true" || "${purgeable_val}" == "YES" ]]; then
+      flags="purgeable"
+    else
+      flags="${COLOR_YELLOW}pinned${COLOR_RESET}"
+    fi
+    local shrink_val="${SNAPSHOT_LIMITS_SHRINK[${snap}]:-}"
+    if [[ "${shrink_val}" == "true" || "${shrink_val}" == "YES" ]]; then
+      flags="${flags}  ${COLOR_RED}limits shrink${COLOR_RESET}"
+    fi
+    details=$(printf "   %s   %s" "${uuid}" "${flags}")
+  fi
+
+  printf "  %s %2d.%s  %s   %s(%s)%s%s\n" \
+    "${COLOR_GREEN}" "$((count - i))" "${COLOR_RESET}" "${snap}" \
+    "${COLOR_DIM}" "${relative}" "${COLOR_RESET}" "${details}"
+}
+
+# Draw the snapshot list showing newest and oldest with an ellipsis between.
+function draw_snapshot_list() {
+  local -i count="${#CURR_SNAPSHOTS[@]}"
+
+  local diff_summary=""
+  if ((DIFF_ADDED > 0)) || ((DIFF_REMOVED > 0)); then
+    diff_summary=$(printf "    [+%d added, %d removed]" "${DIFF_ADDED}" "${DIFF_REMOVED}")
+  fi
+
+  printf "\n"
+  printf "  %sLOCAL SNAPSHOTS (%d)%s%s\n" "${COLOR_BOLD}" "${count}" "${COLOR_RESET}" "${diff_summary}"
+  printf "  %s\n" "${THIN_SEPARATOR}"
+
+  if ((count == 0)); then
+    printf "  %s(none -- press 's' to create the first snapshot)%s\n" "${COLOR_DIM}" "${COLOR_RESET}"
+  elif ((count <= 4)); then
+    local -i i
+    for ((i = count - 1; i >= 0; i--)); do
+      _draw_snapshot_line "${i}" "${count}"
+    done
+  else
+    # Bookend: 2 newest, ellipsis, 2 oldest
+    _draw_snapshot_line "$((count - 1))" "${count}"
+    _draw_snapshot_line "$((count - 2))" "${count}"
+
+    local -i hidden=$((count - 4))
+    printf "  %s  ... and %d more ...%s\n" "${COLOR_DIM}" "${hidden}" "${COLOR_RESET}"
+
+    _draw_snapshot_line 1 "${count}"
+    _draw_snapshot_line 0 "${count}"
+  fi
+}
+
+# Draw recent log entries, filling available space.
+function draw_recent_log() {
+  printf "\n"
+  printf "%s\n" "${SEPARATOR}"
+  printf "  %sRECENT LOG%s\n" "${COLOR_BOLD}" "${COLOR_RESET}"
+  printf "%s\n" "${SEPARATOR}"
+
+  local -i max_log_lines=8
+  local -i total="${#LOG_ENTRIES[@]}"
+
+  if ((total == 0)); then
+    printf "  %s(no log entries yet)%s\n" "${COLOR_DIM}" "${COLOR_RESET}"
+  else
+    local -i start
+    if ((total > max_log_lines)); then
+      start=$((total - max_log_lines))
+    else
+      start=0
+    fi
+
+    # Show newest first
+    local -i i
+    for ((i = total - 1; i >= start; i--)); do
+      local entry="${LOG_ENTRIES[${i}]}"
+
+      # Colorize by event type
+      if [[ "${entry}" == *"ERROR"* ]]; then
+        printf "  %s%s%s\n" "${COLOR_RED}" "${entry}" "${COLOR_RESET}"
+      elif [[ "${entry}" == *"CREATED"* ]] || [[ "${entry}" == *"ADDED"* ]]; then
+        printf "  %s%s%s\n" "${COLOR_GREEN}" "${entry}" "${COLOR_RESET}"
+      elif [[ "${entry}" == *"REMOVED"* ]]; then
+        printf "  %s%s%s\n" "${COLOR_YELLOW}" "${entry}" "${COLOR_RESET}"
+      elif [[ "${entry}" == *"THINNED"* ]]; then
+        printf "  %s%s%s\n" "${COLOR_YELLOW}" "${entry}" "${COLOR_RESET}"
+      elif [[ "${entry}" == *"AUTO"* ]]; then
+        printf "  %s%s%s\n" "${COLOR_CYAN}" "${entry}" "${COLOR_RESET}"
+      elif [[ "${entry}" == *"STARTUP"* ]]; then
+        printf "  %s%s%s\n" "${COLOR_MAGENTA}" "${entry}" "${COLOR_RESET}"
+      else
+        printf "  %s\n" "${entry}"
+      fi
+    done
+  fi
+}
+
+# Draw the key legend at the bottom.
+function draw_controls() {
+  printf "\n"
+  printf "%s\n" "${SEPARATOR}"
+  printf "  %s[s]%s Snapshot   %s[r]%s Refresh   %s[a]%s Auto-snap   %s[q]%s Quit\n" \
+    "${COLOR_BOLD}" "${COLOR_RESET}" "${COLOR_BOLD}" "${COLOR_RESET}" \
+    "${COLOR_BOLD}" "${COLOR_RESET}" "${COLOR_BOLD}" "${COLOR_RESET}"
+  printf "%s\n" "${SEPARATOR}"
+}
+
+# Clear screen and redraw the entire UI.
+function draw_ui() {
+  # Clear screen and move cursor to top-left
+  printf "\033[2J\033[H"
+
+  draw_header
+  draw_snapshot_list
+  draw_recent_log
+  draw_controls
+}
+
+# =============================================================================
+# Input handling
+# =============================================================================
+
+# Dispatch a single keypress to the appropriate action.
+# Arguments:
+#   $1 - The key character pressed
+function handle_keypress() {
+  local key="${1}"
+
+  case "${key}" in
+    s | S)
+      log_event "INFO" "Creating snapshot..."
+      draw_ui
+      # shellcheck disable=SC2310 # intentional: allow failure without tripping set -e
+      tm_create_snapshot || true
+      do_refresh
+      ;;
+    r | R)
+      do_refresh
+      ;;
+    a | A)
+      if [[ "${AUTO_SNAPSHOT_ENABLED}" == true ]]; then
+        AUTO_SNAPSHOT_ENABLED=false
+        log_event "INFO" "Auto-snapshots disabled"
+      else
+        AUTO_SNAPSHOT_ENABLED=true
+        LAST_AUTO_SNAPSHOT_EPOCH=$(date "+%s")
+        log_event "INFO" "Auto-snapshots enabled (every ${AUTO_SNAPSHOT_INTERVAL}s, thin >${THIN_AGE_THRESHOLD}s to ${THIN_CADENCE}s)"
+      fi
+      draw_ui
+      ;;
+    q | Q)
+      log_event "INFO" "Shutting down"
+      exit "${E_SUCCESS}"
+      ;;
+    *)
+      # Ignore unrecognized keys
+      ;;
+  esac
+}
+
+# =============================================================================
+# Refresh logic
+# =============================================================================
+
+# Perform a full refresh cycle: list snapshots, diff, update disk info, redraw.
+function do_refresh() {
+  tm_list_snapshots
+  apfs_get_snapshot_details
+  update_snapshot_state
+  tm_get_disk_info
+
+  LAST_REFRESH=$(date +"%Y-%m-%dT%H:%M:%S")
+
+  log_event "INFO" "Refresh: ${#CURR_SNAPSHOTS[@]} snapshots, disk ${DISK_INFO}"
+
+  maybe_auto_snapshot
+  update_snapshot_state
+
+  draw_ui
+}
+
+# =============================================================================
+# Main loop
+# =============================================================================
+
+# Run the main event loop: refresh, draw, wait for input or timeout, repeat.
+function run_main_loop() {
+  while true; do
+    local key=""
+    # read returns non-zero on timeout, which is expected
+    read -r -s -n 1 -t "${REFRESH_INTERVAL}" key || true
+
+    if [[ -n "${key}" ]]; then
+      handle_keypress "${key}"
+    elif [[ "${REDRAW_NEEDED}" == true ]]; then
+      REDRAW_NEEDED=false
+      draw_ui
+    else
+      do_refresh
+    fi
+  done
+}
+
+# =============================================================================
+# SIGWINCH handler
+# =============================================================================
+
+# Trigger a redraw on terminal resize.
+function handle_winch() {
+  REDRAW_NEEDED=true
+}
+
+# =============================================================================
+# Entry point
+# =============================================================================
+
+# Initialize and start the interactive snapshot manager.
+function main() {
+  check_dependencies
+  setup_colors
+  setup_log_dir
+  find_apfs_volume
+
+  # Register cleanup and resize handlers
+  trap cleanup EXIT INT TERM
+  trap handle_winch WINCH
+
+  # Detect TM status
+  tm_check_status
+
+  log_event "STARTUP" "snappy v${VERSION} | volume=${MOUNT_POINT} | refresh=${REFRESH_INTERVAL}s"
+  log_event "STARTUP" "auto-snapshot=${AUTO_SNAPSHOT_ENABLED} | every ${AUTO_SNAPSHOT_INTERVAL}s | thin >${THIN_AGE_THRESHOLD}s to ${THIN_CADENCE}s"
+
+  # Initialize auto-snapshot timer so the first snapshot fires after one
+  # full interval, not immediately on startup
+  LAST_AUTO_SNAPSHOT_EPOCH=$(date "+%s")
+
+  # Hide cursor
+  if command -v tput > /dev/null 2>&1; then
+    tput civis 2>/dev/null || true
+  fi
+
+  # Initial refresh and draw
+  do_refresh
+
+  # Enter main loop
+  run_main_loop
+}
+
+main "${@}"

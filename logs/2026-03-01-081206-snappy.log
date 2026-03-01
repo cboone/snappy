@@ -1,0 +1,1243 @@
+[20:43:26] STARTUP  snappy v0.1.0 | volume=/ | refresh=60s
+[20:43:26] STARTUP  auto-snapshot=true | interval=300s
+[20:43:26] INFO     Refresh: 0 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[20:45:26] INFO     Refresh: 0 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[20:46:27] INFO     Refresh: 0 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[20:47:27] INFO     Refresh: 0 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[20:48:27] INFO     Refresh: 0 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[20:48:27] AUTO     Creating auto-snapshot...
+[20:48:27] CREATED  Snapshot created: 2026-02-28-204827
+[20:48:27] ADDED    Snapshot appeared: 2026-02-28-204827
+[20:49:27] INFO     Refresh: 1 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[20:50:27] INFO     Refresh: 1 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[20:51:27] INFO     Refresh: 1 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[20:52:27] INFO     Refresh: 1 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[20:53:27] INFO     Refresh: 1 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[20:53:27] AUTO     Creating auto-snapshot...
+[20:53:27] CREATED  Snapshot created: 2026-02-28-205327
+[20:53:28] ADDED    Snapshot appeared: 2026-02-28-205327
+[20:54:28] INFO     Refresh: 2 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[20:55:28] INFO     Refresh: 2 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[20:56:28] INFO     Refresh: 2 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[20:57:28] INFO     Refresh: 2 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[20:58:28] INFO     Refresh: 2 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[20:58:28] AUTO     Creating auto-snapshot...
+[20:58:28] CREATED  Snapshot created: 2026-02-28-205828
+[20:58:28] ADDED    Snapshot appeared: 2026-02-28-205828
+[20:59:28] INFO     Refresh: 3 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:00:28] INFO     Refresh: 3 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:01:29] INFO     Refresh: 3 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:02:29] INFO     Refresh: 3 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:03:29] INFO     Refresh: 3 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:03:29] AUTO     Creating auto-snapshot...
+[21:03:29] CREATED  Snapshot created: 2026-02-28-210329
+[21:03:29] ADDED    Snapshot appeared: 2026-02-28-210329
+[21:04:29] INFO     Refresh: 4 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:05:29] INFO     Refresh: 4 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:06:29] INFO     Refresh: 4 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:08:29] INFO     Refresh: 4 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:08:29] AUTO     Creating auto-snapshot...
+[21:08:30] CREATED  Snapshot created: 2026-02-28-210829
+[21:08:30] ADDED    Snapshot appeared: 2026-02-28-210829
+[21:09:30] INFO     Refresh: 5 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:10:30] INFO     Refresh: 5 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:11:30] INFO     Refresh: 5 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:12:30] INFO     Refresh: 5 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:13:30] INFO     Refresh: 5 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:13:30] AUTO     Creating auto-snapshot...
+[21:13:30] CREATED  Snapshot created: 2026-02-28-211330
+[21:13:30] ADDED    Snapshot appeared: 2026-02-28-211330
+[21:14:31] INFO     Refresh: 6 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:15:31] INFO     Refresh: 6 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:16:31] INFO     Refresh: 6 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:17:31] INFO     Refresh: 6 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:18:31] INFO     Refresh: 6 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:18:31] AUTO     Creating auto-snapshot...
+[21:18:31] CREATED  Snapshot created: 2026-02-28-211831
+[21:18:31] ADDED    Snapshot appeared: 2026-02-28-211831
+[21:19:31] INFO     Refresh: 7 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:20:31] INFO     Refresh: 7 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:21:32] INFO     Refresh: 7 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:22:32] INFO     Refresh: 7 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:23:32] INFO     Refresh: 7 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:23:32] AUTO     Creating auto-snapshot...
+[21:23:32] CREATED  Snapshot created: 2026-02-28-212332
+[21:23:32] ADDED    Snapshot appeared: 2026-02-28-212332
+[21:24:32] INFO     Refresh: 8 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:25:32] INFO     Refresh: 8 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:26:32] INFO     Refresh: 8 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:27:32] INFO     Refresh: 8 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:28:32] INFO     Refresh: 8 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:28:32] AUTO     Creating auto-snapshot...
+[21:28:33] CREATED  Snapshot created: 2026-02-28-212833
+[21:28:33] ADDED    Snapshot appeared: 2026-02-28-212833
+[21:29:33] INFO     Refresh: 9 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:30:33] INFO     Refresh: 9 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:31:33] INFO     Refresh: 9 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:32:33] INFO     Refresh: 9 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:33:33] INFO     Refresh: 9 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:33:33] AUTO     Creating auto-snapshot...
+[21:33:33] CREATED  Snapshot created: 2026-02-28-213333
+[21:33:34] ADDED    Snapshot appeared: 2026-02-28-213333
+[21:34:34] INFO     Refresh: 10 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:35:34] INFO     Refresh: 10 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:36:34] INFO     Refresh: 10 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:37:34] INFO     Refresh: 10 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:38:34] INFO     Refresh: 10 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:38:34] AUTO     Creating auto-snapshot...
+[21:38:34] CREATED  Snapshot created: 2026-02-28-213834
+[21:38:34] ADDED    Snapshot appeared: 2026-02-28-213834
+[21:39:34] INFO     Refresh: 11 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:41:35] INFO     Refresh: 11 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:42:35] INFO     Refresh: 11 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:43:35] INFO     Refresh: 11 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:43:35] AUTO     Creating auto-snapshot...
+[21:43:36] CREATED  Snapshot created: 2026-02-28-214335
+[21:43:36] ADDED    Snapshot appeared: 2026-02-28-214335
+[21:44:36] INFO     Refresh: 12 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:45:36] INFO     Refresh: 12 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:46:36] INFO     Refresh: 12 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:47:36] INFO     Refresh: 12 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:48:36] INFO     Refresh: 12 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:48:36] AUTO     Creating auto-snapshot...
+[21:48:37] CREATED  Snapshot created: 2026-02-28-214836
+[21:48:37] ADDED    Snapshot appeared: 2026-02-28-214836
+[21:49:37] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:50:37] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:51:37] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:52:37] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:53:37] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:53:37] AUTO     Creating auto-snapshot...
+[21:53:37] CREATED  Snapshot created: 2026-02-28-215337
+[21:53:38] ADDED    Snapshot appeared: 2026-02-28-215337
+[21:53:38] REMOVED  Snapshot disappeared: 2026-02-28-205327
+[21:54:38] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:55:38] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:56:38] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:57:38] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:58:38] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[21:58:38] AUTO     Creating auto-snapshot...
+[21:58:38] CREATED  Snapshot created: 2026-02-28-215838
+[21:58:38] ADDED    Snapshot appeared: 2026-02-28-215838
+[21:58:38] REMOVED  Snapshot disappeared: 2026-02-28-205828
+[21:59:38] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:00:39] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:01:39] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:02:39] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:03:39] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:03:39] AUTO     Creating auto-snapshot...
+[22:03:39] CREATED  Snapshot created: 2026-02-28-220339
+[22:03:39] ADDED    Snapshot appeared: 2026-02-28-220339
+[22:03:39] REMOVED  Snapshot disappeared: 2026-02-28-210329
+[22:04:39] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:05:39] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:06:39] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:07:40] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:08:40] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:08:40] AUTO     Creating auto-snapshot...
+[22:08:40] CREATED  Snapshot created: 2026-02-28-220840
+[22:08:40] ADDED    Snapshot appeared: 2026-02-28-220840
+[22:08:40] REMOVED  Snapshot disappeared: 2026-02-28-210829
+[22:09:40] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:10:40] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:11:40] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:12:40] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:13:41] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:13:41] AUTO     Creating auto-snapshot...
+[22:13:41] CREATED  Snapshot created: 2026-02-28-221341
+[22:13:41] ADDED    Snapshot appeared: 2026-02-28-221341
+[22:13:41] REMOVED  Snapshot disappeared: 2026-02-28-211330
+[22:14:41] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:15:41] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:16:41] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:17:41] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:18:41] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:18:41] AUTO     Creating auto-snapshot...
+[22:18:42] CREATED  Snapshot created: 2026-02-28-221841
+[22:18:42] ADDED    Snapshot appeared: 2026-02-28-221841
+[22:18:42] REMOVED  Snapshot disappeared: 2026-02-28-211831
+[22:19:42] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:20:42] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:21:42] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:22:42] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:23:42] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:23:42] AUTO     Creating auto-snapshot...
+[22:23:42] CREATED  Snapshot created: 2026-02-28-222342
+[22:23:42] ADDED    Snapshot appeared: 2026-02-28-222342
+[22:23:42] REMOVED  Snapshot disappeared: 2026-02-28-212332
+[22:24:43] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:25:43] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:26:43] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:27:43] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:28:43] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:28:43] AUTO     Creating auto-snapshot...
+[22:28:43] CREATED  Snapshot created: 2026-02-28-222843
+[22:28:43] ADDED    Snapshot appeared: 2026-02-28-222843
+[22:28:43] REMOVED  Snapshot disappeared: 2026-02-28-212833
+[22:29:43] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:30:44] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:31:44] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:32:44] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:33:44] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:33:44] AUTO     Creating auto-snapshot...
+[22:33:44] CREATED  Snapshot created: 2026-02-28-223344
+[22:33:44] ADDED    Snapshot appeared: 2026-02-28-223344
+[22:33:44] REMOVED  Snapshot disappeared: 2026-02-28-213333
+[22:34:44] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:35:44] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:36:44] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:37:45] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:38:45] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:38:45] AUTO     Creating auto-snapshot...
+[22:38:45] CREATED  Snapshot created: 2026-02-28-223845
+[22:38:45] ADDED    Snapshot appeared: 2026-02-28-223845
+[22:38:45] REMOVED  Snapshot disappeared: 2026-02-28-213834
+[22:39:45] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:40:45] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:41:45] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:42:45] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:43:46] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:43:46] AUTO     Creating auto-snapshot...
+[22:43:46] CREATED  Snapshot created: 2026-02-28-224346
+[22:43:46] THINNED  Removed 2026-02-28-214335
+[22:43:46] INFO     Thinning complete: removed 1 snapshot(s)
+[22:43:46] ADDED    Snapshot appeared: 2026-02-28-224346
+[22:43:46] REMOVED  Snapshot disappeared: 2026-02-28-214335
+[22:44:46] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:45:46] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:46:46] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:48:46] INFO     Refresh: 13 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:48:46] AUTO     Creating auto-snapshot...
+[22:48:47] CREATED  Snapshot created: 2026-02-28-224846
+[22:48:47] ADDED    Snapshot appeared: 2026-02-28-224846
+[22:49:47] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:50:47] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:51:47] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:52:47] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:53:47] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:53:47] AUTO     Creating auto-snapshot...
+[22:53:47] CREATED  Snapshot created: 2026-02-28-225347
+[22:53:47] ADDED    Snapshot appeared: 2026-02-28-225347
+[22:53:47] REMOVED  Snapshot disappeared: 2026-02-28-215337
+[22:54:47] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:55:48] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:56:48] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:57:48] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:58:48] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[22:58:48] AUTO     Creating auto-snapshot...
+[22:58:48] CREATED  Snapshot created: 2026-02-28-225848
+[22:58:48] ADDED    Snapshot appeared: 2026-02-28-225848
+[22:58:48] REMOVED  Snapshot disappeared: 2026-02-28-215838
+[22:59:48] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:00:48] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:01:48] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:02:49] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:03:49] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:03:49] AUTO     Creating auto-snapshot...
+[23:03:49] CREATED  Snapshot created: 2026-02-28-230349
+[23:03:49] ADDED    Snapshot appeared: 2026-02-28-230349
+[23:03:49] REMOVED  Snapshot disappeared: 2026-02-28-220339
+[23:04:49] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:05:49] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:06:49] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:07:49] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:08:49] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:08:50] AUTO     Creating auto-snapshot...
+[23:08:50] CREATED  Snapshot created: 2026-02-28-230850
+[23:08:50] ADDED    Snapshot appeared: 2026-02-28-230850
+[23:08:50] REMOVED  Snapshot disappeared: 2026-02-28-220840
+[23:09:50] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:10:50] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:11:50] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:12:50] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:13:50] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:13:50] AUTO     Creating auto-snapshot...
+[23:13:51] CREATED  Snapshot created: 2026-02-28-231350
+[23:13:51] ADDED    Snapshot appeared: 2026-02-28-231350
+[23:13:51] REMOVED  Snapshot disappeared: 2026-02-28-221341
+[23:14:51] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:15:51] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:16:51] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:17:51] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:18:51] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:18:51] AUTO     Creating auto-snapshot...
+[23:18:51] CREATED  Snapshot created: 2026-02-28-231851
+[23:18:51] ADDED    Snapshot appeared: 2026-02-28-231851
+[23:18:51] REMOVED  Snapshot disappeared: 2026-02-28-221841
+[23:19:52] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:20:52] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:21:52] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:22:52] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:23:52] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:23:52] AUTO     Creating auto-snapshot...
+[23:23:52] CREATED  Snapshot created: 2026-02-28-232352
+[23:23:52] ADDED    Snapshot appeared: 2026-02-28-232352
+[23:23:52] REMOVED  Snapshot disappeared: 2026-02-28-222342
+[23:24:52] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:25:52] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:26:52] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:27:53] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:28:53] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:28:53] AUTO     Creating auto-snapshot...
+[23:28:53] CREATED  Snapshot created: 2026-02-28-232853
+[23:28:53] ADDED    Snapshot appeared: 2026-02-28-232853
+[23:28:53] REMOVED  Snapshot disappeared: 2026-02-28-222843
+[23:29:53] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:30:53] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:31:53] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:32:53] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:33:53] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:33:53] AUTO     Creating auto-snapshot...
+[23:33:54] CREATED  Snapshot created: 2026-02-28-233354
+[23:33:54] ADDED    Snapshot appeared: 2026-02-28-233354
+[23:33:54] REMOVED  Snapshot disappeared: 2026-02-28-223344
+[23:34:54] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:35:54] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:36:54] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:37:54] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:38:54] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:38:54] AUTO     Creating auto-snapshot...
+[23:38:55] CREATED  Snapshot created: 2026-02-28-233854
+[23:38:55] ADDED    Snapshot appeared: 2026-02-28-233854
+[23:38:55] REMOVED  Snapshot disappeared: 2026-02-28-223845
+[23:39:55] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:40:55] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:41:55] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:42:55] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:43:55] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:43:55] AUTO     Creating auto-snapshot...
+[23:43:55] CREATED  Snapshot created: 2026-02-28-234355
+[23:43:55] THINNED  Removed 2026-02-28-224346
+[23:43:55] INFO     Thinning complete: removed 1 snapshot(s)
+[23:43:55] ADDED    Snapshot appeared: 2026-02-28-234355
+[23:43:55] REMOVED  Snapshot disappeared: 2026-02-28-224346
+[23:44:56] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:45:56] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:46:56] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:47:56] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:48:56] INFO     Refresh: 14 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:48:56] AUTO     Creating auto-snapshot...
+[23:48:56] CREATED  Snapshot created: 2026-02-28-234856
+[23:48:56] ADDED    Snapshot appeared: 2026-02-28-234856
+[23:49:56] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:50:56] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:51:56] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:52:57] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:53:57] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:53:57] AUTO     Creating auto-snapshot...
+[23:53:57] CREATED  Snapshot created: 2026-02-28-235357
+[23:53:57] ADDED    Snapshot appeared: 2026-02-28-235357
+[23:53:57] REMOVED  Snapshot disappeared: 2026-02-28-225347
+[23:54:57] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:55:57] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:56:57] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:57:57] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:58:57] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[23:58:57] AUTO     Creating auto-snapshot...
+[23:58:58] CREATED  Snapshot created: 2026-02-28-235858
+[23:58:58] ADDED    Snapshot appeared: 2026-02-28-235858
+[23:58:58] REMOVED  Snapshot disappeared: 2026-02-28-225848
+[23:59:58] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:00:58] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:01:58] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:02:58] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:03:58] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:03:58] AUTO     Creating auto-snapshot...
+[00:03:59] CREATED  Snapshot created: 2026-03-01-000358
+[00:03:59] ADDED    Snapshot appeared: 2026-03-01-000358
+[00:03:59] REMOVED  Snapshot disappeared: 2026-02-28-230349
+[00:04:59] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:05:59] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:06:59] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:07:59] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:08:59] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:08:59] AUTO     Creating auto-snapshot...
+[00:08:59] CREATED  Snapshot created: 2026-03-01-000859
+[00:08:59] ADDED    Snapshot appeared: 2026-03-01-000859
+[00:08:59] REMOVED  Snapshot disappeared: 2026-02-28-230850
+[00:10:00] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:11:00] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:12:00] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:13:00] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:14:00] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:14:00] AUTO     Creating auto-snapshot...
+[00:14:00] CREATED  Snapshot created: 2026-03-01-001400
+[00:14:00] ADDED    Snapshot appeared: 2026-03-01-001400
+[00:14:00] REMOVED  Snapshot disappeared: 2026-02-28-231350
+[00:15:00] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:16:01] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:17:01] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:18:01] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:19:01] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:19:01] AUTO     Creating auto-snapshot...
+[00:19:01] CREATED  Snapshot created: 2026-03-01-001901
+[00:19:01] ADDED    Snapshot appeared: 2026-03-01-001901
+[00:19:01] REMOVED  Snapshot disappeared: 2026-02-28-231851
+[00:20:01] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:21:01] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:22:01] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:23:02] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:24:02] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:24:02] AUTO     Creating auto-snapshot...
+[00:24:02] CREATED  Snapshot created: 2026-03-01-002402
+[00:24:02] ADDED    Snapshot appeared: 2026-03-01-002402
+[00:24:02] REMOVED  Snapshot disappeared: 2026-02-28-232352
+[00:25:02] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:26:02] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:27:02] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:28:02] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:29:03] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:29:03] AUTO     Creating auto-snapshot...
+[00:29:03] CREATED  Snapshot created: 2026-03-01-002903
+[00:29:03] ADDED    Snapshot appeared: 2026-03-01-002903
+[00:29:03] REMOVED  Snapshot disappeared: 2026-02-28-232853
+[00:30:03] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:31:03] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:32:03] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:33:03] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:34:03] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:34:03] AUTO     Creating auto-snapshot...
+[00:34:04] CREATED  Snapshot created: 2026-03-01-003403
+[00:34:04] ADDED    Snapshot appeared: 2026-03-01-003403
+[00:34:04] REMOVED  Snapshot disappeared: 2026-02-28-233354
+[00:35:04] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:36:04] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:37:04] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:38:04] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:39:04] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:39:04] AUTO     Creating auto-snapshot...
+[00:39:05] CREATED  Snapshot created: 2026-03-01-003904
+[00:39:05] ADDED    Snapshot appeared: 2026-03-01-003904
+[00:39:05] REMOVED  Snapshot disappeared: 2026-02-28-233854
+[00:40:05] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:41:05] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:42:05] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 7.0Ti available (1%)
+[00:43:05] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[00:44:05] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[00:44:05] AUTO     Creating auto-snapshot...
+[00:44:06] CREATED  Snapshot created: 2026-03-01-004406
+[00:44:06] THINNED  Removed 2026-02-28-234355
+[00:44:06] INFO     Thinning complete: removed 1 snapshot(s)
+[00:44:06] ADDED    Snapshot appeared: 2026-03-01-004406
+[00:44:06] REMOVED  Snapshot disappeared: 2026-02-28-234355
+[00:45:06] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[00:46:06] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[00:47:06] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[00:48:06] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[00:49:06] INFO     Refresh: 15 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[00:49:06] AUTO     Creating auto-snapshot...
+[00:49:06] CREATED  Snapshot created: 2026-03-01-004906
+[00:49:07] ADDED    Snapshot appeared: 2026-03-01-004906
+[00:50:07] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[00:51:07] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[00:52:07] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[00:53:07] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[00:54:07] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[00:54:07] AUTO     Creating auto-snapshot...
+[00:54:07] CREATED  Snapshot created: 2026-03-01-005407
+[00:54:07] ADDED    Snapshot appeared: 2026-03-01-005407
+[00:54:07] REMOVED  Snapshot disappeared: 2026-02-28-235357
+[00:55:07] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[00:56:08] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[00:57:08] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[00:58:08] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[00:59:08] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[00:59:08] AUTO     Creating auto-snapshot...
+[00:59:08] CREATED  Snapshot created: 2026-03-01-005908
+[00:59:08] ADDED    Snapshot appeared: 2026-03-01-005908
+[00:59:08] REMOVED  Snapshot disappeared: 2026-02-28-235858
+[01:00:08] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:01:08] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:02:09] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:03:09] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:04:09] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:04:09] AUTO     Creating auto-snapshot...
+[01:04:09] CREATED  Snapshot created: 2026-03-01-010409
+[01:04:09] ADDED    Snapshot appeared: 2026-03-01-010409
+[01:04:09] REMOVED  Snapshot disappeared: 2026-03-01-000358
+[01:05:09] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:06:09] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:07:09] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:08:09] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:09:10] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:09:10] AUTO     Creating auto-snapshot...
+[01:09:10] CREATED  Snapshot created: 2026-03-01-010910
+[01:09:10] ADDED    Snapshot appeared: 2026-03-01-010910
+[01:09:10] REMOVED  Snapshot disappeared: 2026-03-01-000859
+[01:10:10] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:11:10] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:12:10] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:13:10] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:14:10] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:14:10] AUTO     Creating auto-snapshot...
+[01:14:11] CREATED  Snapshot created: 2026-03-01-011410
+[01:14:11] ADDED    Snapshot appeared: 2026-03-01-011410
+[01:14:11] REMOVED  Snapshot disappeared: 2026-03-01-001400
+[01:15:11] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:16:11] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:17:11] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:18:11] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:19:11] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:19:11] AUTO     Creating auto-snapshot...
+[01:19:11] CREATED  Snapshot created: 2026-03-01-011911
+[01:19:12] ADDED    Snapshot appeared: 2026-03-01-011911
+[01:19:12] REMOVED  Snapshot disappeared: 2026-03-01-001901
+[01:20:12] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:21:12] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:22:12] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:23:12] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:24:12] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:24:12] AUTO     Creating auto-snapshot...
+[01:24:12] CREATED  Snapshot created: 2026-03-01-012412
+[01:24:12] ADDED    Snapshot appeared: 2026-03-01-012412
+[01:24:12] REMOVED  Snapshot disappeared: 2026-03-01-002402
+[01:25:13] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:26:13] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:27:13] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:28:13] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:29:13] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:29:13] AUTO     Creating auto-snapshot...
+[01:29:13] CREATED  Snapshot created: 2026-03-01-012913
+[01:29:13] ADDED    Snapshot appeared: 2026-03-01-012913
+[01:29:13] REMOVED  Snapshot disappeared: 2026-03-01-002903
+[01:30:13] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:31:14] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:32:14] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:33:14] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:34:14] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:34:14] AUTO     Creating auto-snapshot...
+[01:34:14] CREATED  Snapshot created: 2026-03-01-013414
+[01:34:14] ADDED    Snapshot appeared: 2026-03-01-013414
+[01:34:14] REMOVED  Snapshot disappeared: 2026-03-01-003403
+[01:35:14] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:36:14] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:37:14] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:38:15] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:39:15] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:39:15] AUTO     Creating auto-snapshot...
+[01:39:15] CREATED  Snapshot created: 2026-03-01-013915
+[01:39:15] ADDED    Snapshot appeared: 2026-03-01-013915
+[01:39:15] REMOVED  Snapshot disappeared: 2026-03-01-003904
+[01:40:15] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:41:15] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:42:15] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:43:15] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:44:15] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:44:15] AUTO     Creating auto-snapshot...
+[01:44:16] CREATED  Snapshot created: 2026-03-01-014416
+[01:44:16] THINNED  Removed 2026-03-01-004406
+[01:44:16] INFO     Thinning complete: removed 1 snapshot(s)
+[01:44:16] ADDED    Snapshot appeared: 2026-03-01-014416
+[01:44:16] REMOVED  Snapshot disappeared: 2026-03-01-004406
+[01:45:16] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:46:16] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:47:16] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:48:16] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:49:16] INFO     Refresh: 16 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:49:16] AUTO     Creating auto-snapshot...
+[01:49:17] CREATED  Snapshot created: 2026-03-01-014916
+[01:49:17] ADDED    Snapshot appeared: 2026-03-01-014916
+[01:50:17] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:51:17] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:52:17] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:53:17] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:54:17] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:54:17] AUTO     Creating auto-snapshot...
+[01:54:17] CREATED  Snapshot created: 2026-03-01-015417
+[01:54:17] ADDED    Snapshot appeared: 2026-03-01-015417
+[01:54:17] REMOVED  Snapshot disappeared: 2026-03-01-005407
+[01:55:18] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:56:18] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:57:18] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:58:18] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:59:18] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[01:59:18] AUTO     Creating auto-snapshot...
+[01:59:18] CREATED  Snapshot created: 2026-03-01-015918
+[01:59:18] ADDED    Snapshot appeared: 2026-03-01-015918
+[01:59:18] REMOVED  Snapshot disappeared: 2026-03-01-005908
+[02:00:18] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:01:18] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:02:19] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:03:19] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:04:19] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:04:19] AUTO     Creating auto-snapshot...
+[02:04:19] CREATED  Snapshot created: 2026-03-01-020419
+[02:04:19] ADDED    Snapshot appeared: 2026-03-01-020419
+[02:04:19] REMOVED  Snapshot disappeared: 2026-03-01-010409
+[02:05:19] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:06:19] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:07:19] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:08:19] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:09:20] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:09:20] AUTO     Creating auto-snapshot...
+[02:09:20] CREATED  Snapshot created: 2026-03-01-020920
+[02:09:20] ADDED    Snapshot appeared: 2026-03-01-020920
+[02:09:20] REMOVED  Snapshot disappeared: 2026-03-01-010910
+[02:10:20] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:11:20] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:12:20] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:13:20] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:14:20] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:14:20] AUTO     Creating auto-snapshot...
+[02:14:21] CREATED  Snapshot created: 2026-03-01-021420
+[02:14:21] ADDED    Snapshot appeared: 2026-03-01-021420
+[02:14:21] REMOVED  Snapshot disappeared: 2026-03-01-011410
+[02:15:21] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:16:21] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:17:21] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:18:21] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:19:21] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:19:21] AUTO     Creating auto-snapshot...
+[02:19:21] CREATED  Snapshot created: 2026-03-01-021921
+[02:19:22] ADDED    Snapshot appeared: 2026-03-01-021921
+[02:19:22] REMOVED  Snapshot disappeared: 2026-03-01-011911
+[02:20:22] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:21:22] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:22:22] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:23:22] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:24:22] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:24:22] AUTO     Creating auto-snapshot...
+[02:24:22] CREATED  Snapshot created: 2026-03-01-022422
+[02:24:22] ADDED    Snapshot appeared: 2026-03-01-022422
+[02:24:22] REMOVED  Snapshot disappeared: 2026-03-01-012412
+[02:25:22] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:26:23] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:27:23] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:28:23] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:29:23] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:29:23] AUTO     Creating auto-snapshot...
+[02:29:23] CREATED  Snapshot created: 2026-03-01-022923
+[02:29:23] ADDED    Snapshot appeared: 2026-03-01-022923
+[02:29:23] REMOVED  Snapshot disappeared: 2026-03-01-012913
+[02:30:23] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:31:23] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:32:24] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:33:24] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:34:24] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:34:24] AUTO     Creating auto-snapshot...
+[02:34:24] CREATED  Snapshot created: 2026-03-01-023424
+[02:34:24] ADDED    Snapshot appeared: 2026-03-01-023424
+[02:34:24] REMOVED  Snapshot disappeared: 2026-03-01-013414
+[02:35:24] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:36:24] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:37:24] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:38:24] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:39:25] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:39:25] AUTO     Creating auto-snapshot...
+[02:39:25] CREATED  Snapshot created: 2026-03-01-023925
+[02:39:25] ADDED    Snapshot appeared: 2026-03-01-023925
+[02:39:25] REMOVED  Snapshot disappeared: 2026-03-01-013915
+[02:40:25] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:41:25] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:42:25] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:43:25] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:44:25] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:44:25] AUTO     Creating auto-snapshot...
+[02:44:26] CREATED  Snapshot created: 2026-03-01-024425
+[02:44:26] THINNED  Removed 2026-03-01-014416
+[02:44:26] INFO     Thinning complete: removed 1 snapshot(s)
+[02:44:26] ADDED    Snapshot appeared: 2026-03-01-024425
+[02:44:26] REMOVED  Snapshot disappeared: 2026-03-01-014416
+[02:45:26] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:46:26] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:47:26] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:48:26] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:49:26] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:49:26] AUTO     Creating auto-snapshot...
+[02:49:26] CREATED  Snapshot created: 2026-03-01-024926
+[02:49:27] ADDED    Snapshot appeared: 2026-03-01-024926
+[02:50:27] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:51:27] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:52:27] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:53:27] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:54:27] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:54:27] AUTO     Creating auto-snapshot...
+[02:54:27] CREATED  Snapshot created: 2026-03-01-025427
+[02:54:27] ADDED    Snapshot appeared: 2026-03-01-025427
+[02:54:27] REMOVED  Snapshot disappeared: 2026-03-01-015417
+[02:55:27] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:56:28] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:57:28] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:58:28] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:59:28] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[02:59:28] AUTO     Creating auto-snapshot...
+[02:59:28] CREATED  Snapshot created: 2026-03-01-025928
+[02:59:28] ADDED    Snapshot appeared: 2026-03-01-025928
+[02:59:28] REMOVED  Snapshot disappeared: 2026-03-01-015918
+[03:00:28] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:01:28] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:02:29] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:03:29] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:04:29] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:04:29] AUTO     Creating auto-snapshot...
+[03:04:29] CREATED  Snapshot created: 2026-03-01-030429
+[03:04:29] ADDED    Snapshot appeared: 2026-03-01-030429
+[03:04:29] REMOVED  Snapshot disappeared: 2026-03-01-020419
+[03:05:29] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:06:29] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:07:29] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:08:29] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:09:30] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:09:30] AUTO     Creating auto-snapshot...
+[03:09:30] CREATED  Snapshot created: 2026-03-01-030930
+[03:09:30] ADDED    Snapshot appeared: 2026-03-01-030930
+[03:09:30] REMOVED  Snapshot disappeared: 2026-03-01-020920
+[03:10:30] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:11:30] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:12:30] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:13:30] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:14:30] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:14:30] AUTO     Creating auto-snapshot...
+[03:14:31] CREATED  Snapshot created: 2026-03-01-031430
+[03:14:31] ADDED    Snapshot appeared: 2026-03-01-031430
+[03:14:31] REMOVED  Snapshot disappeared: 2026-03-01-021420
+[03:15:31] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:16:31] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:17:31] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:18:31] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:19:31] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:19:31] AUTO     Creating auto-snapshot...
+[03:19:32] CREATED  Snapshot created: 2026-03-01-031931
+[03:19:32] ADDED    Snapshot appeared: 2026-03-01-031931
+[03:19:32] REMOVED  Snapshot disappeared: 2026-03-01-021921
+[03:20:32] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:21:32] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:22:32] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:23:32] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:24:32] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:24:32] AUTO     Creating auto-snapshot...
+[03:24:32] CREATED  Snapshot created: 2026-03-01-032432
+[03:24:32] ADDED    Snapshot appeared: 2026-03-01-032432
+[03:24:32] REMOVED  Snapshot disappeared: 2026-03-01-022422
+[03:25:33] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:26:33] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:27:33] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:28:33] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:29:33] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:29:33] AUTO     Creating auto-snapshot...
+[03:29:33] CREATED  Snapshot created: 2026-03-01-032933
+[03:29:33] ADDED    Snapshot appeared: 2026-03-01-032933
+[03:29:33] REMOVED  Snapshot disappeared: 2026-03-01-022923
+[03:30:33] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:31:34] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:32:34] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:33:34] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:34:34] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:34:34] AUTO     Creating auto-snapshot...
+[03:34:34] CREATED  Snapshot created: 2026-03-01-033434
+[03:34:34] ADDED    Snapshot appeared: 2026-03-01-033434
+[03:34:34] REMOVED  Snapshot disappeared: 2026-03-01-023424
+[03:35:34] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:36:34] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:37:34] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:38:35] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:39:35] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:39:35] AUTO     Creating auto-snapshot...
+[03:39:35] CREATED  Snapshot created: 2026-03-01-033935
+[03:39:35] ADDED    Snapshot appeared: 2026-03-01-033935
+[03:39:35] REMOVED  Snapshot disappeared: 2026-03-01-023925
+[03:40:35] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:41:35] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:42:35] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:43:35] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:44:36] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:44:36] AUTO     Creating auto-snapshot...
+[03:44:36] CREATED  Snapshot created: 2026-03-01-034436
+[03:44:36] THINNED  Removed 2026-03-01-024425
+[03:44:36] INFO     Thinning complete: removed 1 snapshot(s)
+[03:44:36] ADDED    Snapshot appeared: 2026-03-01-034436
+[03:44:36] REMOVED  Snapshot disappeared: 2026-03-01-024425
+[03:45:36] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:46:36] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:47:36] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:48:36] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:49:36] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:49:36] AUTO     Creating auto-snapshot...
+[03:49:36] CREATED  Snapshot created: 2026-03-01-034936
+[03:49:37] THINNED  Removed 2026-02-28-214836
+[03:49:37] INFO     Thinning complete: removed 1 snapshot(s)
+[03:49:37] ADDED    Snapshot appeared: 2026-03-01-034936
+[03:49:37] REMOVED  Snapshot disappeared: 2026-02-28-214836
+[03:50:37] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:51:37] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:52:37] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:53:37] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:54:37] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:54:37] AUTO     Creating auto-snapshot...
+[03:54:37] CREATED  Snapshot created: 2026-03-01-035437
+[03:54:38] ADDED    Snapshot appeared: 2026-03-01-035437
+[03:54:38] REMOVED  Snapshot disappeared: 2026-03-01-025427
+[03:55:38] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:56:38] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:57:38] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:58:38] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:59:38] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[03:59:38] AUTO     Creating auto-snapshot...
+[03:59:38] CREATED  Snapshot created: 2026-03-01-035938
+[03:59:38] ADDED    Snapshot appeared: 2026-03-01-035938
+[03:59:38] REMOVED  Snapshot disappeared: 2026-03-01-025928
+[04:00:38] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:01:39] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:02:39] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:03:39] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:04:39] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:04:39] AUTO     Creating auto-snapshot...
+[04:04:39] CREATED  Snapshot created: 2026-03-01-040439
+[04:04:39] ADDED    Snapshot appeared: 2026-03-01-040439
+[04:04:39] REMOVED  Snapshot disappeared: 2026-03-01-030429
+[04:05:39] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:06:39] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:07:39] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:08:40] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:09:40] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:09:40] AUTO     Creating auto-snapshot...
+[04:09:40] CREATED  Snapshot created: 2026-03-01-040940
+[04:09:40] ADDED    Snapshot appeared: 2026-03-01-040940
+[04:09:40] REMOVED  Snapshot disappeared: 2026-03-01-030930
+[04:10:40] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:11:40] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:12:40] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:13:40] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:14:40] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:14:40] AUTO     Creating auto-snapshot...
+[04:14:41] CREATED  Snapshot created: 2026-03-01-041441
+[04:14:41] ADDED    Snapshot appeared: 2026-03-01-041441
+[04:14:41] REMOVED  Snapshot disappeared: 2026-03-01-031430
+[04:15:41] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:16:41] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:17:41] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:18:41] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:19:41] REMOVED  Snapshot disappeared: 2026-03-01-031931
+[04:19:41] INFO     Refresh: 17 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:19:41] AUTO     Creating auto-snapshot...
+[04:19:41] CREATED  Snapshot created: 2026-03-01-041941
+[04:19:42] ADDED    Snapshot appeared: 2026-03-01-041941
+[04:20:42] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:21:42] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:22:42] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:23:42] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:24:42] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:24:42] AUTO     Creating auto-snapshot...
+[04:24:42] CREATED  Snapshot created: 2026-03-01-042442
+[04:24:43] ADDED    Snapshot appeared: 2026-03-01-042442
+[04:24:43] REMOVED  Snapshot disappeared: 2026-03-01-032432
+[04:25:43] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:26:43] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:27:43] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:28:43] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:29:43] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:29:43] AUTO     Creating auto-snapshot...
+[04:29:43] CREATED  Snapshot created: 2026-03-01-042943
+[04:29:43] ADDED    Snapshot appeared: 2026-03-01-042943
+[04:29:43] REMOVED  Snapshot disappeared: 2026-03-01-032933
+[04:30:43] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:31:44] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:32:44] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:33:44] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:34:44] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:34:44] AUTO     Creating auto-snapshot...
+[04:34:44] CREATED  Snapshot created: 2026-03-01-043444
+[04:34:44] ADDED    Snapshot appeared: 2026-03-01-043444
+[04:34:44] REMOVED  Snapshot disappeared: 2026-03-01-033434
+[04:35:44] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:36:44] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:37:44] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:38:45] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:39:45] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:39:45] AUTO     Creating auto-snapshot...
+[04:39:45] CREATED  Snapshot created: 2026-03-01-043945
+[04:39:45] ADDED    Snapshot appeared: 2026-03-01-043945
+[04:39:45] REMOVED  Snapshot disappeared: 2026-03-01-033935
+[04:40:45] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:41:45] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:42:45] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:43:45] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:44:45] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:44:45] AUTO     Creating auto-snapshot...
+[04:44:46] CREATED  Snapshot created: 2026-03-01-044446
+[04:44:46] THINNED  Removed 2026-03-01-034436
+[04:44:46] INFO     Thinning complete: removed 1 snapshot(s)
+[04:44:46] ADDED    Snapshot appeared: 2026-03-01-044446
+[04:44:46] REMOVED  Snapshot disappeared: 2026-03-01-034436
+[04:45:46] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:46:46] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:47:46] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:48:46] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:49:46] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:49:46] AUTO     Creating auto-snapshot...
+[04:49:47] CREATED  Snapshot created: 2026-03-01-044946
+[04:49:47] THINNED  Removed 2026-02-28-224846
+[04:49:47] INFO     Thinning complete: removed 1 snapshot(s)
+[04:49:47] ADDED    Snapshot appeared: 2026-03-01-044946
+[04:49:47] REMOVED  Snapshot disappeared: 2026-02-28-224846
+[04:50:47] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:51:47] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:52:47] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:53:47] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:54:47] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:54:47] AUTO     Creating auto-snapshot...
+[04:54:48] CREATED  Snapshot created: 2026-03-01-045447
+[04:54:48] ADDED    Snapshot appeared: 2026-03-01-045447
+[04:54:48] REMOVED  Snapshot disappeared: 2026-03-01-035437
+[04:55:48] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:56:48] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:57:48] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:58:48] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:59:48] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[04:59:48] AUTO     Creating auto-snapshot...
+[04:59:49] CREATED  Snapshot created: 2026-03-01-045948
+[04:59:49] ADDED    Snapshot appeared: 2026-03-01-045948
+[04:59:49] REMOVED  Snapshot disappeared: 2026-03-01-035938
+[05:00:49] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:01:49] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:02:49] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:03:49] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:04:49] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:04:49] AUTO     Creating auto-snapshot...
+[05:04:49] CREATED  Snapshot created: 2026-03-01-050449
+[05:04:50] ADDED    Snapshot appeared: 2026-03-01-050449
+[05:04:50] REMOVED  Snapshot disappeared: 2026-03-01-040439
+[05:05:50] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:06:50] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:07:50] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:08:50] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:09:50] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:09:50] AUTO     Creating auto-snapshot...
+[05:09:50] CREATED  Snapshot created: 2026-03-01-050950
+[05:09:50] ADDED    Snapshot appeared: 2026-03-01-050950
+[05:09:50] REMOVED  Snapshot disappeared: 2026-03-01-040940
+[05:10:50] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:11:51] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:12:51] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:13:51] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:14:51] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:14:51] AUTO     Creating auto-snapshot...
+[05:14:51] CREATED  Snapshot created: 2026-03-01-051451
+[05:14:51] ADDED    Snapshot appeared: 2026-03-01-051451
+[05:14:51] REMOVED  Snapshot disappeared: 2026-03-01-041441
+[05:15:51] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:16:51] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:17:51] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:18:52] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:19:52] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:19:52] AUTO     Creating auto-snapshot...
+[05:19:52] CREATED  Snapshot created: 2026-03-01-051952
+[05:19:52] ADDED    Snapshot appeared: 2026-03-01-051952
+[05:19:52] REMOVED  Snapshot disappeared: 2026-03-01-041941
+[05:20:52] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:21:52] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:22:52] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:23:52] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:24:53] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:24:53] AUTO     Creating auto-snapshot...
+[05:24:53] CREATED  Snapshot created: 2026-03-01-052453
+[05:24:53] ADDED    Snapshot appeared: 2026-03-01-052453
+[05:24:53] REMOVED  Snapshot disappeared: 2026-03-01-042442
+[05:25:53] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:26:53] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:27:53] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:28:53] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:29:53] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:29:53] AUTO     Creating auto-snapshot...
+[05:29:54] CREATED  Snapshot created: 2026-03-01-052953
+[05:29:54] ADDED    Snapshot appeared: 2026-03-01-052953
+[05:29:54] REMOVED  Snapshot disappeared: 2026-03-01-042943
+[05:30:54] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:31:54] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:32:54] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:33:54] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:34:54] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:34:54] AUTO     Creating auto-snapshot...
+[05:34:54] CREATED  Snapshot created: 2026-03-01-053454
+[05:34:54] ADDED    Snapshot appeared: 2026-03-01-053454
+[05:34:54] REMOVED  Snapshot disappeared: 2026-03-01-043444
+[05:35:55] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:36:55] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:37:55] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:38:55] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:39:55] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:39:55] AUTO     Creating auto-snapshot...
+[05:39:55] CREATED  Snapshot created: 2026-03-01-053955
+[05:39:55] ADDED    Snapshot appeared: 2026-03-01-053955
+[05:39:55] REMOVED  Snapshot disappeared: 2026-03-01-043945
+[05:40:55] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:41:55] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:42:56] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:43:56] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:44:56] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:44:56] AUTO     Creating auto-snapshot...
+[05:44:56] CREATED  Snapshot created: 2026-03-01-054456
+[05:44:56] THINNED  Removed 2026-03-01-044446
+[05:44:56] INFO     Thinning complete: removed 1 snapshot(s)
+[05:44:56] ADDED    Snapshot appeared: 2026-03-01-054456
+[05:44:56] REMOVED  Snapshot disappeared: 2026-03-01-044446
+[05:45:56] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:46:56] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:47:56] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:48:56] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:49:57] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:49:57] AUTO     Creating auto-snapshot...
+[05:49:57] CREATED  Snapshot created: 2026-03-01-054957
+[05:49:57] THINNED  Removed 2026-02-28-234856
+[05:49:57] INFO     Thinning complete: removed 1 snapshot(s)
+[05:49:57] ADDED    Snapshot appeared: 2026-03-01-054957
+[05:49:57] REMOVED  Snapshot disappeared: 2026-02-28-234856
+[05:50:57] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:51:57] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:52:57] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:53:57] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:54:58] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:54:58] AUTO     Creating auto-snapshot...
+[05:54:58] CREATED  Snapshot created: 2026-03-01-055458
+[05:54:58] ADDED    Snapshot appeared: 2026-03-01-055458
+[05:54:58] REMOVED  Snapshot disappeared: 2026-03-01-045447
+[05:55:58] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:56:58] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:57:58] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:58:58] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:59:58] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[05:59:58] AUTO     Creating auto-snapshot...
+[05:59:59] CREATED  Snapshot created: 2026-03-01-055958
+[05:59:59] ADDED    Snapshot appeared: 2026-03-01-055958
+[05:59:59] REMOVED  Snapshot disappeared: 2026-03-01-045948
+[06:00:59] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:01:59] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:02:59] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:03:59] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:04:59] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:04:59] AUTO     Creating auto-snapshot...
+[06:04:59] CREATED  Snapshot created: 2026-03-01-060459
+[06:04:59] ADDED    Snapshot appeared: 2026-03-01-060459
+[06:04:59] REMOVED  Snapshot disappeared: 2026-03-01-050449
+[06:06:00] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:07:00] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:08:00] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:09:00] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:10:00] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:10:00] AUTO     Creating auto-snapshot...
+[06:10:00] CREATED  Snapshot created: 2026-03-01-061000
+[06:10:00] ADDED    Snapshot appeared: 2026-03-01-061000
+[06:10:00] REMOVED  Snapshot disappeared: 2026-03-01-050950
+[06:11:00] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:12:00] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:13:01] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:14:01] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:15:01] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:15:01] AUTO     Creating auto-snapshot...
+[06:15:01] CREATED  Snapshot created: 2026-03-01-061501
+[06:15:01] ADDED    Snapshot appeared: 2026-03-01-061501
+[06:15:01] REMOVED  Snapshot disappeared: 2026-03-01-051451
+[06:16:01] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:17:01] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:18:01] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:19:02] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:20:02] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:20:02] AUTO     Creating auto-snapshot...
+[06:20:02] CREATED  Snapshot created: 2026-03-01-062002
+[06:20:02] ADDED    Snapshot appeared: 2026-03-01-062002
+[06:20:02] REMOVED  Snapshot disappeared: 2026-03-01-051952
+[06:21:02] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:22:02] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:23:02] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:24:02] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:25:02] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:25:02] AUTO     Creating auto-snapshot...
+[06:25:03] CREATED  Snapshot created: 2026-03-01-062503
+[06:25:03] ADDED    Snapshot appeared: 2026-03-01-062503
+[06:25:03] REMOVED  Snapshot disappeared: 2026-03-01-052453
+[06:26:03] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:27:03] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:28:03] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:29:03] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:30:03] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:30:03] AUTO     Creating auto-snapshot...
+[06:30:03] CREATED  Snapshot created: 2026-03-01-063003
+[06:30:04] ADDED    Snapshot appeared: 2026-03-01-063003
+[06:30:04] REMOVED  Snapshot disappeared: 2026-03-01-052953
+[06:31:04] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:32:04] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:33:04] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:34:04] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:35:04] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:35:04] AUTO     Creating auto-snapshot...
+[06:35:04] CREATED  Snapshot created: 2026-03-01-063504
+[06:35:04] ADDED    Snapshot appeared: 2026-03-01-063504
+[06:35:04] REMOVED  Snapshot disappeared: 2026-03-01-053454
+[06:36:05] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:37:05] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:38:05] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:39:05] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:40:05] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:40:05] AUTO     Creating auto-snapshot...
+[06:40:05] CREATED  Snapshot created: 2026-03-01-064005
+[06:40:05] ADDED    Snapshot appeared: 2026-03-01-064005
+[06:40:05] REMOVED  Snapshot disappeared: 2026-03-01-053955
+[06:41:05] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:42:05] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:43:06] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:44:06] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:45:06] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:45:06] AUTO     Creating auto-snapshot...
+[06:45:06] CREATED  Snapshot created: 2026-03-01-064506
+[06:45:06] THINNED  Removed 2026-03-01-054456
+[06:45:06] INFO     Thinning complete: removed 1 snapshot(s)
+[06:45:06] ADDED    Snapshot appeared: 2026-03-01-064506
+[06:45:06] REMOVED  Snapshot disappeared: 2026-03-01-054456
+[06:46:06] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:47:06] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:48:06] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:49:07] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:50:07] INFO     Refresh: 18 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:50:07] AUTO     Creating auto-snapshot...
+[06:50:07] CREATED  Snapshot created: 2026-03-01-065007
+[06:50:07] ADDED    Snapshot appeared: 2026-03-01-065007
+[06:51:07] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:52:07] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:53:07] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:54:07] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:55:07] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:55:07] AUTO     Creating auto-snapshot...
+[06:55:08] CREATED  Snapshot created: 2026-03-01-065507
+[06:55:08] ADDED    Snapshot appeared: 2026-03-01-065507
+[06:55:08] REMOVED  Snapshot disappeared: 2026-03-01-055458
+[06:56:08] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:57:08] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:58:08] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[06:59:08] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:00:08] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:00:08] AUTO     Creating auto-snapshot...
+[07:00:08] CREATED  Snapshot created: 2026-03-01-070008
+[07:00:08] ADDED    Snapshot appeared: 2026-03-01-070008
+[07:00:08] REMOVED  Snapshot disappeared: 2026-03-01-055958
+[07:01:09] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:02:09] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:03:09] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:04:09] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:05:09] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:05:09] AUTO     Creating auto-snapshot...
+[07:05:09] CREATED  Snapshot created: 2026-03-01-070509
+[07:05:09] ADDED    Snapshot appeared: 2026-03-01-070509
+[07:05:09] REMOVED  Snapshot disappeared: 2026-03-01-060459
+[07:06:09] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:07:09] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:08:10] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:09:10] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:10:10] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:10:10] AUTO     Creating auto-snapshot...
+[07:10:10] CREATED  Snapshot created: 2026-03-01-071010
+[07:10:10] ADDED    Snapshot appeared: 2026-03-01-071010
+[07:10:10] REMOVED  Snapshot disappeared: 2026-03-01-061000
+[07:11:10] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:12:10] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:13:10] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:14:10] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:15:11] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:15:11] AUTO     Creating auto-snapshot...
+[07:15:11] CREATED  Snapshot created: 2026-03-01-071511
+[07:15:11] ADDED    Snapshot appeared: 2026-03-01-071511
+[07:15:11] REMOVED  Snapshot disappeared: 2026-03-01-061501
+[07:16:11] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:17:11] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:18:11] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:19:11] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:20:11] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:20:11] AUTO     Creating auto-snapshot...
+[07:20:12] CREATED  Snapshot created: 2026-03-01-072011
+[07:20:12] ADDED    Snapshot appeared: 2026-03-01-072011
+[07:20:12] REMOVED  Snapshot disappeared: 2026-03-01-062002
+[07:21:12] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:22:12] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:23:12] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:24:12] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:25:12] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:25:12] AUTO     Creating auto-snapshot...
+[07:25:12] CREATED  Snapshot created: 2026-03-01-072512
+[07:25:12] ADDED    Snapshot appeared: 2026-03-01-072512
+[07:25:12] REMOVED  Snapshot disappeared: 2026-03-01-062503
+[07:26:13] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:27:13] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:28:13] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:29:13] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:30:13] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:30:13] AUTO     Creating auto-snapshot...
+[07:30:13] CREATED  Snapshot created: 2026-03-01-073013
+[07:30:13] ADDED    Snapshot appeared: 2026-03-01-073013
+[07:30:13] REMOVED  Snapshot disappeared: 2026-03-01-063003
+[07:31:13] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:32:13] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:33:14] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:34:14] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:35:14] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:35:14] AUTO     Creating auto-snapshot...
+[07:35:14] CREATED  Snapshot created: 2026-03-01-073514
+[07:35:14] ADDED    Snapshot appeared: 2026-03-01-073514
+[07:35:14] REMOVED  Snapshot disappeared: 2026-03-01-063504
+[07:36:14] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:37:14] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:38:14] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:39:15] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:40:15] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:40:15] AUTO     Creating auto-snapshot...
+[07:40:15] CREATED  Snapshot created: 2026-03-01-074015
+[07:40:15] ADDED    Snapshot appeared: 2026-03-01-074015
+[07:40:15] REMOVED  Snapshot disappeared: 2026-03-01-064005
+[07:41:15] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:42:15] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:43:15] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:44:15] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:45:15] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:45:15] AUTO     Creating auto-snapshot...
+[07:45:16] CREATED  Snapshot created: 2026-03-01-074516
+[07:45:18] THINNED  Removed 2026-03-01-064506
+[07:45:19] INFO     Thinning complete: removed 1 snapshot(s)
+[07:45:19] ADDED    Snapshot appeared: 2026-03-01-074516
+[07:45:19] REMOVED  Snapshot disappeared: 2026-03-01-064506
+[07:46:19] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:47:19] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:48:19] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:49:19] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:50:19] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:50:19] AUTO     Creating auto-snapshot...
+[07:50:19] CREATED  Snapshot created: 2026-03-01-075019
+[07:50:19] THINNED  Removed 2026-03-01-014916
+[07:50:19] INFO     Thinning complete: removed 1 snapshot(s)
+[07:50:19] ADDED    Snapshot appeared: 2026-03-01-075019
+[07:50:19] REMOVED  Snapshot disappeared: 2026-03-01-014916
+[07:51:20] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:52:20] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:53:20] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:54:20] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:55:20] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:55:20] AUTO     Creating auto-snapshot...
+[07:55:20] CREATED  Snapshot created: 2026-03-01-075520
+[07:55:20] ADDED    Snapshot appeared: 2026-03-01-075520
+[07:55:20] REMOVED  Snapshot disappeared: 2026-03-01-065507
+[07:56:20] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:57:20] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:58:21] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[07:59:21] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[08:00:21] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[08:00:21] AUTO     Creating auto-snapshot...
+[08:00:21] CREATED  Snapshot created: 2026-03-01-080021
+[08:00:21] ADDED    Snapshot appeared: 2026-03-01-080021
+[08:00:21] REMOVED  Snapshot disappeared: 2026-03-01-070008
+[08:01:21] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[08:02:21] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[08:03:21] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[08:04:21] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[08:05:22] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[08:05:22] AUTO     Creating auto-snapshot...
+[08:05:22] CREATED  Snapshot created: 2026-03-01-080522
+[08:05:22] ADDED    Snapshot appeared: 2026-03-01-080522
+[08:05:22] REMOVED  Snapshot disappeared: 2026-03-01-070509
+[08:06:22] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[08:07:22] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[08:08:22] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[08:09:22] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[08:10:22] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[08:10:22] AUTO     Creating auto-snapshot...
+[08:10:23] CREATED  Snapshot created: 2026-03-01-081022
+[08:10:23] ADDED    Snapshot appeared: 2026-03-01-081022
+[08:10:23] REMOVED  Snapshot disappeared: 2026-03-01-071010
+[08:11:23] INFO     Refresh: 19 snapshots, disk 7.3Ti total, 11Gi used, 6.9Ti available (1%)
+[08:12:06] INFO     Shutting down
