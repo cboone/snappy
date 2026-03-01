@@ -305,7 +305,7 @@ function compute_snapshot_diff() {
   # Find additions (in current but not in previous)
   for snap in "${CURR_SNAPSHOTS[@]}"; do
     if [[ -z "${prev_set[${snap}]:-}" ]]; then
-      ((DIFF_ADDED++))
+      ((DIFF_ADDED += 1))
       log_event "ADDED" "Snapshot appeared: ${snap}"
     fi
   done
@@ -313,7 +313,7 @@ function compute_snapshot_diff() {
   # Find removals (in previous but not in current)
   for snap in "${PREV_SNAPSHOTS[@]}"; do
     if [[ -z "${curr_set[${snap}]:-}" ]]; then
-      ((DIFF_REMOVED++))
+      ((DIFF_REMOVED += 1))
       log_event "REMOVED" "Snapshot disappeared: ${snap}"
     fi
   done
@@ -455,7 +455,7 @@ function draw_snapshot_list() {
 
       printf "  %s %2d.%s  %s   %s(%s)%s\n" \
         "${COLOR_GREEN}" "$((count - i))" "${COLOR_RESET}" "${snap}" "${COLOR_DIM}" "${relative}" "${COLOR_RESET}"
-      ((displayed++))
+      ((displayed += 1))
     done
   fi
 }
