@@ -89,9 +89,10 @@ The two positional-argument tests change from "reaches TUI stage" to
 - "Multiple extra positional arguments" similarly changes with error for
   `"arg1"`
 
-The "Double-dash separator" test in `errors.md` (`snappy -- --help`) also
-changes: `--help` after `--` becomes a positional argument, which Cobra now
-treats as an unknown command instead of passing to RunE.
+The "Double-dash separator" test in `errors.md` (`snappy -- --help`) is
+unchanged behaviorally: `--help` after `--` is still treated as a positional
+argument, and arguments after `--` bypass Cobra's subcommand matching, so
+they reach `RunE` and the TUI error path still applies.
 
 ## Verification
 
