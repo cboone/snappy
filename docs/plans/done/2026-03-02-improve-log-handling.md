@@ -54,7 +54,7 @@ type Options struct {
 }
 ```
 
-Add fields to `Logger` struct: `filePath`, `logDir`, `maxBytes`, `maxFiles`.
+Add fields to `Logger` struct: `filePath`, `maxBytes`, `maxFiles`.
 
 This is an internal package with only two call sites, so the signature change
 is safe.
@@ -66,7 +66,7 @@ is safe.
 Add three private methods:
 
 - `maybeRotate()`: called before each file write in `Log()`; stats the file,
-  calls `rotateFiles()` if size exceeds `maxBytes`.
+  calls `rotateFiles()` if size reaches or exceeds `maxBytes`.
 - `rotateFiles()`: closes current file, shifts backups
   (`.log.2` to `.log.3`, `.log.1` to `.log.2`, `.log` to `.log.1`),
   removes the oldest if at `maxFiles`, opens a fresh `.log`.

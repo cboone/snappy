@@ -144,8 +144,8 @@ func (l *Logger) Close() {
 	}
 }
 
-// maybeRotate checks the current log file size and rotates if it exceeds
-// maxBytes. Must be called with l.mu held.
+// maybeRotate checks the current log file size and rotates if it reaches or
+// exceeds maxBytes. Must be called with l.mu held.
 func (l *Logger) maybeRotate() {
 	if l.maxBytes <= 0 {
 		return
