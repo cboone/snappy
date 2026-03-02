@@ -198,6 +198,44 @@ func TestMaxEntriesZeroDoesNotPanic(t *testing.T) {
 	}
 }
 
+func TestRotationPreservesDataOnRenameFail(t *testing.T) {
+	dir := t.TempDir()
+	l := New(Options{LogDir: dir, MaxEntries: 50, MaxSize: 100, MaxFiles: 2})
+	defer l.Close()
+
+	// Write enough to trigger rotation.
+	for i := range 5 {
+		l.Log(Info, fmt.Sprintf("message-%03d-padding-to-fill-space-easily", i))
+	}
+
+	// Make the backup destination directory to block the active rename.
+	// os.Rename fails when dst is a non-empty directory.
+	backup1 := filepath.Join(dir, "snappy.log.1")
+	_ = os.MkdirAll(filepath.Join(backup1, "blocker"), 0o755)
+
+	// Capture pre-rotation content.
+	preContent, err := os.ReadFile(filepath.Join(dir, "snappy.log"))
+	if err != nil {
+		t.Fatalf("reading log before blocked rotation: %v", err)
+	}
+
+	// Write more to trigger another rotation (rename will fail).
+	for i := range 10 {
+		l.Log(Info, fmt.Sprintf("after-block-%03d-padding-to-fill-space", i))
+	}
+	l.Close()
+
+	postContent, err := os.ReadFile(filepath.Join(dir, "snappy.log"))
+	if err != nil {
+		t.Fatalf("reading log after blocked rotation: %v", err)
+	}
+
+	// The file must still contain the pre-rotation data (not truncated).
+	if !strings.Contains(string(postContent), string(preContent[:20])) {
+		t.Error("log file was truncated despite failed rename; data lost")
+	}
+}
+
 func TestRotationWithMaxFilesZeroClampsToOneBackup(t *testing.T) {
 	dir := t.TempDir()
 	l := New(Options{LogDir: dir, MaxEntries: 10, MaxSize: 50, MaxFiles: 0})

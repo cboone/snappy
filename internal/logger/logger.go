@@ -167,6 +167,8 @@ func (l *Logger) maybeRotate() {
 }
 
 // rotateFiles closes the current file, shifts backups, and opens a fresh log.
+// If the active log file cannot be renamed aside, it reopens in append mode
+// to avoid truncating data that was never backed up.
 // Must be called with l.mu held.
 func (l *Logger) rotateFiles() {
 	_ = l.file.Close()
@@ -174,18 +176,31 @@ func (l *Logger) rotateFiles() {
 
 	// Shift existing backups from highest to lowest.
 	// Example with maxFiles=3: delete .3, rename .2->.3, .1->.2, .log->.1
+	activeRenamed := true
 	for i := l.maxFiles; i >= 1; i-- {
 		src := l.backupPath(i - 1)
 		dst := l.backupPath(i)
 		if i == l.maxFiles {
 			_ = os.Remove(dst)
 		}
-		if err := os.Rename(src, dst); err != nil && !os.IsNotExist(err) {
-			fmt.Fprintf(os.Stderr, "Warning: cannot rename %s to %s: %v\n", src, dst, err)
+		if err := os.Rename(src, dst); err != nil {
+			if !os.IsNotExist(err) {
+				fmt.Fprintf(os.Stderr, "Warning: cannot rename %s to %s: %v\n", src, dst, err)
+				if i == 1 {
+					activeRenamed = false
+				}
+			}
 		}
 	}
 
-	f, err := os.OpenFile(l.filePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
+	flags := os.O_CREATE | os.O_WRONLY
+	if activeRenamed {
+		flags |= os.O_TRUNC
+	} else {
+		flags |= os.O_APPEND
+	}
+
+	f, err := os.OpenFile(l.filePath, flags, 0o644)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: cannot open new log file after rotation: %v\n", err)
 		return
