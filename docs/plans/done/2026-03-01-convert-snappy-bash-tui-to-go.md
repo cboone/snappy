@@ -22,7 +22,7 @@ Move the bash reference implementation before any Go code lands:
 
 ## Package structure
 
-```
+```text
 main.go                              Entry point (exists)
 cmd/
   root.go                            Cobra root command (modify to launch TUI)
@@ -108,19 +108,19 @@ canned output, enabling CI to run on Linux.
 
 ### `internal/platform/tmutil.go`
 
-| Function | Wraps | Returns |
-|---|---|---|
-| `CheckStatus(ctx, runner)` | `tmutil destinationinfo` | status string |
+| Function                            | Wraps                           | Returns             |
+| ----------------------------------- | ------------------------------- | ------------------- |
+| `CheckStatus(ctx, runner)`          | `tmutil destinationinfo`        | status string       |
 | `ListSnapshots(ctx, runner, mount)` | `tmutil listlocalsnapshotdates` | sorted date strings |
-| `CreateSnapshot(ctx, runner)` | `tmutil localsnapshot` | created date string |
-| `DeleteSnapshot(ctx, runner, date)` | `tmutil deletelocalsnapshots` | error |
+| `CreateSnapshot(ctx, runner)`       | `tmutil localsnapshot`          | created date string |
+| `DeleteSnapshot(ctx, runner, date)` | `tmutil deletelocalsnapshots`   | error               |
 
 ### `internal/platform/diskutil.go`
 
-| Function | Wraps | Returns |
-|---|---|---|
-| `FindAPFSVolume(ctx, runner, mount)` | `diskutil info -plist` + `diskutil apfs listSnapshots -plist` | device string |
-| `GetSnapshotDetails(ctx, runner, volume)` | `diskutil apfs listSnapshots -plist` | snapshot details + other count |
+| Function                                  | Wraps                                                         | Returns                        |
+| ----------------------------------------- | ------------------------------------------------------------- | ------------------------------ |
+| `FindAPFSVolume(ctx, runner, mount)`      | `diskutil info -plist` + `diskutil apfs listSnapshots -plist` | device string                  |
+| `GetSnapshotDetails(ctx, runner, volume)` | `diskutil apfs listSnapshots -plist`                          | snapshot details + other count |
 
 Parse plist XML with `howett.net/plist` instead of shelling out to `plutil` in a
 loop. Handle both boolean and string ("YES"/"NO") plist field types for
@@ -241,17 +241,17 @@ type Model struct {
 
 Message dispatch:
 
-| Message | Action |
-|---|---|
-| `tea.KeyMsg` `s` | Log "Creating snapshot...", return `doCreateSnapshot` |
-| `tea.KeyMsg` `r` | Return `doRefresh` |
-| `tea.KeyMsg` `a` | Toggle auto via `AutoManager.Toggle()`, log event |
-| `tea.KeyMsg` `q`/`ctrl+c` | Set quitting, return `tea.Quit` |
-| `tea.WindowSizeMsg` | Update width/height |
-| `RefreshTickMsg` | Check `auto.ShouldSnapshot()`, maybe create, then refresh, re-arm tick |
-| `RefreshResultMsg` | Update state, compute diff, log additions/removals |
-| `SnapshotCreatedMsg` | Log event, trigger refresh |
-| `ThinResultMsg` | Log event, trigger refresh |
+| Message                   | Action                                                                 |
+| ------------------------- | ---------------------------------------------------------------------- |
+| `tea.KeyMsg` `s`          | Log "Creating snapshot...", return `doCreateSnapshot`                  |
+| `tea.KeyMsg` `r`          | Return `doRefresh`                                                     |
+| `tea.KeyMsg` `a`          | Toggle auto via `AutoManager.Toggle()`, log event                      |
+| `tea.KeyMsg` `q`/`ctrl+c` | Set quitting, return `tea.Quit`                                        |
+| `tea.WindowSizeMsg`       | Update width/height                                                    |
+| `RefreshTickMsg`          | Check `auto.ShouldSnapshot()`, maybe create, then refresh, re-arm tick |
+| `RefreshResultMsg`        | Update state, compute diff, log additions/removals                     |
+| `SnapshotCreatedMsg`      | Log event, trigger refresh                                             |
+| `ThinResultMsg`           | Log event, trigger refresh                                             |
 
 ### `internal/tui/view.go`
 

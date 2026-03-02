@@ -12,6 +12,7 @@ import (
 // EventType identifies the kind of log event.
 type EventType string
 
+// Event types for log categorization.
 const (
 	Startup EventType = "STARTUP"
 	Info    EventType = "INFO"

@@ -1,1 +1,4 @@
 enable=all
+
+# Follow source directives for cross-file analysis
+external-sources=true

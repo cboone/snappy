@@ -25,6 +25,7 @@ Create a single interactive bash script at `bin/snappy` with a terminal UI.
 The script runs in a loop, auto-refreshing the snapshot list every N seconds (default 60). Between refreshes, the user can press a key to trigger actions immediately. No sudo, no background daemons, no external dependencies beyond `tmutil`, `df`, and `tput`.
 
 **Controls:**
+
 - `s` -- create a new snapshot
 - `r` -- force-refresh the snapshot list
 - `d` -- delete the oldest snapshot (for cleanup during testing)
@@ -32,7 +33,7 @@ The script runs in a loop, auto-refreshing the snapshot list every N seconds (de
 
 ### Terminal display layout
 
-```
+```text
 ================================================================================
   SNAPPY v0.1.0 -- Time Machine Local Snapshot Manager
 ================================================================================
@@ -68,6 +69,7 @@ Log to both terminal (colored) and a persistent file (`~/.local/share/snappy/sna
 Format: `[HH:MM:SS] TYPE    message`
 
 Event types:
+
 - `STARTUP` -- script started, with configuration summary
 - `INFO` -- periodic refresh summaries, disk space
 - `CREATED` -- snapshot successfully created
@@ -119,16 +121,16 @@ Single executable bash script. Structure from top to bottom:
 
 ### Environment variables
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `SNAPPY_REFRESH` | `60` | Seconds between auto-refresh cycles |
-| `SNAPPY_MOUNT` | `/` | Volume mount point to query |
-| `SNAPPY_LOG_DIR` | `~/.local/share/snappy` | Log file directory |
-| `TRACE` | (unset) | Set to any value to enable bash tracing |
+| Variable         | Default                 | Purpose                                 |
+| ---------------- | ----------------------- | --------------------------------------- |
+| `SNAPPY_REFRESH` | `60`                    | Seconds between auto-refresh cycles     |
+| `SNAPPY_MOUNT`   | `/`                     | Volume mount point to query             |
+| `SNAPPY_LOG_DIR` | `~/.local/share/snappy` | Log file directory                      |
+| `TRACE`          | (unset)                 | Set to any value to enable bash tracing |
 
 ### File: `.shellcheckrc`
 
-```
+```ini
 enable=all
 ```
 

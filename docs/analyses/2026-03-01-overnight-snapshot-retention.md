@@ -32,13 +32,13 @@ Disk pressure is not a factor: available space held at ~7.0Ti (1% utilization).
 
 Each hour follows a consistent pattern (using hour 21 as an example):
 
-| Step | Count | What happens                                           |
-| ---- | ----- | ------------------------------------------------------ |
-| 1    | 12    | Snappy creates one snapshot every 5 minutes            |
-| 2    | 10    | macOS removes 10 of 12 at the 60-minute mark           |
-| 3    | 1     | Snappy's 1-6h tier thins 1 more (racing macOS)         |
-| 4    | 1     | One survivor (~:48) persists as the hourly keeper       |
-| 5    | 0     | At ~6h, Snappy's 6-24h tier thins the hourly keeper    |
+| Step | Count | What happens                                        |
+| ---- | ----- | --------------------------------------------------- |
+| 1    | 12    | Snappy creates one snapshot every 5 minutes         |
+| 2    | 10    | macOS removes 10 of 12 at the 60-minute mark        |
+| 3    | 1     | Snappy's 1-6h tier thins 1 more (racing macOS)      |
+| 4    | 1     | One survivor (~:48) persists as the hourly keeper   |
+| 5    | 0     | At ~6h, Snappy's 6-24h tier thins the hourly keeper |
 
 macOS does not touch the hourly keepers. Only Snappy's tiers remove them.
 

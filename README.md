@@ -37,27 +37,27 @@ snappy
 
 ### Key Controls
 
-| Key       | Action                        |
-| --------- | ----------------------------- |
-| `s`       | Create a snapshot             |
-| `r`       | Refresh snapshot list         |
-| `a`       | Toggle auto-snapshots on/off  |
-| `q`       | Quit                          |
+| Key | Action                       |
+| --- | ---------------------------- |
+| `s` | Create a snapshot            |
+| `r` | Refresh snapshot list        |
+| `a` | Toggle auto-snapshots on/off |
+| `q` | Quit                         |
 
 ### Configuration
 
 Snappy reads configuration from `~/.config/snappy/config.yaml` or environment
 variables prefixed with `SNAPPY_`. Pass `--config <path>` to use a custom file.
 
-| Setting                    | Env var                            | Default | Description                        |
-| -------------------------- | ---------------------------------- | ------- | ---------------------------------- |
-| `refresh`                  | `SNAPPY_REFRESH`                   | `60s`   | How often to refresh snapshot list |
-| `mount`                    | `SNAPPY_MOUNT`                     | `/`     | Mount point to monitor             |
-| `log_dir`                  | `SNAPPY_LOG_DIR`                   | (auto)  | Log directory path                 |
-| `auto_enabled`             | `SNAPPY_AUTO_ENABLED`              | `true`  | Enable auto-snapshots at startup   |
-| `auto_snapshot_interval`   | `SNAPPY_AUTO_SNAPSHOT_INTERVAL`    | `60s`   | Interval between auto-snapshots    |
-| `thin_age_threshold`       | `SNAPPY_THIN_AGE_THRESHOLD`        | `600s`  | Age before snapshots are thinned   |
-| `thin_cadence`             | `SNAPPY_THIN_CADENCE`              | `300s`  | Minimum gap kept when thinning     |
+| Setting                  | Env var                         | Default | Description                        |
+| ------------------------ | ------------------------------- | ------- | ---------------------------------- |
+| `refresh`                | `SNAPPY_REFRESH`                | `60s`   | How often to refresh snapshot list |
+| `mount`                  | `SNAPPY_MOUNT`                  | `/`     | Mount point to monitor             |
+| `log_dir`                | `SNAPPY_LOG_DIR`                | (auto)  | Log directory path                 |
+| `auto_enabled`           | `SNAPPY_AUTO_ENABLED`           | `true`  | Enable auto-snapshots at startup   |
+| `auto_snapshot_interval` | `SNAPPY_AUTO_SNAPSHOT_INTERVAL` | `60s`   | Interval between auto-snapshots    |
+| `thin_age_threshold`     | `SNAPPY_THIN_AGE_THRESHOLD`     | `600s`  | Age before snapshots are thinned   |
+| `thin_cadence`           | `SNAPPY_THIN_CADENCE`           | `300s`  | Minimum gap kept when thinning     |
 
 ## License
 

@@ -26,10 +26,10 @@ readonly LOG_FILE="${LOG_DIR}/snappy.log"
 readonly SEPARATOR="================================================================================"
 readonly THIN_SEPARATOR="------------------------------------------------------------------------------"
 
-AUTO_SNAPSHOT_ENABLED="${SNAPPY_AUTO_ENABLED:-true}"   # toggleable at runtime
-readonly AUTO_SNAPSHOT_INTERVAL=60   # always snapshot every 1 minute
-readonly THIN_AGE_THRESHOLD=600      # thin snapshots older than 10 minutes
-readonly THIN_CADENCE=300            # keep one snapshot every 5 minutes when thinning
+AUTO_SNAPSHOT_ENABLED="${SNAPPY_AUTO_ENABLED:-true}" # toggleable at runtime
+readonly AUTO_SNAPSHOT_INTERVAL=60                   # always snapshot every 1 minute
+readonly THIN_AGE_THRESHOLD=600                      # thin snapshots older than 10 minutes
+readonly THIN_CADENCE=300                            # keep one snapshot every 5 minutes when thinning
 
 # =============================================================================
 # Global state
@@ -89,7 +89,7 @@ COLOR_MAGENTA=""
 function setup_colors() {
   if [[ -t 1 ]] && command -v tput > /dev/null 2>&1; then
     local -i colors
-    colors=$(tput colors 2>/dev/null || echo 0)
+    colors=$(tput colors 2> /dev/null || echo 0)
     if ((colors >= 8)); then
       COLOR_RESET=$(tput sgr0)
       COLOR_BOLD=$(tput bold)
@@ -128,13 +128,13 @@ function check_dependencies() {
 # Create log directory and verify write access.
 # Sets: LOG_TO_FILE
 function setup_log_dir() {
-  if ! mkdir -p "${LOG_DIR}" 2>/dev/null; then
+  if ! mkdir -p "${LOG_DIR}" 2> /dev/null; then
     echo "Warning: cannot create log directory ${LOG_DIR}. File logging disabled." >&2
     LOG_TO_FILE=false
     return
   fi
 
-  if ! touch "${LOG_FILE}" 2>/dev/null; then
+  if ! touch "${LOG_FILE}" 2> /dev/null; then
     echo "Warning: cannot write to ${LOG_FILE}. File logging disabled." >&2
     LOG_TO_FILE=false
   fi
@@ -150,11 +150,11 @@ function cleanup() {
 
   # Restore cursor visibility
   if command -v tput > /dev/null 2>&1; then
-    tput cnorm 2>/dev/null || true
+    tput cnorm 2> /dev/null || true
   fi
 
   # Re-enable echo
-  stty echo 2>/dev/null || true
+  stty echo 2> /dev/null || true
 
   printf "\n"
   exit "${exit_code}"
@@ -192,7 +192,7 @@ function log_event() {
 
   # Write to file
   if [[ "${LOG_TO_FILE}" == true ]]; then
-    echo "${entry}" >> "${LOG_FILE}" 2>/dev/null || true
+    echo "${entry}" >> "${LOG_FILE}" 2> /dev/null || true
   fi
 }
 
@@ -219,7 +219,7 @@ function tm_check_status() {
 # Sets: CURR_SNAPSHOTS
 function tm_list_snapshots() {
   local output
-  if output=$(tmutil listlocalsnapshotdates "${MOUNT_POINT}" 2>/dev/null); then
+  if output=$(tmutil listlocalsnapshotdates "${MOUNT_POINT}" 2> /dev/null); then
     readarray -t CURR_SNAPSHOTS < <(echo "${output}" | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}$' || true)
   else
     CURR_SNAPSHOTS=()
@@ -268,7 +268,7 @@ function tm_delete_snapshot() {
 # Sets: DISK_INFO
 function tm_get_disk_info() {
   local output
-  if output=$(df -h "${MOUNT_POINT}" 2>/dev/null | tail -1); then
+  if output=$(df -h "${MOUNT_POINT}" 2> /dev/null | tail -1); then
     local total used available percent
     # df -h output: Filesystem Size Used Avail Capacity ...
     total=$(echo "${output}" | awk '{print $2}')
@@ -293,9 +293,9 @@ function tm_get_disk_info() {
 function has_tm_snapshots() {
   local device="${1}"
   local output
-  output=$(diskutil apfs listSnapshots "${device}" -plist 2>/dev/null) || return 1
+  output=$(diskutil apfs listSnapshots "${device}" -plist 2> /dev/null) || return 1
   # Check whether any snapshot name contains the TM prefix
-  if echo "${output}" | grep -q "com\.apple\.TimeMachine\." 2>/dev/null; then
+  if echo "${output}" | grep -q "com\.apple\.TimeMachine\." 2> /dev/null; then
     return 0
   fi
   return 1
@@ -307,8 +307,8 @@ function has_tm_snapshots() {
 # Sets: APFS_VOLUME
 function find_apfs_volume() {
   local device
-  device=$(diskutil info -plist "${MOUNT_POINT}" 2>/dev/null \
-    | plutil -extract DeviceIdentifier raw - 2>/dev/null) || true
+  device=$(diskutil info -plist "${MOUNT_POINT}" 2> /dev/null \
+    | plutil -extract DeviceIdentifier raw - 2> /dev/null) || true
 
   if [[ -z "${device}" ]]; then
     APFS_VOLUME=""
@@ -327,8 +327,8 @@ function find_apfs_volume() {
   # /System/Volumes/Data where TM snapshots actually live.
   if [[ "${MOUNT_POINT}" == "/" ]]; then
     local data_device
-    data_device=$(diskutil info -plist "/System/Volumes/Data" 2>/dev/null \
-      | plutil -extract DeviceIdentifier raw - 2>/dev/null) || true
+    data_device=$(diskutil info -plist "/System/Volumes/Data" 2> /dev/null \
+      | plutil -extract DeviceIdentifier raw - 2> /dev/null) || true
 
     # shellcheck disable=SC2310 # intentional: testing return code
     if [[ -n "${data_device}" ]] && has_tm_snapshots "${data_device}"; then
@@ -353,21 +353,21 @@ function apfs_get_snapshot_details() {
   [[ -z "${APFS_VOLUME}" ]] && return
 
   local plist_output
-  plist_output=$(diskutil apfs listSnapshots "${APFS_VOLUME}" -plist 2>/dev/null) || return 0
+  plist_output=$(diskutil apfs listSnapshots "${APFS_VOLUME}" -plist 2> /dev/null) || return 0
 
   local -i i=0
   while true; do
     local name
-    name=$(plutil -extract "Snapshots.${i}.SnapshotName" raw - 2>/dev/null <<< "${plist_output}") || break
+    name=$(plutil -extract "Snapshots.${i}.SnapshotName" raw - 2> /dev/null <<< "${plist_output}") || break
 
     local uuid
-    uuid=$(plutil -extract "Snapshots.${i}.SnapshotUUID" raw - 2>/dev/null <<< "${plist_output}") || true
+    uuid=$(plutil -extract "Snapshots.${i}.SnapshotUUID" raw - 2> /dev/null <<< "${plist_output}") || true
 
     local purgeable
-    purgeable=$(plutil -extract "Snapshots.${i}.Purgeable" raw - 2>/dev/null <<< "${plist_output}") || true
+    purgeable=$(plutil -extract "Snapshots.${i}.Purgeable" raw - 2> /dev/null <<< "${plist_output}") || true
 
     local limits_shrink
-    limits_shrink=$(plutil -extract "Snapshots.${i}.LimitingContainerShrink" raw - 2>/dev/null <<< "${plist_output}") || true
+    limits_shrink=$(plutil -extract "Snapshots.${i}.LimitingContainerShrink" raw - 2> /dev/null <<< "${plist_output}") || true
 
     # Match com.apple.TimeMachine.YYYY-MM-DD-HHMMSS.local
     if [[ "${name}" =~ com\.apple\.TimeMachine\.([0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6})\.local ]]; then
@@ -564,7 +564,7 @@ function snapshot_date_to_epoch() {
 
   local formatted="${year}-${month}-${day} ${hour}:${min}:${sec}"
 
-  date -j -f "%Y-%m-%d %H:%M:%S" "${formatted}" "+%s" 2>/dev/null || echo 0
+  date -j -f "%Y-%m-%d %H:%M:%S" "${formatted}" "+%s" 2> /dev/null || echo 0
 }
 
 # Convert a snapshot date string to a human-readable relative timestamp.
@@ -895,7 +895,7 @@ function main() {
 
   # Hide cursor
   if command -v tput > /dev/null 2>&1; then
-    tput civis 2>/dev/null || true
+    tput civis 2> /dev/null || true
   fi
 
   # Initial refresh and draw

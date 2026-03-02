@@ -2,6 +2,7 @@
 package config
 
 import (
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -61,45 +62,45 @@ func parseSecondsOrDuration(raw any, fallback time.Duration) time.Duration {
 		}
 		return v
 	case string:
-		s := strings.TrimSpace(v)
-		if s == "" {
-			return fallback
-		}
-
-		if seconds, err := strconv.ParseFloat(s, 64); err == nil {
-			return secondsToDuration(seconds)
-		}
-
-		d, err := time.ParseDuration(s)
-		if err != nil || d <= 0 {
-			return fallback
-		}
-		return d
-	case int:
-		return secondsToDuration(float64(v))
-	case int8:
-		return secondsToDuration(float64(v))
-	case int16:
-		return secondsToDuration(float64(v))
-	case int32:
-		return secondsToDuration(float64(v))
-	case int64:
-		return secondsToDuration(float64(v))
-	case uint:
-		return secondsToDuration(float64(v))
-	case uint8:
-		return secondsToDuration(float64(v))
-	case uint16:
-		return secondsToDuration(float64(v))
-	case uint32:
-		return secondsToDuration(float64(v))
-	case uint64:
-		return secondsToDuration(float64(v))
-	case float32:
-		return secondsToDuration(float64(v))
-	case float64:
-		return secondsToDuration(v)
+		return parseStringDuration(v, fallback)
 	default:
+		if f, ok := toFloat64(raw); ok {
+			return secondsToDuration(f)
+		}
 		return fallback
+	}
+}
+
+func parseStringDuration(s string, fallback time.Duration) time.Duration {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return fallback
+	}
+
+	if seconds, err := strconv.ParseFloat(s, 64); err == nil {
+		if seconds <= 0 {
+			return fallback
+		}
+		return time.Duration(seconds * float64(time.Second))
+	}
+
+	d, err := time.ParseDuration(s)
+	if err != nil || d <= 0 {
+		return fallback
+	}
+	return d
+}
+
+func toFloat64(raw any) (float64, bool) {
+	rv := reflect.ValueOf(raw)
+	switch rv.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return float64(rv.Int()), true
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return float64(rv.Uint()), true
+	case reflect.Float32, reflect.Float64:
+		return rv.Float(), true
+	default:
+		return 0, false
 	}
 }

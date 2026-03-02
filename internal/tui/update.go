@@ -180,11 +180,12 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd) {
 	m.snapshotting = false
-	if msg.Err != nil {
+	switch {
+	case msg.Err != nil:
 		m.log.Log(logger.Error, fmt.Sprintf("Failed to create snapshot: %v", msg.Err))
-	} else if msg.Date != "" {
+	case msg.Date != "":
 		m.log.Log(logger.Created, "Snapshot created: "+msg.Date)
-	} else {
+	default:
 		m.log.Log(logger.Created, "Snapshot created")
 	}
 	if m.refreshing {

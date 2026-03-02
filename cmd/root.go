@@ -1,3 +1,4 @@
+// Package cmd provides the Cobra root command that launches the Snappy TUI.
 package cmd
 
 import (

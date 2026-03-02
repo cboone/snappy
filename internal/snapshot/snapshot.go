@@ -31,7 +31,7 @@ func ParseDate(s string) (time.Time, error) {
 
 // FormatRelativeTime returns a human-readable duration since t, such as
 // "3m ago", "2h ago", or "1d ago".
-func FormatRelativeTime(t time.Time, now time.Time) string {
+func FormatRelativeTime(t, now time.Time) string {
 	delta := now.Sub(t)
 	if delta < 0 {
 		return "future"
