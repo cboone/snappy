@@ -36,7 +36,7 @@ type modelStyles struct {
 	statusOn     lipgloss.Style
 	statusOff    lipgloss.Style
 	snapNumber   lipgloss.Style
-	spinner      lipgloss.Style
+	spinnerStyle lipgloss.Style
 }
 
 func newModelStyles(hasDarkBG bool) modelStyles {
@@ -88,8 +88,8 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 		statusOn:  lipgloss.NewStyle().Bold(true).Foreground(green),
 		statusOff: lipgloss.NewStyle().Bold(true).Foreground(red),
 
-		snapNumber: lipgloss.NewStyle().Bold(true).Foreground(green),
-		spinner:    lipgloss.NewStyle().Foreground(colorHighlight),
+		snapNumber:   lipgloss.NewStyle().Bold(true).Foreground(green),
+		spinnerStyle: lipgloss.NewStyle().Foreground(colorHighlight),
 	}
 }
 
@@ -113,11 +113,5 @@ func flexPanelHeights(termHeight, fixedHeight int) (snapH, logH int) {
 	}
 	snapH = flexible / 2
 	logH = flexible - snapH
-	if snapH < 3 {
-		snapH = 3
-	}
-	if logH < 3 {
-		logH = 3
-	}
 	return snapH, logH
 }

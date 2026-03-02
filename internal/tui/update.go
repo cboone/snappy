@@ -27,6 +27,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.hasDarkBG = msg.IsDark()
 		m.styles = newModelStyles(m.hasDarkBG)
 		m.help.Styles = helpStyles(m.hasDarkBG)
+		m.spinner.Style = m.styles.spinnerStyle
 		m.updateSnapViewContent()
 		m.updateLogViewContent()
 		return m, nil

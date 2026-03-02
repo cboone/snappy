@@ -123,9 +123,11 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 	sv := viewport.New(viewport.WithWidth(76), viewport.WithHeight(10))
 	lv := viewport.New(viewport.WithWidth(76), viewport.WithHeight(10))
 
+	styles := newModelStyles(hasDarkBG)
+
 	s := spinner.New(
 		spinner.WithSpinner(spinner.Dot),
-		spinner.WithStyle(newModelStyles(hasDarkBG).spinner),
+		spinner.WithStyle(styles.spinnerStyle),
 	)
 
 	m := Model{
@@ -144,7 +146,7 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 		snapView:   sv,
 		logView:    lv,
 		spinner:    s,
-		styles:     newModelStyles(hasDarkBG),
+		styles:     styles,
 		hasDarkBG:  hasDarkBG,
 		now:        time.Now,
 	}
