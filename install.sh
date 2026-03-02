@@ -46,10 +46,10 @@ function fetch_latest_version() {
   local curl_opts=(--fail --silent --show-error --location)
   if [[ -n "${GITHUB_TOKEN:-}" ]]; then
     curl_opts+=(--header "Authorization: Bearer ${GITHUB_TOKEN}"
-                --header "Accept: application/vnd.github+json")
+      --header "Accept: application/vnd.github+json")
   fi
 
-  tag="$(curl "${curl_opts[@]}" "${api_url}" 2>/dev/null \
+  tag="$(curl "${curl_opts[@]}" "${api_url}" 2> /dev/null \
     | grep '"tag_name"' \
     | sed -E 's/.*"([^"]+)".*/\1/' || true)"
 
@@ -58,7 +58,7 @@ function fetch_latest_version() {
     local redirect_url
     redirect_url="$(curl --silent --show-error --head --location \
       --output /dev/null --write-out '%{url_effective}' \
-      "https://github.com/${REPO}/releases/latest" 2>/dev/null || true)"
+      "https://github.com/${REPO}/releases/latest" 2> /dev/null || true)"
 
     if [[ -n "${redirect_url}" ]]; then
       tag="$(printf '%s\n' "${redirect_url}" \
@@ -204,7 +204,7 @@ function main() {
     printf 'Error: expected binary "%s" not found in archive.\n' "${BINARY}" >&2
     exit 1
   fi
-  if [[ -h "${extracted_binary}" ]]; then
+  if [[ -L "${extracted_binary}" ]]; then
     printf 'Error: extracted file "%s" is a symlink; refusing to install.\n' "${BINARY}" >&2
     exit 1
   fi
