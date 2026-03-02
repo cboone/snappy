@@ -70,7 +70,7 @@ func FindAPFSVolume(ctx context.Context, r CommandRunner, mount string) (string,
 
 // GetSnapshotDetails retrieves APFS snapshot metadata for the given volume,
 // correlating Time Machine snapshots by name.
-func GetSnapshotDetails(ctx context.Context, r CommandRunner, volume string) (map[string]SnapshotDetail, int, error) {
+func GetSnapshotDetails(ctx context.Context, r CommandRunner, volume string) (details map[string]SnapshotDetail, otherCount int, err error) {
 	if volume == "" {
 		return nil, 0, nil
 	}
@@ -85,8 +85,8 @@ func GetSnapshotDetails(ctx context.Context, r CommandRunner, volume string) (ma
 		return nil, 0, fmt.Errorf("parsing APFS plist: %w", err)
 	}
 
-	details := make(map[string]SnapshotDetail)
-	otherCount := 0
+	details = make(map[string]SnapshotDetail)
+	otherCount = 0
 
 	for _, snap := range pl.Snapshots {
 		match := tmNameRe.FindStringSubmatch(snap.SnapshotName)

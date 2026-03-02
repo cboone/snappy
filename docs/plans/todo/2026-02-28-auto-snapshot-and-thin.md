@@ -8,14 +8,14 @@ Snappy currently only creates and deletes snapshots on manual keypress. The user
 
 Snapshots are grouped by age into tiers. Within each tier, snapshots are thinned to a minimum gap. Newer tiers keep more detail; older tiers keep less.
 
-| Age range      | Keep one every | ~Snapshots | Rationale                              |
-| -------------- | -------------- | ---------- | -------------------------------------- |
-| 0 - 1 hour     | 5 min (all)    | 12         | Fine-grained recovery for recent work  |
-| 1 - 6 hours    | 1 hour         | 5          | Moderate detail for the work session   |
-| 6 - 24 hours   | 4 hours        | 5          | Enough to recover today's work         |
-| 1 - 14 days    | 1 day          | 13         | Daily safety net                       |
-| Older than 14d | Delete all     | 0          | macOS often purges these anyway        |
-| **Total**      |                | **~35**    |                                        |
+| Age range      | Keep one every | ~Snapshots | Rationale                             |
+| -------------- | -------------- | ---------- | ------------------------------------- |
+| 0 - 1 hour     | 5 min (all)    | 12         | Fine-grained recovery for recent work |
+| 1 - 6 hours    | 1 hour         | 5          | Moderate detail for the work session  |
+| 6 - 24 hours   | 4 hours        | 5          | Enough to recover today's work        |
+| 1 - 14 days    | 1 day          | 13         | Daily safety net                      |
+| Older than 14d | Delete all     | 0          | macOS often purges these anyway       |
+| **Total**      |                | **~35**    |                                       |
 
 ## Changes to `bin/snappy`
 
