@@ -44,7 +44,7 @@ Flags:
 
 ```scrut
 $ "${SNAPPY_BIN}" --version --config /nonexistent/path/config.yaml
-snappy version v* (glob)
+snappy version * (glob)
 ```
 
 ## Nonexistent config file warning

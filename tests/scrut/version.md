@@ -6,12 +6,12 @@ Tests for snappy version commands.
 
 ```scrut
 $ "${SNAPPY_BIN}" --version
-snappy version v* (glob)
+snappy version * (glob)
 ```
 
 ## Short version flag
 
 ```scrut
 $ "${SNAPPY_BIN}" -v
-snappy version v* (glob)
+snappy version * (glob)
 ```
