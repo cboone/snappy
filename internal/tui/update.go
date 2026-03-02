@@ -241,7 +241,8 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 		targets := m.auto.ComputeThinTargets(m.snapshots, m.now())
 		if len(targets) > 0 {
 			m.thinning = true
-			cmds = append(cmds, doThinSnapshots(m.runner, targets))
+			m.loading = true
+			cmds = append(cmds, doThinSnapshots(m.runner, targets), m.spinner.Tick)
 		}
 	}
 
@@ -272,6 +273,7 @@ func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd
 
 func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
 	m.thinning = false
+	m.loading = false
 	if msg.Deleted > 0 {
 		m.log.Log(logger.Thinned, fmt.Sprintf(
 			"Thinned %d snapshot(s) older than %dm to %ds cadence",
@@ -315,7 +317,7 @@ func (m *Model) updateSnapViewContent() {
 }
 
 // updateLogViewContent rebuilds and sets the log content on the viewport.
-// Entries are shown newest first; the viewport auto-scrolls to bottom.
+// Entries are shown newest first; the viewport auto-scrolls to top.
 func (m *Model) updateLogViewContent() {
 	entries := m.log.Entries()
 	if len(entries) == 0 {
@@ -331,5 +333,5 @@ func (m *Model) updateLogViewContent() {
 		b.WriteString(m.colorizeLogEntry(entries[i]))
 	}
 	m.logView.SetContent(b.String())
-	m.logView.GotoBottom()
+	m.logView.GotoTop()
 }

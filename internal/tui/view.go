@@ -92,12 +92,7 @@ func (m Model) renderSnapshotPanel(width int) string {
 
 	title := m.styles.sectionTitle.Render(fmt.Sprintf("LOCAL SNAPSHOTS (%d)", count)) + diffSummary
 
-	var body string
-	if count == 0 {
-		body = title + "\n" + m.styles.textDim.Render("(none, press 's' to create the first snapshot)")
-	} else {
-		body = title + "\n" + m.snapView.View()
-	}
+	body := title + "\n" + m.snapView.View()
 
 	style := m.styles.section
 	if !m.focusLog {

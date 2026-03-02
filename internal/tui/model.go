@@ -128,7 +128,7 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 		spinner.WithStyle(newModelStyles(hasDarkBG).spinner),
 	)
 
-	return Model{
+	m := Model{
 		cfg:        cfg,
 		runner:     runner,
 		log:        log,
@@ -148,6 +148,11 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 		hasDarkBG:  hasDarkBG,
 		now:        time.Now,
 	}
+
+	m.updateSnapViewContent()
+	m.updateLogViewContent()
+
+	return m
 }
 
 // Init returns the initial commands: a refresh, a tick timer, and a

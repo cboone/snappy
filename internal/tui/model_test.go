@@ -443,6 +443,7 @@ func TestSnapshotCreatedClearsSnapshottingFlag(t *testing.T) {
 func TestThinResultClearsThinningFlag(t *testing.T) {
 	m := testModel()
 	m.thinning = true
+	m.loading = true
 	m.refreshing = false
 
 	updated, _ := m.Update(ThinResultMsg{Deleted: 1})
@@ -450,6 +451,9 @@ func TestThinResultClearsThinningFlag(t *testing.T) {
 
 	if model.thinning {
 		t.Error("expected thinning = false after ThinResultMsg")
+	}
+	if model.loading {
+		t.Error("expected loading = false after ThinResultMsg")
 	}
 }
 
@@ -499,5 +503,71 @@ func TestViewFullHeight(t *testing.T) {
 	// The output should have a reasonable number of lines approaching terminal height
 	if len(lines) < 20 {
 		t.Errorf("expected at least 20 lines for full-height TUI, got %d", len(lines))
+	}
+}
+
+func TestLogViewportAutoScrollsToNewest(t *testing.T) {
+	m := testModel()
+	m.logView.SetHeight(3)
+
+	for i := range 8 {
+		m.log.Log(logger.Info, fmt.Sprintf("entry-%d", i))
+	}
+	m.updateLogViewContent()
+
+	if m.logView.YOffset() != 0 {
+		t.Fatalf("log viewport y-offset = %d, want 0 (newest at top)", m.logView.YOffset())
+	}
+
+	v := m.logView.View()
+	if !strings.Contains(v, "entry-7") {
+		t.Fatal("expected newest log entry to be visible")
+	}
+}
+
+func TestSnapshotPanelKeepsViewportHeightWhenEmpty(t *testing.T) {
+	m := testModel()
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 40})
+	model := updated.(Model)
+
+	emptyLines := strings.Count(model.renderSnapshotPanel(model.width), "\n")
+
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	model.now = func() time.Time { return now }
+	model.snapshots = []snapshot.Snapshot{{Date: "2026-03-01-145000", Time: now.Add(-10 * time.Minute)}}
+	model.updateSnapViewContent()
+
+	nonEmptyLines := strings.Count(model.renderSnapshotPanel(model.width), "\n")
+	if emptyLines != nonEmptyLines {
+		t.Fatalf("snapshot panel lines empty=%d non-empty=%d, want equal fixed-height layout", emptyLines, nonEmptyLines)
+	}
+}
+
+func TestRefreshResultStartsSpinnerWhenThinning(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	m.snapshots = nil
+	snaps := []snapshot.Snapshot{
+		{Date: "2026-03-01-130000", Time: now.Add(-2 * time.Hour)},
+		{Date: "2026-03-01-130100", Time: now.Add(-119 * time.Minute)},
+	}
+
+	updated, cmd := m.Update(RefreshResultMsg{
+		Snapshots: snaps,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	if cmd == nil {
+		t.Fatal("expected command batch to include thinning and spinner")
+	}
+	if !model.thinning {
+		t.Fatal("expected thinning=true when thin targets are found")
+	}
+	if !model.loading {
+		t.Fatal("expected loading=true while thinning is in progress")
 	}
 }
