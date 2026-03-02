@@ -40,6 +40,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "s", "S":
+		if m.snapshotting {
+			return m, nil
+		}
+		m.snapshotting = true
 		m.log.Log(logger.Info, "Creating snapshot...")
 		return m, doCreateSnapshot(m.runner)
 
@@ -80,8 +84,9 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 
 	var cmds []tea.Cmd
 
-	snapshotDue := m.auto.ShouldSnapshot(now)
+	snapshotDue := m.auto.ShouldSnapshot(now) && !m.snapshotting
 	if snapshotDue {
+		m.snapshotting = true
 		m.auto.RecordSnapshot(now)
 		m.log.Log(logger.Auto, "Creating auto-snapshot...")
 		cmds = append(cmds, doCreateSnapshot(m.runner))
@@ -161,16 +166,20 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, doRefresh(m.runner, m.cfg, m.apfsVolume))
 	}
 
-	// Check thinning
-	targets := m.auto.ComputeThinTargets(m.snapshots, m.now())
-	if len(targets) > 0 {
-		cmds = append(cmds, doThinSnapshots(m.runner, targets))
+	// Check thinning (skip if already in flight).
+	if !m.thinning {
+		targets := m.auto.ComputeThinTargets(m.snapshots, m.now())
+		if len(targets) > 0 {
+			m.thinning = true
+			cmds = append(cmds, doThinSnapshots(m.runner, targets))
+		}
 	}
 
 	return m, tea.Batch(cmds...)
 }
 
 func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd) {
+	m.snapshotting = false
 	if msg.Err != nil {
 		m.log.Log(logger.Error, fmt.Sprintf("Failed to create snapshot: %v", msg.Err))
 	} else if msg.Date != "" {
@@ -187,6 +196,7 @@ func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd
 }
 
 func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
+	m.thinning = false
 	if msg.Deleted > 0 {
 		m.log.Log(logger.Thinned, fmt.Sprintf(
 			"Thinned %d snapshot(s) older than %dm to %ds cadence",

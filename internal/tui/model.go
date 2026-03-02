@@ -34,6 +34,8 @@ type Model struct {
 	quitting       bool
 	refreshing     bool
 	refreshPending bool
+	snapshotting   bool
+	thinning       bool
 	version        string
 
 	now func() time.Time

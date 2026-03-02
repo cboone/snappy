@@ -400,6 +400,47 @@ func TestDiffDisplay(t *testing.T) {
 	}
 }
 
+func TestSnapshotKeyIgnoredWhileSnapshotting(t *testing.T) {
+	m := testModel()
+	m.snapshotting = true
+
+	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
+	model := updated.(Model)
+
+	if cmd != nil {
+		t.Error("expected nil command when snapshot already in flight")
+	}
+	if !model.snapshotting {
+		t.Error("expected snapshotting to remain true")
+	}
+}
+
+func TestSnapshotCreatedClearsSnapshottingFlag(t *testing.T) {
+	m := testModel()
+	m.snapshotting = true
+	m.refreshing = false
+
+	updated, _ := m.Update(SnapshotCreatedMsg{Date: "2026-03-01-150000"})
+	model := updated.(Model)
+
+	if model.snapshotting {
+		t.Error("expected snapshotting = false after SnapshotCreatedMsg")
+	}
+}
+
+func TestThinResultClearsThinningFlag(t *testing.T) {
+	m := testModel()
+	m.thinning = true
+	m.refreshing = false
+
+	updated, _ := m.Update(ThinResultMsg{Deleted: 1})
+	model := updated.(Model)
+
+	if model.thinning {
+		t.Error("expected thinning = false after ThinResultMsg")
+	}
+}
+
 func TestDoThinSnapshotsReportsDeleteFailures(t *testing.T) {
 	runner := &mockRunner{responses: map[string]mockResponse{
 		"tmutil deletelocalsnapshots 2026-03-01-140000": {output: []byte("Deleted\n")},
