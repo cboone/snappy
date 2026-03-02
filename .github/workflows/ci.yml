@@ -54,3 +54,26 @@ jobs:
 
       - name: Actionlint
         uses: raven-actions/actionlint@v2
+
+  test-scrut:
+    name: Test CLI (Scrut)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Install scrut
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "${HOME}/.local/bin"
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+          gh release download v0.4.3 --repo facebookincubator/scrut --pattern 'scrut-v0.4.3-macos-aarch64.tar.gz' --dir /tmp
+          tar -xzf /tmp/scrut-v0.4.3-macos-aarch64.tar.gz -C /tmp
+          cp /tmp/scrut-macos-aarch64/scrut "${HOME}/.local/bin/"
+
+      - name: Run scrut CLI tests
+        run: make test-scrut
