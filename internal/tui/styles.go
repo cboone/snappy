@@ -53,7 +53,7 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 	magenta := lipgloss.Color("5")
 
 	return modelStyles{
-		textDim: lipgloss.NewStyle().Faint(true),
+		textDim:     lipgloss.NewStyle().Faint(true),
 		textGreen:   lipgloss.NewStyle().Foreground(green),
 		textYellow:  lipgloss.NewStyle().Foreground(yellow),
 		textRed:     lipgloss.NewStyle().Foreground(red),
