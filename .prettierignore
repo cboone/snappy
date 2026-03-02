@@ -1,0 +1,10 @@
+# Build output
+bin/
+dist/
+
+# Go
+vendor/
+go.sum
+
+# Generated files
+coverage/

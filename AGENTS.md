@@ -46,11 +46,21 @@ Run tests:
 make test
 ```
 
-Lint and vet:
+Lint:
 
 ```bash
-make vet
-make fmt
+make lint          # Run all linters (golangci-lint, markdownlint, actionlint)
+make lint-go       # Run golangci-lint only
+make lint-md       # Lint Markdown files
+make lint-actions  # Lint GitHub Actions workflows
+make vet           # Run go vet
+```
+
+Format:
+
+```bash
+make fmt           # Format all code (Go, Markdown, JSON, YAML, shell)
+make fmt-check     # Check formatting without modifying files (used in CI)
 ```
 
 See all targets:

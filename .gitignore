@@ -1,6 +1,9 @@
 # System
 .DS_Store
 
+# Dependencies
+node_modules/
+
 # Agent config
 .claude/settings.local.json
 
