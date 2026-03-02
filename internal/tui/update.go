@@ -27,6 +27,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.hasDarkBG = msg.IsDark()
 		m.styles = newModelStyles(m.hasDarkBG)
 		m.help.Styles = helpStyles(m.hasDarkBG)
+		m.updateSnapViewContent()
+		m.updateLogViewContent()
 		return m, nil
 
 	case spinner.TickMsg:
@@ -76,6 +78,9 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	m.snapView.SetHeight(snapH)
 	m.logView.SetWidth(cw)
 	m.logView.SetHeight(logH)
+
+	m.updateSnapViewContent()
+	m.updateLogViewContent()
 
 	return m, nil
 }
@@ -255,7 +260,9 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd) {
 	m.snapshotting = false
-	m.loading = false
+	if !m.thinning {
+		m.loading = false
+	}
 	switch {
 	case msg.Err != nil:
 		m.log.Log(logger.Error, fmt.Sprintf("Failed to create snapshot: %v", msg.Err))
