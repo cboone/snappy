@@ -43,7 +43,9 @@ Error: unknown flag: --bogus
 ## Double-dash separator
 
 `--` stops flag parsing; `--help` is treated as a positional argument, so the
-binary proceeds to the TUI stage and fails without a TTY.
+binary proceeds to the TUI stage and fails without a TTY. Unlike bare positional
+arguments (e.g., `snappy foo`), arguments after `--` bypass Cobra's subcommand
+matching, so they reach `RunE` even when subcommands are registered.
 
 ```scrut {output_stream: stderr}
 $ "${SNAPPY_BIN}" -- --help
