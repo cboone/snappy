@@ -479,13 +479,20 @@ func TestDoThinSnapshotsReportsDeleteFailures(t *testing.T) {
 
 func TestViewSpinnerDuringLoading(t *testing.T) {
 	m := testModel()
-	m.loading = true
-	v := viewContent(m)
 
-	// The spinner should be present in the title bar when loading.
-	// The spinner's View() produces a frame character from the spinner animation.
-	if !strings.Contains(v, "SNAPPY") {
+	// Without loading, the title bar should not contain a spinner frame.
+	noLoading := viewContent(m)
+
+	m.loading = true
+	withLoading := viewContent(m)
+
+	if !strings.Contains(withLoading, "SNAPPY") {
 		t.Error("view missing SNAPPY title during loading")
+	}
+	// The spinner adds at least one extra character (the dot frame) to the
+	// title bar when loading is true.
+	if len(withLoading) <= len(noLoading) {
+		t.Error("expected spinner to add content to the title bar when loading")
 	}
 }
 
@@ -515,8 +522,10 @@ func TestLogViewportAutoScrollsToNewest(t *testing.T) {
 	}
 	m.updateLogViewContent()
 
-	if m.logView.YOffset() != 0 {
-		t.Fatalf("log viewport y-offset = %d, want 0 (newest at top)", m.logView.YOffset())
+	// Chronological order: oldest at top, newest at bottom.
+	// GotoBottom should scroll so the newest entry is visible.
+	if m.logView.YOffset() == 0 {
+		t.Fatal("log viewport y-offset = 0, expected scrolled to bottom for newest entries")
 	}
 
 	v := m.logView.View()

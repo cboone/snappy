@@ -317,7 +317,8 @@ func (m *Model) updateSnapViewContent() {
 }
 
 // updateLogViewContent rebuilds and sets the log content on the viewport.
-// Entries are shown newest first; the viewport auto-scrolls to top.
+// Entries are shown in chronological order (oldest first); the viewport
+// auto-scrolls to the bottom so the newest entry is always visible.
 func (m *Model) updateLogViewContent() {
 	entries := m.log.Entries()
 	if len(entries) == 0 {
@@ -326,12 +327,12 @@ func (m *Model) updateLogViewContent() {
 	}
 
 	var b strings.Builder
-	for i := len(entries) - 1; i >= 0; i-- {
-		if i < len(entries)-1 {
+	for i, entry := range entries {
+		if i > 0 {
 			b.WriteByte('\n')
 		}
-		b.WriteString(m.colorizeLogEntry(entries[i]))
+		b.WriteString(m.colorizeLogEntry(entry))
 	}
 	m.logView.SetContent(b.String())
-	m.logView.GotoTop()
+	m.logView.GotoBottom()
 }
