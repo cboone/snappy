@@ -32,12 +32,12 @@ vet: ## Run go vet
 fmt: ## Format all code (Go, Markdown, JSON, YAML, shell)
 	golangci-lint fmt ./...
 	npx prettier --write .
-	shfmt -w .
+	git ls-files | xargs shfmt -f | xargs shfmt -w
 
 fmt-check: ## Check formatting (exits non-zero if files need formatting)
 	@test -z "$$(gofmt -l .)" || { gofmt -l . && exit 1; }
 	npx prettier --check .
-	shfmt -d .
+	git ls-files | xargs shfmt -f | xargs shfmt -d
 
 format: fmt ## Alias for fmt
 
