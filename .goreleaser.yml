@@ -40,7 +40,7 @@ brews:
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
     directory: Formula
     homepage: "https://github.com/cboone/snappy"
-    description: "Automatically increase your Time Machine snapshot frequency"
+    description: "Automatically increase your Time Machine snapshot frequency (macOS only)"
     license: MIT
     test: |
       assert_match version.to_s, shell_output("#{bin}/snappy --version")

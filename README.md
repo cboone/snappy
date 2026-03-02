@@ -2,6 +2,9 @@
 
 Automatically increase your Time Machine snapshot frequency.
 
+Snappy requires **macOS**. It relies on `tmutil` and APFS snapshots, which are
+only available on Apple systems.
+
 ## Installation
 
 ### Homebrew

@@ -1,3 +1,5 @@
+//go:build darwin
+
 // Package main is the entry point for the snappy CLI.
 package main
 

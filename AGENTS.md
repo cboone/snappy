@@ -2,7 +2,8 @@
 
 ## Overview
 
-Automatically increase your Time Machine snapshot frequency.
+Automatically increase your Time Machine snapshot frequency. **macOS only.**
+Depends on `tmutil`, `diskutil`, and APFS snapshots.
 
 ## Structure
 
