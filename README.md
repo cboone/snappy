@@ -19,6 +19,18 @@ brew install cboone/tap/snappy
 go install github.com/cboone/snappy@latest
 ```
 
+### Shell script
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/cboone/snappy/main/install.sh | bash
+```
+
+To install a specific version:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/cboone/snappy/main/install.sh | bash -s -- --version v1.0.0
+```
+
 ### From release
 
 Download a binary from the [releases page](https://github.com/cboone/snappy/releases).
