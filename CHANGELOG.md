@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-02
+
+### Added
+
+- Modernized TUI with Charmbracelet v2 components (Bubbles viewport, spinner)
+- Shell script installer for GitHub Releases
+
+### Fixed
+
+- Guarded loading flag in handleThinResult when snapshotting
+- Guarded loading flag and refreshed viewport content on resize/theme change
+- Aligned TUI viewport behavior with plan
+- Used chronological log order and strengthened spinner test
+- Hardened install script per review feedback
+- Scoped MD014 markdownlint disable to scrut test files only
+- Used $(OUTDIR) variable in scrut Makefile targets
+- Broadened version glob pattern to match untagged CI builds
+
+### Changed
+
+- Aligned struct fields in TUI styles
+- Applied shfmt formatting to install script
+- Switched all CI workflows from Ubuntu to macOS runners
+- Added scrut CLI integration tests for help, version, errors, config, and startup
+- Documented macOS-only platform requirement
+
 ## [0.2.0] - 2026-03-01
 
 ### Added
@@ -49,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add shellcheckrc with all checks enabled
 
-[unreleased]: https://github.com/cboone/snappy/compare/v0.2.0...HEAD
+[unreleased]: https://github.com/cboone/snappy/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/cboone/snappy/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/cboone/snappy/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/cboone/snappy/releases/tag/v0.1.0
