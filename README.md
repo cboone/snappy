@@ -4,45 +4,60 @@ Automatically increase your Time Machine snapshot frequency.
 
 ## Installation
 
-Clone the repository:
+### Homebrew
 
-```bash
+```sh
+brew install cboone/tap/snappy
+```
+
+### From source
+
+```sh
+go install github.com/cboone/snappy@latest
+```
+
+### From release
+
+Download a binary from the [releases page](https://github.com/cboone/snappy/releases).
+
+### Build locally
+
+```sh
 git clone https://github.com/cboone/snappy.git
+cd snappy
+make build
+./bin/snappy
 ```
 
 ## Usage
 
-Run the interactive snapshot manager:
-
-```bash
-bin/snappy
+```sh
+snappy
 ```
 
-The terminal UI auto-refreshes every 60 seconds. Between refreshes, use these keyboard controls:
+### Key Controls
 
-- <kbd>s</kbd> -- create a new local snapshot
-- <kbd>r</kbd> -- force-refresh the snapshot list
-- <kbd>d</kbd> -- delete the oldest snapshot
-- <kbd>q</kbd> -- quit
+| Key       | Action                        |
+| --------- | ----------------------------- |
+| `s`       | Create a snapshot             |
+| `r`       | Refresh snapshot list         |
+| `a`       | Toggle auto-snapshots on/off  |
+| `q`       | Quit                          |
 
-### Environment variables
+### Configuration
 
-| Variable        | Default                  | Purpose                              |
-| --------------- | ------------------------ | ------------------------------------ |
-| `SNAPPY_REFRESH` | `60`                     | Seconds between auto-refresh cycles  |
-| `SNAPPY_MOUNT`  | `/`                      | Volume mount point to query          |
-| `SNAPPY_LOG_DIR` | `~/.local/share/snappy`  | Log file directory                   |
-| `TRACE`         | (unset)                  | Set to any value to enable bash trace |
+Snappy reads configuration from `~/.config/snappy/config.yaml` or environment
+variables prefixed with `SNAPPY_`. Pass `--config <path>` to use a custom file.
 
-Example with custom refresh interval:
-
-```bash
-SNAPPY_REFRESH=30 bin/snappy
-```
-
-### Log file
-
-Snappy logs all events (snapshot creation, automatic removal, errors) to `~/.local/share/snappy/snappy.log`. This persistent log is the primary tool for observing when macOS purges snapshots under disk pressure.
+| Setting                    | Env var                            | Default | Description                        |
+| -------------------------- | ---------------------------------- | ------- | ---------------------------------- |
+| `refresh`                  | `SNAPPY_REFRESH`                   | `60s`   | How often to refresh snapshot list |
+| `mount`                    | `SNAPPY_MOUNT`                     | `/`     | Mount point to monitor             |
+| `log_dir`                  | `SNAPPY_LOG_DIR`                   | (auto)  | Log directory path                 |
+| `auto_enabled`             | `SNAPPY_AUTO_ENABLED`              | `true`  | Enable auto-snapshots at startup   |
+| `auto_snapshot_interval`   | `SNAPPY_AUTO_SNAPSHOT_INTERVAL`    | `60s`   | Interval between auto-snapshots    |
+| `thin_age_threshold`       | `SNAPPY_THIN_AGE_THRESHOLD`        | `600s`  | Age before snapshots are thinned   |
+| `thin_cadence`             | `SNAPPY_THIN_CADENCE`              | `300s`  | Minimum gap kept when thinning     |
 
 ## License
 
