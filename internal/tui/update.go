@@ -2,8 +2,12 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/cboone/snappy/internal/logger"
 	"github.com/cboone/snappy/internal/snapshot"
@@ -13,12 +17,24 @@ import (
 // any commands to execute.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		return m.handleKey(msg)
 
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
+		return m.handleWindowSize(msg)
+
+	case tea.BackgroundColorMsg:
+		m.hasDarkBG = msg.IsDark()
+		m.styles = newModelStyles(m.hasDarkBG)
+		m.help.Styles = helpStyles(m.hasDarkBG)
+		return m, nil
+
+	case spinner.TickMsg:
+		if m.loading {
+			var cmd tea.Cmd
+			m.spinner, cmd = m.spinner.Update(msg)
+			return m, cmd
+		}
 		return m, nil
 
 	case RefreshTickMsg:
@@ -37,25 +53,54 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "s", "S":
+func helpStyles(hasDarkBG bool) help.Styles {
+	if hasDarkBG {
+		return help.DefaultDarkStyles()
+	}
+	return help.DefaultLightStyles()
+}
+
+func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
+	m.width = msg.Width
+	m.height = msg.Height
+
+	cw := contentWidth(m.width)
+	m.help.SetWidth(m.width)
+
+	// Fixed heights: title(1) + info(~7 with border) + section titles(2 each)
+	// + borders(4 for 2 panels) + help(1) = ~19
+	fixedHeight := 19
+	snapH, logH := flexPanelHeights(m.height, fixedHeight)
+
+	m.snapView.SetWidth(cw)
+	m.snapView.SetHeight(snapH)
+	m.logView.SetWidth(cw)
+	m.logView.SetHeight(logH)
+
+	return m, nil
+}
+
+func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch {
+	case key.Matches(msg, m.keys.Snapshot):
 		if m.snapshotting {
 			return m, nil
 		}
 		m.snapshotting = true
+		m.loading = true
 		m.log.Log(logger.Info, "Creating snapshot...")
-		return m, doCreateSnapshot(m.runner)
+		return m, tea.Batch(doCreateSnapshot(m.runner), m.spinner.Tick)
 
-	case "r", "R":
+	case key.Matches(msg, m.keys.Refresh):
 		if m.refreshing {
 			m.refreshPending = true
 			return m, nil
 		}
 		m.refreshing = true
-		return m, doRefresh(m.runner, m.cfg, m.apfsVolume)
+		m.loading = true
+		return m, tea.Batch(doRefresh(m.runner, m.cfg, m.apfsVolume), m.spinner.Tick)
 
-	case "a", "A":
+	case key.Matches(msg, m.keys.AutoSnap):
 		now := m.now()
 		enabled := m.auto.Toggle(now)
 		if enabled {
@@ -68,15 +113,34 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		} else {
 			m.log.Log(logger.Info, "Auto-snapshots disabled")
 		}
+		m.updateLogViewContent()
 		return m, nil
 
-	case "q", "Q", "ctrl+c":
+	case key.Matches(msg, m.keys.Quit):
 		m.log.Log(logger.Info, "Shutting down")
 		m.quitting = true
 		return m, tea.Quit
+
+	case key.Matches(msg, m.keys.Tab):
+		m.focusLog = !m.focusLog
+		return m, nil
+
+	case key.Matches(msg, m.keys.ScrollUp, m.keys.ScrollDown):
+		return m.handleScroll(msg)
 	}
 
 	return m, nil
+}
+
+func (m Model) handleScroll(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	if m.focusLog {
+		var cmd tea.Cmd
+		m.logView, cmd = m.logView.Update(msg)
+		return m, cmd
+	}
+	var cmd tea.Cmd
+	m.snapView, cmd = m.snapView.Update(msg)
+	return m, cmd
 }
 
 func (m Model) handleTick() (tea.Model, tea.Cmd) {
@@ -87,9 +151,10 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 	snapshotDue := m.auto.ShouldSnapshot(now) && !m.snapshotting
 	if snapshotDue {
 		m.snapshotting = true
+		m.loading = true
 		m.auto.RecordSnapshot(now)
 		m.log.Log(logger.Auto, "Creating auto-snapshot...")
-		cmds = append(cmds, doCreateSnapshot(m.runner))
+		cmds = append(cmds, doCreateSnapshot(m.runner), m.spinner.Tick)
 	}
 
 	// Skip refresh when an auto-snapshot is in flight; SnapshotCreatedMsg
@@ -106,6 +171,7 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 
 func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 	m.refreshing = false
+	m.loading = false
 	m.tmStatus = msg.TMStatus
 
 	if msg.APFSInfo.Volume != "" {
@@ -126,6 +192,7 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 	if msg.SnapshotErr != nil {
 		m.log.Log(logger.Error, fmt.Sprintf("Failed to list snapshots: %v", msg.SnapshotErr))
 		m.refreshPending = false
+		m.updateLogViewContent()
 		return m, nil
 	}
 
@@ -157,6 +224,9 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 		len(m.snapshots), m.diskInfo,
 	))
 
+	m.updateSnapViewContent()
+	m.updateLogViewContent()
+
 	var cmds []tea.Cmd
 
 	// If a refresh was requested while this one was in flight, re-refresh.
@@ -180,6 +250,7 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd) {
 	m.snapshotting = false
+	m.loading = false
 	switch {
 	case msg.Err != nil:
 		m.log.Log(logger.Error, fmt.Sprintf("Failed to create snapshot: %v", msg.Err))
@@ -188,6 +259,9 @@ func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd
 	default:
 		m.log.Log(logger.Created, "Snapshot created")
 	}
+
+	m.updateLogViewContent()
+
 	if m.refreshing {
 		m.refreshPending = true
 		return m, nil
@@ -211,10 +285,51 @@ func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
 		m.log.Log(logger.Error, fmt.Sprintf("Thinning error: %v", msg.Err))
 	}
 
+	m.updateLogViewContent()
+
 	if m.refreshing {
 		m.refreshPending = true
 		return m, nil
 	}
 	m.refreshing = true
 	return m, doRefresh(m.runner, m.cfg, m.apfsVolume)
+}
+
+// updateSnapViewContent rebuilds and sets the snapshot list content on the
+// viewport. All snapshots are listed (newest first) for scrolling.
+func (m *Model) updateSnapViewContent() {
+	count := len(m.snapshots)
+	if count == 0 {
+		m.snapView.SetContent(m.styles.textDim.Render("(none, press 's' to create the first snapshot)"))
+		return
+	}
+
+	var b strings.Builder
+	for i := count - 1; i >= 0; i-- {
+		if i < count-1 {
+			b.WriteByte('\n')
+		}
+		b.WriteString(m.formatSnapshotLine(i, count))
+	}
+	m.snapView.SetContent(b.String())
+}
+
+// updateLogViewContent rebuilds and sets the log content on the viewport.
+// Entries are shown newest first; the viewport auto-scrolls to bottom.
+func (m *Model) updateLogViewContent() {
+	entries := m.log.Entries()
+	if len(entries) == 0 {
+		m.logView.SetContent(m.styles.textDim.Render("(no log entries yet)"))
+		return
+	}
+
+	var b strings.Builder
+	for i := len(entries) - 1; i >= 0; i-- {
+		if i < len(entries)-1 {
+			b.WriteByte('\n')
+		}
+		b.WriteString(m.colorizeLogEntry(entries[i]))
+	}
+	m.logView.SetContent(b.String())
+	m.logView.GotoBottom()
 }

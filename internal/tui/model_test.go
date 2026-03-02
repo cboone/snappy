@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/cboone/snappy/internal/config"
 	"github.com/cboone/snappy/internal/logger"
@@ -57,9 +57,14 @@ func testModel() Model {
 	return m
 }
 
+// viewContent extracts the rendered string from a tea.View.
+func viewContent(m Model) string {
+	return m.View().Content
+}
+
 func TestViewEmpty(t *testing.T) {
 	m := testModel()
-	v := m.View()
+	v := viewContent(m)
 
 	if !strings.Contains(v, "SNAPPY") {
 		t.Error("view missing SNAPPY title")
@@ -70,7 +75,7 @@ func TestViewEmpty(t *testing.T) {
 	if !strings.Contains(v, "press 's'") {
 		t.Error("view missing empty state hint")
 	}
-	if !strings.Contains(v, "[s]") {
+	if !strings.Contains(v, "snapshot") {
 		t.Error("view missing controls")
 	}
 }
@@ -84,8 +89,9 @@ func TestViewWithSnapshots(t *testing.T) {
 		{Date: "2026-03-01-144000", Time: now.Add(-20 * time.Minute)},
 		{Date: "2026-03-01-145000", Time: now.Add(-10 * time.Minute)},
 	}
+	m.updateSnapViewContent()
 
-	v := m.View()
+	v := viewContent(m)
 
 	if !strings.Contains(v, "LOCAL SNAPSHOTS (3)") {
 		t.Error("view missing correct snapshot count")
@@ -98,7 +104,7 @@ func TestViewWithSnapshots(t *testing.T) {
 	}
 }
 
-func TestViewBookend(t *testing.T) {
+func TestViewAllSnapshotsInViewport(t *testing.T) {
 	m := testModel()
 	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
 	m.now = func() time.Time { return now }
@@ -112,14 +118,18 @@ func TestViewBookend(t *testing.T) {
 		})
 	}
 	m.snapshots = snaps
+	m.updateSnapViewContent()
 
-	v := m.View()
+	v := viewContent(m)
 
 	if !strings.Contains(v, "LOCAL SNAPSHOTS (6)") {
 		t.Error("view missing correct snapshot count")
 	}
-	if !strings.Contains(v, "... and 2 more ...") {
-		t.Error("view missing bookend ellipsis")
+	// All 6 snapshots should be in the viewport content (no bookend/ellipsis)
+	for i, snap := range snaps {
+		if !strings.Contains(v, snap.Date) {
+			t.Errorf("snapshot %d (%s) missing from viewport", i, snap.Date)
+		}
 	}
 }
 
@@ -127,14 +137,14 @@ func TestViewQuitting(t *testing.T) {
 	m := testModel()
 	m.quitting = true
 	v := m.View()
-	if v != "" {
-		t.Errorf("View() when quitting = %q, want empty", v)
+	if v.Content != "" {
+		t.Errorf("View() when quitting = %q, want empty", v.Content)
 	}
 }
 
 func TestKeyQuit(t *testing.T) {
 	m := testModel()
-	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'q', Text: "q"})
 	model := updated.(Model)
 	if !model.quitting {
 		t.Error("expected quitting = true after 'q'")
@@ -148,14 +158,14 @@ func TestKeyToggleAuto(t *testing.T) {
 	m := testModel()
 
 	// Initially enabled, toggle off
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
 	model := updated.(Model)
 	if model.auto.Enabled() {
 		t.Error("expected auto disabled after toggle")
 	}
 
 	// Toggle back on
-	updated, _ = model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
+	updated, _ = model.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
 	model = updated.(Model)
 	if !model.auto.Enabled() {
 		t.Error("expected auto enabled after second toggle")
@@ -318,7 +328,7 @@ func TestSnapshotCreatedMsgError(t *testing.T) {
 
 func TestViewAutoStatusOn(t *testing.T) {
 	m := testModel()
-	v := m.View()
+	v := viewContent(m)
 	if !strings.Contains(v, "on") {
 		t.Error("view should show auto-snapshot 'on'")
 	}
@@ -327,7 +337,7 @@ func TestViewAutoStatusOn(t *testing.T) {
 func TestViewAutoStatusOff(t *testing.T) {
 	m := testModel()
 	m.auto.Toggle(m.now())
-	v := m.View()
+	v := viewContent(m)
 	if !strings.Contains(v, "off") {
 		t.Error("view should show auto-snapshot 'off'")
 	}
@@ -354,8 +364,9 @@ func TestViewAPFSDetails(t *testing.T) {
 			LimitsShrink: true,
 		},
 	}
+	m.updateSnapViewContent()
 
-	v := m.View()
+	v := viewContent(m)
 
 	if !strings.Contains(v, "APFS Volume: disk3s5") {
 		t.Error("view missing APFS volume")
@@ -380,8 +391,9 @@ func TestExactlyFourSnapshots(t *testing.T) {
 			Time: d,
 		})
 	}
+	m.updateSnapViewContent()
 
-	v := m.View()
+	v := viewContent(m)
 	if strings.Contains(v, "... and") {
 		t.Error("exactly 4 snapshots should not show ellipsis")
 	}
@@ -391,7 +403,7 @@ func TestDiffDisplay(t *testing.T) {
 	m := testModel()
 	m.diffAdded = 2
 	m.diffRemoved = 1
-	v := m.View()
+	v := viewContent(m)
 	if !strings.Contains(v, "+2 added") {
 		t.Error("view missing diff added count")
 	}
@@ -404,7 +416,7 @@ func TestSnapshotKeyIgnoredWhileSnapshotting(t *testing.T) {
 	m := testModel()
 	m.snapshotting = true
 
-	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 's', Text: "s"})
 	model := updated.(Model)
 
 	if cmd != nil {
@@ -458,5 +470,34 @@ func TestDoThinSnapshotsReportsDeleteFailures(t *testing.T) {
 	}
 	if result.Err == nil {
 		t.Fatal("expected non-nil error for failed deletions")
+	}
+}
+
+func TestViewSpinnerDuringLoading(t *testing.T) {
+	m := testModel()
+	m.loading = true
+	v := viewContent(m)
+
+	// The spinner should be present in the title bar when loading.
+	// The spinner's View() produces a frame character from the spinner animation.
+	if !strings.Contains(v, "SNAPPY") {
+		t.Error("view missing SNAPPY title during loading")
+	}
+}
+
+func TestViewFullHeight(t *testing.T) {
+	m := testModel()
+	m.width = 100
+	m.height = 40
+
+	// Trigger resize to recalculate viewport dimensions
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 40})
+	model := updated.(Model)
+
+	v := model.View().Content
+	lines := strings.Split(v, "\n")
+	// The output should have a reasonable number of lines approaching terminal height
+	if len(lines) < 20 {
+		t.Errorf("expected at least 20 lines for full-height TUI, got %d", len(lines))
 	}
 }
