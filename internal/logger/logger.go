@@ -56,15 +56,8 @@ type Logger struct {
 // New creates a Logger. If LogDir is non-empty, it creates the directory
 // and opens a log file. File logging failures are non-fatal.
 func New(opts Options) *Logger {
-	maxEntries := opts.MaxEntries
-	if maxEntries < 0 {
-		maxEntries = 0
-	}
-
-	maxBytes := opts.MaxSize
-	if maxBytes < 0 {
-		maxBytes = 0
-	}
+	maxEntries := max(opts.MaxEntries, 0)
+	maxBytes := max(opts.MaxSize, 0)
 
 	maxFiles := opts.MaxFiles
 	if maxBytes > 0 && maxFiles <= 0 {
@@ -185,7 +178,9 @@ func (l *Logger) rotateFiles() {
 		if i == l.maxFiles {
 			_ = os.Remove(dst)
 		}
-		_ = os.Rename(src, dst)
+		if err := os.Rename(src, dst); err != nil && !os.IsNotExist(err) {
+			fmt.Fprintf(os.Stderr, "Warning: cannot rename %s to %s: %v\n", src, dst, err)
+		}
 	}
 
 	f, err := os.OpenFile(l.filePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
