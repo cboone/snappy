@@ -119,7 +119,9 @@ func (l *Logger) Log(eventType EventType, message string) {
 
 	if l.file != nil {
 		l.maybeRotate()
-		_, _ = fmt.Fprintln(l.file, formatted)
+		if l.file != nil {
+			_, _ = fmt.Fprintln(l.file, formatted)
+		}
 	}
 }
 
@@ -183,7 +185,7 @@ func (l *Logger) rotateFiles() {
 		}
 	}
 
-	f, err := os.OpenFile(l.filePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile(l.filePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: cannot open new log file after rotation: %v\n", err)
 		return
