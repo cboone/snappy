@@ -284,7 +284,9 @@ func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd
 
 func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
 	m.thinning = false
-	m.loading = false
+	if !m.snapshotting {
+		m.loading = false
+	}
 	if msg.Deleted > 0 {
 		m.log.Log(logger.Thinned, fmt.Sprintf(
 			"Thinned %d snapshot(s) older than %dm to %ds cadence",
