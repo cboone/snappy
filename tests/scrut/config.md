@@ -5,10 +5,10 @@ warning behavior for nonexistent config files.
 
 ## Help with config flag (help first)
 
-When `--help` precedes `--config <value>`, Cobra's subcommand traversal
-short-circuits before consuming the config flag's value. The orphaned path
-becomes an unknown-command error. Use equals syntax (`--config=<path>`) or
-place `--config` before `--help` to avoid this.
+When `--help` precedes `--config <value>`, Cobra validates flag names (catching
+unknown flags like `--bogus`) but short-circuits before consuming flag value
+arguments. The orphaned path becomes an unknown-command error. Use equals syntax
+(`--config=<path>`) or place `--config` before `--help` to avoid this.
 
 ```scrut {output_stream: stderr}
 $ "${SNAPPY_BIN}" --help --config /nonexistent/path/config.yaml
