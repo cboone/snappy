@@ -3,6 +3,18 @@
 Tests for `SNAPPY_*` environment variable integration via
 `viper.SetEnvPrefix("SNAPPY")` and `viper.AutomaticEnv()`.
 
+## SNAPPY_LOG_DIR env var affects logger setup
+
+Setting `SNAPPY_LOG_DIR` to a path under `/dev/null` forces logger directory
+creation to fail. This warning only appears if the env var is read and applied.
+
+```scrut {output_stream: stderr}
+$ SNAPPY_LOG_DIR="/dev/null/snappy" "${SNAPPY_BIN}"
+Warning: cannot create log directory /dev/null/snappy: * (glob)
+Error: running TUI: * (glob)
+[1]
+```
+
 ## SNAPPY_MOUNT env var reaches TUI stage
 
 ```scrut {output_stream: stderr}
