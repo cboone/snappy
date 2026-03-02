@@ -45,6 +45,7 @@ func SetVersion(v string) {
 func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default: ~/.config/snappy/config.yaml)")
+	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 }
 
 func initConfig() {

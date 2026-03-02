@@ -1,6 +1,6 @@
 # Version output
 
-Tests for snappy version commands.
+Tests for snappy version flags and subcommands.
 
 ## Version flag
 
@@ -13,5 +13,14 @@ snappy version * (glob)
 
 ```scrut
 $ "${SNAPPY_BIN}" -v
+snappy version * (glob)
+```
+
+## Version subcommand
+
+The `version` subcommand produces the same output as `--version`.
+
+```scrut
+$ "${SNAPPY_BIN}" version
 snappy version * (glob)
 ```

@@ -12,11 +12,18 @@ Automatically increase your Time Machine snapshot frequency
 
 Usage:
   snappy [flags]
+  snappy [command]
+
+Available Commands:
+  help        Help about any command
+  version     Print the version number of snappy
 
 Flags:
       --config string   config file (default: ~/.config/snappy/config.yaml)
   -h, --help            help for snappy
   -v, --version         version for snappy
+
+Use "snappy [command] --help" for more information about a command.
 ```
 
 ## Version flag before help flag
@@ -29,11 +36,18 @@ Automatically increase your Time Machine snapshot frequency
 
 Usage:
   snappy [flags]
+  snappy [command]
+
+Available Commands:
+  help        Help about any command
+  version     Print the version number of snappy
 
 Flags:
       --config string   config file (default: ~/.config/snappy/config.yaml)
   -h, --help            help for snappy
   -v, --version         version for snappy
+
+Use "snappy [command] --help" for more information about a command.
 ```
 
 ## Short help and version flags
@@ -44,11 +58,18 @@ Automatically increase your Time Machine snapshot frequency
 
 Usage:
   snappy [flags]
+  snappy [command]
+
+Available Commands:
+  help        Help about any command
+  version     Print the version number of snappy
 
 Flags:
       --config string   config file (default: ~/.config/snappy/config.yaml)
   -h, --help            help for snappy
   -v, --version         version for snappy
+
+Use "snappy [command] --help" for more information about a command.
 ```
 
 ## All three flags together
@@ -61,9 +82,16 @@ Automatically increase your Time Machine snapshot frequency
 
 Usage:
   snappy [flags]
+  snappy [command]
+
+Available Commands:
+  help        Help about any command
+  version     Print the version number of snappy
 
 Flags:
       --config string   config file (default: ~/.config/snappy/config.yaml)
   -h, --help            help for snappy
   -v, --version         version for snappy
+
+Use "snappy [command] --help" for more information about a command.
 ```

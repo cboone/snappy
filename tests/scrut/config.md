@@ -5,25 +5,21 @@ warning behavior for nonexistent config files.
 
 ## Help with config flag (help first)
 
-`--help` short-circuits before `RunE`, so a bad config path does not prevent
-help from succeeding.
+When `--help` precedes `--config <value>`, Cobra's subcommand traversal
+short-circuits before consuming the config flag's value. The orphaned path
+becomes an unknown-command error. Use equals syntax (`--config=<path>`) or
+place `--config` before `--help` to avoid this.
 
-```scrut
+```scrut {output_stream: stderr}
 $ "${SNAPPY_BIN}" --help --config /nonexistent/path/config.yaml
-Automatically increase your Time Machine snapshot frequency
-
-Usage:
-  snappy [flags]
-
-Flags:
-      --config string   config file (default: ~/.config/snappy/config.yaml)
-  -h, --help            help for snappy
-  -v, --version         version for snappy
+Error: unknown command "/nonexistent/path/config.yaml" for "snappy"
+[1]
 ```
 
 ## Help with config flag (config first)
 
-Flag order does not matter for `--help` short-circuiting.
+When `--config` precedes `--help`, the flag value is consumed before `--help`
+triggers.
 
 ```scrut
 $ "${SNAPPY_BIN}" --config /nonexistent/path/config.yaml --help
@@ -31,20 +27,29 @@ Automatically increase your Time Machine snapshot frequency
 
 Usage:
   snappy [flags]
+  snappy [command]
+
+Available Commands:
+  help        Help about any command
+  version     Print the version number of snappy
 
 Flags:
       --config string   config file (default: ~/.config/snappy/config.yaml)
   -h, --help            help for snappy
   -v, --version         version for snappy
+
+Use "snappy [command] --help" for more information about a command.
 ```
 
-## Version with config flag
+## Version with config flag (version first)
 
-`--version` also short-circuits before `RunE`.
+Same traversal issue as `--help`: `--version` before `--config <value>` leaves
+the path orphaned as an unknown command.
 
-```scrut
+```scrut {output_stream: stderr}
 $ "${SNAPPY_BIN}" --version --config /nonexistent/path/config.yaml
-snappy version * (glob)
+Error: unknown command "/nonexistent/path/config.yaml" for "snappy"
+[1]
 ```
 
 ## Config flag with equals syntax

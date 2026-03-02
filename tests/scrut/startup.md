@@ -23,21 +23,23 @@ $ "${SNAPPY_BIN}" 2>/dev/null
 [1]
 ```
 
-## Extra positional argument accepted
+## Unknown subcommand rejected
 
-Cobra's default argument handling (`legacyArgs`) accepts arbitrary positional
-arguments when there are no subcommands.
+With subcommands registered, Cobra rejects unrecognized positional arguments as
+unknown commands instead of passing them to `RunE`.
 
 ```scrut {output_stream: stderr}
 $ "${SNAPPY_BIN}" some-argument
-Error: running TUI: * (glob)
+Error: unknown command "some-argument" for "snappy"
 [1]
 ```
 
-## Multiple extra positional arguments
+## Multiple unknown positional arguments
+
+Only the first unrecognized argument is reported.
 
 ```scrut {output_stream: stderr}
 $ "${SNAPPY_BIN}" arg1 arg2 arg3
-Error: running TUI: * (glob)
+Error: unknown command "arg1" for "snappy"
 [1]
 ```
