@@ -11,7 +11,7 @@ var versionCmd = &cobra.Command{
 	Short: "Print the version number of snappy",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, _ []string) {
-		fmt.Fprintf(cmd.OutOrStdout(), "snappy version %s\n", rootCmd.Version)
+		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "snappy version %s\n", rootCmd.Version)
 	},
 }
 
