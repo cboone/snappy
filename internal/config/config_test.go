@@ -54,16 +54,6 @@ func TestLoadRefreshIntervalParsing(t *testing.T) {
 	}
 }
 
-func TestLoadRefreshIntervalDefault(t *testing.T) {
-	viper.Reset()
-	SetDefaults()
-
-	cfg := Load()
-	if cfg.RefreshInterval != 60*time.Second {
-		t.Errorf("RefreshInterval = %v, want 60s", cfg.RefreshInterval)
-	}
-}
-
 func TestLoadDefaults(t *testing.T) {
 	viper.Reset()
 	SetDefaults()
