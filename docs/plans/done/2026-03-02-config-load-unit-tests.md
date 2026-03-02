@@ -20,15 +20,15 @@ comprehensive tests to close those gaps.
 
 Call `viper.Reset()`, `SetDefaults()`, then `Load()`. Assert every field:
 
-| Field                  | Expected default     |
-|------------------------|----------------------|
-| `RefreshInterval`      | `60s`                |
-| `MountPoint`           | `"/"`                |
-| `LogDir`               | `""`                 |
-| `AutoEnabled`          | `true`               |
-| `AutoSnapshotInterval` | `60s`                |
-| `ThinAgeThreshold`     | `600s` (10 min)      |
-| `ThinCadence`          | `300s` (5 min)       |
+| Field                  | Expected default |
+| ---------------------- | ---------------- |
+| `RefreshInterval`      | `60s`            |
+| `MountPoint`           | `"/"`            |
+| `LogDir`               | `""`             |
+| `AutoEnabled`          | `true`           |
+| `AutoSnapshotInterval` | `60s`            |
+| `ThinAgeThreshold`     | `600s` (10 min)  |
+| `ThinCadence`          | `300s` (5 min)   |
 
 ### 2. `TestLoadEnvOverrides` -- verify environment variable binding
 
@@ -39,15 +39,15 @@ then call `Load()` and verify the override took effect. Requires calling
 
 Subtests:
 
-| Subtest                          | Env var                          | Value     | Expected                  |
-|----------------------------------|----------------------------------|-----------|---------------------------|
-| `mount override`                 | `SNAPPY_MOUNT`                   | `"/Volumes/Backup"` | `MountPoint == "/Volumes/Backup"` |
-| `log_dir override`               | `SNAPPY_LOG_DIR`                 | `"/tmp/logs"` | `LogDir == "/tmp/logs"`      |
-| `auto_enabled override`          | `SNAPPY_AUTO_ENABLED`            | `"false"` | `AutoEnabled == false`    |
-| `refresh override`               | `SNAPPY_REFRESH`                 | `"120"`   | `RefreshInterval == 120s` |
-| `auto_snapshot_interval override`| `SNAPPY_AUTO_SNAPSHOT_INTERVAL`  | `"30"`    | `AutoSnapshotInterval == 30s` |
-| `thin_age_threshold override`    | `SNAPPY_THIN_AGE_THRESHOLD`      | `"900"`   | `ThinAgeThreshold == 900s`|
-| `thin_cadence override`          | `SNAPPY_THIN_CADENCE`            | `"600"`   | `ThinCadence == 600s`     |
+| Subtest                           | Env var                         | Value               | Expected                          |
+| --------------------------------- | ------------------------------- | ------------------- | --------------------------------- |
+| `mount override`                  | `SNAPPY_MOUNT`                  | `"/Volumes/Backup"` | `MountPoint == "/Volumes/Backup"` |
+| `log_dir override`                | `SNAPPY_LOG_DIR`                | `"/tmp/logs"`       | `LogDir == "/tmp/logs"`           |
+| `auto_enabled override`           | `SNAPPY_AUTO_ENABLED`           | `"false"`           | `AutoEnabled == false`            |
+| `refresh override`                | `SNAPPY_REFRESH`                | `"120"`             | `RefreshInterval == 120s`         |
+| `auto_snapshot_interval override` | `SNAPPY_AUTO_SNAPSHOT_INTERVAL` | `"30"`              | `AutoSnapshotInterval == 30s`     |
+| `thin_age_threshold override`     | `SNAPPY_THIN_AGE_THRESHOLD`     | `"900"`             | `ThinAgeThreshold == 900s`        |
+| `thin_cadence override`           | `SNAPPY_THIN_CADENCE`           | `"600"`             | `ThinCadence == 600s`             |
 
 ### 3. `TestLoadDurationFieldParsing` -- verify duration parsing for remaining fields
 
