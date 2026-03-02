@@ -54,12 +54,206 @@ func TestLoadRefreshIntervalParsing(t *testing.T) {
 	}
 }
 
-func TestLoadRefreshIntervalDefault(t *testing.T) {
+func TestLoadDefaults(t *testing.T) {
 	viper.Reset()
 	SetDefaults()
 
 	cfg := Load()
+
 	if cfg.RefreshInterval != 60*time.Second {
-		t.Errorf("RefreshInterval = %v, want 60s", cfg.RefreshInterval)
+		t.Errorf("RefreshInterval = %v, want %v", cfg.RefreshInterval, 60*time.Second)
+	}
+	if cfg.MountPoint != "/" {
+		t.Errorf("MountPoint = %q, want %q", cfg.MountPoint, "/")
+	}
+	if cfg.LogDir != "" {
+		t.Errorf("LogDir = %q, want %q", cfg.LogDir, "")
+	}
+	if cfg.AutoEnabled != true {
+		t.Errorf("AutoEnabled = %v, want %v", cfg.AutoEnabled, true)
+	}
+	if cfg.AutoSnapshotInterval != 60*time.Second {
+		t.Errorf("AutoSnapshotInterval = %v, want %v", cfg.AutoSnapshotInterval, 60*time.Second)
+	}
+	if cfg.ThinAgeThreshold != 600*time.Second {
+		t.Errorf("ThinAgeThreshold = %v, want %v", cfg.ThinAgeThreshold, 600*time.Second)
+	}
+	if cfg.ThinCadence != 300*time.Second {
+		t.Errorf("ThinCadence = %v, want %v", cfg.ThinCadence, 300*time.Second)
+	}
+}
+
+func TestLoadEnvOverrides(t *testing.T) {
+	tests := []struct {
+		name    string
+		envVar  string
+		envVal  string
+		checkFn func(*Config) bool
+		desc    string
+	}{
+		{
+			name:    "mount override",
+			envVar:  "SNAPPY_MOUNT",
+			envVal:  "/Volumes/Backup",
+			checkFn: func(c *Config) bool { return c.MountPoint == "/Volumes/Backup" },
+			desc:    "MountPoint",
+		},
+		{
+			name:    "log_dir override",
+			envVar:  "SNAPPY_LOG_DIR",
+			envVal:  "/tmp/logs",
+			checkFn: func(c *Config) bool { return c.LogDir == "/tmp/logs" },
+			desc:    "LogDir",
+		},
+		{
+			name:    "auto_enabled override",
+			envVar:  "SNAPPY_AUTO_ENABLED",
+			envVal:  "false",
+			checkFn: func(c *Config) bool { return c.AutoEnabled == false },
+			desc:    "AutoEnabled",
+		},
+		{
+			name:    "refresh override",
+			envVar:  "SNAPPY_REFRESH",
+			envVal:  "120",
+			checkFn: func(c *Config) bool { return c.RefreshInterval == 120*time.Second },
+			desc:    "RefreshInterval",
+		},
+		{
+			name:    "auto_snapshot_interval override",
+			envVar:  "SNAPPY_AUTO_SNAPSHOT_INTERVAL",
+			envVal:  "30",
+			checkFn: func(c *Config) bool { return c.AutoSnapshotInterval == 30*time.Second },
+			desc:    "AutoSnapshotInterval",
+		},
+		{
+			name:    "thin_age_threshold override",
+			envVar:  "SNAPPY_THIN_AGE_THRESHOLD",
+			envVal:  "900",
+			checkFn: func(c *Config) bool { return c.ThinAgeThreshold == 900*time.Second },
+			desc:    "ThinAgeThreshold",
+		},
+		{
+			name:    "thin_cadence override",
+			envVar:  "SNAPPY_THIN_CADENCE",
+			envVal:  "600",
+			checkFn: func(c *Config) bool { return c.ThinCadence == 600*time.Second },
+			desc:    "ThinCadence",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			viper.Reset()
+			SetDefaults()
+			viper.SetEnvPrefix("SNAPPY")
+			viper.AutomaticEnv()
+			t.Setenv(tt.envVar, tt.envVal)
+
+			cfg := Load()
+			if !tt.checkFn(cfg) {
+				t.Errorf("%s not overridden by %s=%s", tt.desc, tt.envVar, tt.envVal)
+			}
+		})
+	}
+}
+
+func TestLoadDurationFieldParsing(t *testing.T) {
+	type durationField struct {
+		name     string
+		viperKey string
+		getFn    func(*Config) time.Duration
+		fallback time.Duration
+	}
+
+	fields := []durationField{
+		{"AutoSnapshotInterval", "auto_snapshot_interval", func(c *Config) time.Duration { return c.AutoSnapshotInterval }, 60 * time.Second},
+		{"ThinAgeThreshold", "thin_age_threshold", func(c *Config) time.Duration { return c.ThinAgeThreshold }, 600 * time.Second},
+		{"ThinCadence", "thin_cadence", func(c *Config) time.Duration { return c.ThinCadence }, 300 * time.Second},
+	}
+
+	cases := []struct {
+		name  string
+		value any
+		want  func(fallback time.Duration) time.Duration
+	}{
+		{
+			name:  "duration string",
+			value: "2m",
+			want:  func(_ time.Duration) time.Duration { return 2 * time.Minute },
+		},
+		{
+			name:  "numeric string treated as seconds",
+			value: "45",
+			want:  func(_ time.Duration) time.Duration { return 45 * time.Second },
+		},
+		{
+			name:  "integer treated as seconds",
+			value: 90,
+			want:  func(_ time.Duration) time.Duration { return 90 * time.Second },
+		},
+		{
+			name:  "invalid value falls back to default",
+			value: "not-a-duration",
+			want:  func(fb time.Duration) time.Duration { return fb },
+		},
+		{
+			name:  "zero falls back to default",
+			value: "0",
+			want:  func(fb time.Duration) time.Duration { return fb },
+		},
+		{
+			name:  "negative falls back to default",
+			value: "-10",
+			want:  func(fb time.Duration) time.Duration { return fb },
+		},
+	}
+
+	for _, f := range fields {
+		for _, tc := range cases {
+			t.Run(f.name+"/"+tc.name, func(t *testing.T) {
+				viper.Reset()
+				SetDefaults()
+				viper.Set(f.viperKey, tc.value)
+
+				cfg := Load()
+				got := f.getFn(cfg)
+				want := tc.want(f.fallback)
+				if got != want {
+					t.Errorf("%s = %v, want %v", f.name, got, want)
+				}
+			})
+		}
+	}
+}
+
+func TestLoadWithoutSetDefaults(t *testing.T) {
+	viper.Reset()
+
+	cfg := Load()
+
+	// Duration fields use Load()'s baked-in fallbacks even without SetDefaults.
+	if cfg.RefreshInterval != 60*time.Second {
+		t.Errorf("RefreshInterval = %v, want %v", cfg.RefreshInterval, 60*time.Second)
+	}
+	if cfg.AutoSnapshotInterval != 60*time.Second {
+		t.Errorf("AutoSnapshotInterval = %v, want %v", cfg.AutoSnapshotInterval, 60*time.Second)
+	}
+	if cfg.ThinAgeThreshold != 600*time.Second {
+		t.Errorf("ThinAgeThreshold = %v, want %v", cfg.ThinAgeThreshold, 600*time.Second)
+	}
+	if cfg.ThinCadence != 300*time.Second {
+		t.Errorf("ThinCadence = %v, want %v", cfg.ThinCadence, 300*time.Second)
+	}
+
+	// String and bool fields get zero values without SetDefaults.
+	if cfg.MountPoint != "" {
+		t.Errorf("MountPoint = %q, want %q", cfg.MountPoint, "")
+	}
+	if cfg.LogDir != "" {
+		t.Errorf("LogDir = %q, want %q", cfg.LogDir, "")
+	}
+	if cfg.AutoEnabled != false {
+		t.Errorf("AutoEnabled = %v, want %v", cfg.AutoEnabled, false)
 	}
 }
