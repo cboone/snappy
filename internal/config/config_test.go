@@ -69,6 +69,12 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.LogDir != "" {
 		t.Errorf("LogDir = %q, want %q", cfg.LogDir, "")
 	}
+	if cfg.LogMaxSize != 5*1024*1024 {
+		t.Errorf("LogMaxSize = %d, want %d", cfg.LogMaxSize, 5*1024*1024)
+	}
+	if cfg.LogMaxFiles != 3 {
+		t.Errorf("LogMaxFiles = %d, want %d", cfg.LogMaxFiles, 3)
+	}
 	if cfg.AutoEnabled != true {
 		t.Errorf("AutoEnabled = %v, want %v", cfg.AutoEnabled, true)
 	}
@@ -104,6 +110,20 @@ func TestLoadEnvOverrides(t *testing.T) {
 			envVal:  "/tmp/logs",
 			checkFn: func(c *Config) bool { return c.LogDir == "/tmp/logs" },
 			desc:    "LogDir",
+		},
+		{
+			name:    "log_max_size override",
+			envVar:  "SNAPPY_LOG_MAX_SIZE",
+			envVal:  "1048576",
+			checkFn: func(c *Config) bool { return c.LogMaxSize == 1048576 },
+			desc:    "LogMaxSize",
+		},
+		{
+			name:    "log_max_files override",
+			envVar:  "SNAPPY_LOG_MAX_FILES",
+			envVal:  "5",
+			checkFn: func(c *Config) bool { return c.LogMaxFiles == 5 },
+			desc:    "LogMaxFiles",
 		},
 		{
 			name:    "auto_enabled override",
@@ -246,7 +266,13 @@ func TestLoadWithoutSetDefaults(t *testing.T) {
 		t.Errorf("ThinCadence = %v, want %v", cfg.ThinCadence, 300*time.Second)
 	}
 
-	// String and bool fields get zero values without SetDefaults.
+	// Numeric and string fields get zero values without SetDefaults.
+	if cfg.LogMaxSize != 0 {
+		t.Errorf("LogMaxSize = %d, want 0", cfg.LogMaxSize)
+	}
+	if cfg.LogMaxFiles != 0 {
+		t.Errorf("LogMaxFiles = %d, want 0", cfg.LogMaxFiles)
+	}
 	if cfg.MountPoint != "" {
 		t.Errorf("MountPoint = %q, want %q", cfg.MountPoint, "")
 	}

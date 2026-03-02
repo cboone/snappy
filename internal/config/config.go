@@ -15,6 +15,8 @@ type Config struct {
 	RefreshInterval      time.Duration
 	MountPoint           string
 	LogDir               string
+	LogMaxSize           int64 // max log file size in bytes; 0 = no rotation
+	LogMaxFiles          int   // number of rotated backup files to keep
 	AutoEnabled          bool
 	AutoSnapshotInterval time.Duration
 	ThinAgeThreshold     time.Duration
@@ -28,6 +30,8 @@ func Load() *Config {
 		RefreshInterval:      parseSecondsOrDuration(viper.Get("refresh"), 60*time.Second),
 		MountPoint:           viper.GetString("mount"),
 		LogDir:               viper.GetString("log_dir"),
+		LogMaxSize:           viper.GetInt64("log_max_size"),
+		LogMaxFiles:          viper.GetInt("log_max_files"),
 		AutoEnabled:          viper.GetBool("auto_enabled"),
 		AutoSnapshotInterval: parseSecondsOrDuration(viper.Get("auto_snapshot_interval"), 60*time.Second),
 		ThinAgeThreshold:     parseSecondsOrDuration(viper.Get("thin_age_threshold"), 600*time.Second),
@@ -41,6 +45,8 @@ func SetDefaults() {
 	viper.SetDefault("refresh", 60*time.Second)
 	viper.SetDefault("mount", "/")
 	viper.SetDefault("log_dir", "")
+	viper.SetDefault("log_max_size", 5*1024*1024) // 5 MB
+	viper.SetDefault("log_max_files", 3)
 	viper.SetDefault("auto_enabled", true)
 	viper.SetDefault("auto_snapshot_interval", 60*time.Second)
 	viper.SetDefault("thin_age_threshold", 600*time.Second)

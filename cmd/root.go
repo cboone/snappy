@@ -86,7 +86,12 @@ func runTUI(_ *cobra.Command, _ []string) error {
 		}
 	}
 
-	log := logger.New(cfg.LogDir, 50)
+	log := logger.New(logger.Options{
+		LogDir:     cfg.LogDir,
+		MaxEntries: 50,
+		MaxSize:    cfg.LogMaxSize,
+		MaxFiles:   cfg.LogMaxFiles,
+	})
 	defer log.Close()
 
 	runner := platform.OSRunner{}

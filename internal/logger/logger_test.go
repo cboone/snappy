@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,7 +10,7 @@ import (
 )
 
 func TestLogAndEntries(t *testing.T) {
-	l := New("", 50)
+	l := New(Options{MaxEntries: 50})
 	defer l.Close()
 
 	fixedTime := time.Date(2026, 3, 1, 14, 30, 25, 0, time.Local)
@@ -38,7 +39,7 @@ func TestLogAndEntries(t *testing.T) {
 }
 
 func TestRingBufferLimit(t *testing.T) {
-	l := New("", 3)
+	l := New(Options{MaxEntries: 3})
 	defer l.Close()
 
 	for i := range 5 {
@@ -57,7 +58,7 @@ func TestRingBufferLimit(t *testing.T) {
 }
 
 func TestEntriesReturnsCopy(t *testing.T) {
-	l := New("", 50)
+	l := New(Options{MaxEntries: 50})
 	defer l.Close()
 
 	l.Log(Info, "test")
@@ -72,7 +73,7 @@ func TestEntriesReturnsCopy(t *testing.T) {
 
 func TestFileLogging(t *testing.T) {
 	dir := t.TempDir()
-	l := New(dir, 50)
+	l := New(Options{LogDir: dir, MaxEntries: 50})
 	defer l.Close()
 
 	l.Log(Info, "test message")
@@ -87,10 +88,168 @@ func TestFileLogging(t *testing.T) {
 	}
 }
 
+func TestRingBufferBackingArrayDoesNotGrow(t *testing.T) {
+	l := New(Options{MaxEntries: 3})
+	defer l.Close()
+
+	// Fill the buffer.
+	for i := range 3 {
+		l.Log(Info, fmt.Sprintf("msg-%d", i))
+	}
+
+	// Record the capacity after filling.
+	l.mu.Lock()
+	capAfterFill := cap(l.entries)
+	l.mu.Unlock()
+
+	// Write many more entries, cycling through the buffer.
+	for i := range 100 {
+		l.Log(Info, fmt.Sprintf("overflow-%d", i))
+	}
+
+	l.mu.Lock()
+	capAfterOverflow := cap(l.entries)
+	l.mu.Unlock()
+
+	if capAfterOverflow != capAfterFill {
+		t.Errorf("backing array capacity grew from %d to %d, want no growth", capAfterFill, capAfterOverflow)
+	}
+
+	entries := l.Entries()
+	if len(entries) != 3 {
+		t.Fatalf("Entries() len = %d, want 3", len(entries))
+	}
+	// Should have the last 3 entries.
+	if entries[0].Message != "overflow-97" {
+		t.Errorf("entries[0].Message = %q, want %q", entries[0].Message, "overflow-97")
+	}
+}
+
 func TestNoFileLogging(t *testing.T) {
-	l := New("", 50)
+	l := New(Options{MaxEntries: 50})
 	defer l.Close()
 
 	// Should not panic when file is nil
 	l.Log(Info, "test")
+}
+
+func TestRotationCreatesBackups(t *testing.T) {
+	dir := t.TempDir()
+	// 100 byte max to trigger rotation quickly.
+	l := New(Options{LogDir: dir, MaxEntries: 50, MaxSize: 100, MaxFiles: 3})
+	defer l.Close()
+
+	for i := range 20 {
+		l.Log(Info, fmt.Sprintf("message number %03d with padding to fill space", i))
+	}
+	l.Close()
+
+	if _, err := os.Stat(filepath.Join(dir, "snappy.log")); err != nil {
+		t.Error("snappy.log should exist after rotation")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "snappy.log.1")); err != nil {
+		t.Error("snappy.log.1 should exist after rotation")
+	}
+}
+
+func TestRotationDeletesOldestBackup(t *testing.T) {
+	dir := t.TempDir()
+	l := New(Options{LogDir: dir, MaxEntries: 50, MaxSize: 50, MaxFiles: 2})
+	defer l.Close()
+
+	for i := range 50 {
+		l.Log(Info, fmt.Sprintf("entry-%03d-padding-to-exceed-fifty-bytes-easily", i))
+	}
+	l.Close()
+
+	if _, err := os.Stat(filepath.Join(dir, "snappy.log.2")); err != nil {
+		t.Error("snappy.log.2 should exist")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "snappy.log.3")); !os.IsNotExist(err) {
+		t.Error("snappy.log.3 should NOT exist with MaxFiles=2")
+	}
+}
+
+func TestNoRotationWhenMaxSizeZero(t *testing.T) {
+	dir := t.TempDir()
+	l := New(Options{LogDir: dir, MaxEntries: 50, MaxSize: 0, MaxFiles: 3})
+	defer l.Close()
+
+	for i := range 20 {
+		l.Log(Info, fmt.Sprintf("message %d", i))
+	}
+	l.Close()
+
+	if _, err := os.Stat(filepath.Join(dir, "snappy.log.1")); !os.IsNotExist(err) {
+		t.Error("no rotation should occur when MaxSize is 0")
+	}
+}
+
+func TestMaxEntriesZeroDoesNotPanic(t *testing.T) {
+	l := New(Options{MaxEntries: 0})
+	defer l.Close()
+
+	for i := range 5 {
+		l.Log(Info, fmt.Sprintf("message %d", i))
+	}
+
+	if len(l.Entries()) != 0 {
+		t.Error("Entries() should remain empty when MaxEntries is 0")
+	}
+}
+
+func TestRotationPreservesDataOnRenameFail(t *testing.T) {
+	dir := t.TempDir()
+	l := New(Options{LogDir: dir, MaxEntries: 50, MaxSize: 100, MaxFiles: 2})
+	defer l.Close()
+
+	// Write enough to trigger rotation.
+	for i := range 5 {
+		l.Log(Info, fmt.Sprintf("message-%03d-padding-to-fill-space-easily", i))
+	}
+
+	// Make the backup destination directory to block the active rename.
+	// os.Rename fails when dst is a non-empty directory.
+	backup1 := filepath.Join(dir, "snappy.log.1")
+	_ = os.MkdirAll(filepath.Join(backup1, "blocker"), 0o755)
+
+	// Capture pre-rotation content.
+	preContent, err := os.ReadFile(filepath.Join(dir, "snappy.log"))
+	if err != nil {
+		t.Fatalf("reading log before blocked rotation: %v", err)
+	}
+
+	// Write more to trigger another rotation (rename will fail).
+	for i := range 10 {
+		l.Log(Info, fmt.Sprintf("after-block-%03d-padding-to-fill-space", i))
+	}
+	l.Close()
+
+	postContent, err := os.ReadFile(filepath.Join(dir, "snappy.log"))
+	if err != nil {
+		t.Fatalf("reading log after blocked rotation: %v", err)
+	}
+
+	// The file must still contain the pre-rotation data (not truncated).
+	if !strings.Contains(string(postContent), string(preContent[:20])) {
+		t.Error("log file was truncated despite failed rename; data lost")
+	}
+}
+
+func TestRotationWithMaxFilesZeroClampsToOneBackup(t *testing.T) {
+	dir := t.TempDir()
+	l := New(Options{LogDir: dir, MaxEntries: 10, MaxSize: 50, MaxFiles: 0})
+	defer l.Close()
+
+	for i := range 30 {
+		l.Log(Info, fmt.Sprintf("entry-%03d-padding-to-exceed-fifty-bytes-easily", i))
+	}
+	l.Close()
+
+	if _, err := os.Stat(filepath.Join(dir, "snappy.log.1")); err != nil {
+		t.Error("snappy.log.1 should exist when MaxSize is set and MaxFiles is 0")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "snappy.log.2")); !os.IsNotExist(err) {
+		t.Error("snappy.log.2 should NOT exist when MaxFiles is clamped to 1")
+	}
 }
