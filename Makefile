@@ -49,10 +49,10 @@ test-scrut: build ## Run scrut CLI tests
 		echo "scrut not installed. Install from https://github.com/facebookincubator/scrut"; \
 		exit 1; \
 	fi
-	SNAPPY_BIN="$(CURDIR)/bin/$(BINARY)" scrut test tests/scrut/
+	SNAPPY_BIN="$(CURDIR)/$(OUTDIR)/$(BINARY)" scrut test tests/scrut/
 
 test-scrut-update: build ## Update scrut test expectations
-	SNAPPY_BIN="$(CURDIR)/bin/$(BINARY)" scrut update --replace --assume-yes tests/scrut/
+	SNAPPY_BIN="$(CURDIR)/$(OUTDIR)/$(BINARY)" scrut update --replace --assume-yes tests/scrut/
 
 test-all: test test-scrut ## Run all tests (unit + scrut)
 
