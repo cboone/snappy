@@ -43,13 +43,13 @@ Changes to `.github/workflows/ci.yml` in the `test-scrut` job:
 All tests here fail at the Cobra flag-parsing level (before `RunE`), so they
 are platform-independent.
 
-| Test case | Command | Expected stderr | Exit |
-| --- | --- | --- | --- |
-| Unknown long flag | `--bogus` | `Error: unknown flag: --bogus` | 1 |
-| Unknown short flag | `-z` | `Error: unknown shorthand flag: 'z' in -z` | 1 |
-| Config flag without value | `--config` (no arg) | `Error: flag needs an argument: --config` | 1 |
-| Unknown flag after help flag | `--help --bogus` | `Error: unknown flag: --bogus` | 1 |
-| Unknown flag produces no stdout | `--unknown-flag 2>/dev/null` | (empty stdout) | 1 |
+| Test case                       | Command                      | Expected stderr                            | Exit |
+| ------------------------------- | ---------------------------- | ------------------------------------------ | ---- |
+| Unknown long flag               | `--bogus`                    | `Error: unknown flag: --bogus`             | 1    |
+| Unknown short flag              | `-z`                         | `Error: unknown shorthand flag: 'z' in -z` | 1    |
+| Config flag without value       | `--config` (no arg)          | `Error: flag needs an argument: --config`  | 1    |
+| Unknown flag after help flag    | `--help --bogus`             | `Error: unknown flag: --bogus`             | 1    |
+| Unknown flag produces no stdout | `--unknown-flag 2>/dev/null` | (empty stdout)                             | 1    |
 
 Key insights documented by these tests:
 
@@ -63,12 +63,12 @@ Key insights documented by these tests:
 Tests `--config` flag interactions with `--help` and `--version`, plus the
 warning behavior for nonexistent config files.
 
-| Test case | Command | Check | Expected | Exit |
-| --- | --- | --- | --- | --- |
-| Help with config (help first) | `--help --config /nonexistent/...` | stdout | Full help text | 0 |
-| Help with config (config first) | `--config /nonexistent/... --help` | stdout | Full help text | 0 |
-| Version with config | `--version --config /nonexistent/...` | stdout | `snappy version v*` | 0 |
-| Nonexistent config warning | `--config /nonexistent/...` | stderr | Warning line + `Error: running TUI: * (glob)` | 1 |
+| Test case                       | Command                               | Check  | Expected                                      | Exit |
+| ------------------------------- | ------------------------------------- | ------ | --------------------------------------------- | ---- |
+| Help with config (help first)   | `--help --config /nonexistent/...`    | stdout | Full help text                                | 0    |
+| Help with config (config first) | `--config /nonexistent/... --help`    | stdout | Full help text                                | 0    |
+| Version with config             | `--version --config /nonexistent/...` | stdout | `snappy version v*`                           | 0    |
+| Nonexistent config warning      | `--config /nonexistent/...`           | stderr | Warning line + `Error: running TUI: * (glob)` | 1    |
 
 Key insights:
 
@@ -84,12 +84,12 @@ Tests the binary's behavior when it actually attempts to run (no `--help`,
 `--version`, or flag errors). On macOS without a TTY, the binary gets past
 the `tmutil` check but fails launching the TUI.
 
-| Test case | Command | Check | Expected | Exit |
-| --- | --- | --- | --- | --- |
-| Bare invocation error | (no args) | stderr | `Error: running TUI: * (glob)` | 1 |
-| Bare invocation no stdout | (no args, stderr suppressed) | stdout | (empty) | 1 |
-| Extra argument accepted | `some-argument` | stderr | `Error: running TUI: * (glob)` | 1 |
-| Multiple extra arguments | `arg1 arg2 arg3` | stderr | `Error: running TUI: * (glob)` | 1 |
+| Test case                 | Command                      | Check  | Expected                       | Exit |
+| ------------------------- | ---------------------------- | ------ | ------------------------------ | ---- |
+| Bare invocation error     | (no args)                    | stderr | `Error: running TUI: * (glob)` | 1    |
+| Bare invocation no stdout | (no args, stderr suppressed) | stdout | (empty)                        | 1    |
+| Extra argument accepted   | `some-argument`              | stderr | `Error: running TUI: * (glob)` | 1    |
+| Multiple extra arguments  | `arg1 arg2 arg3`             | stderr | `Error: running TUI: * (glob)` | 1    |
 
 Key insight:
 
@@ -138,11 +138,11 @@ Key insight:
 
 ## Test inventory after implementation
 
-| File | Test cases | Status |
-| --- | --- | --- |
-| `tests/scrut/help.md` | 2 | Existing |
-| `tests/scrut/version.md` | 2 | Existing |
-| `tests/scrut/errors.md` | 5 | New |
-| `tests/scrut/config.md` | 4 | New |
-| `tests/scrut/startup.md` | 4 | New |
-| **Total** | **17** | |
+| File                     | Test cases | Status   |
+| ------------------------ | ---------- | -------- |
+| `tests/scrut/help.md`    | 2          | Existing |
+| `tests/scrut/version.md` | 2          | Existing |
+| `tests/scrut/errors.md`  | 5          | New      |
+| `tests/scrut/config.md`  | 4          | New      |
+| `tests/scrut/startup.md` | 4          | New      |
+| **Total**                | **17**     |          |
