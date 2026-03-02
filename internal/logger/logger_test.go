@@ -184,3 +184,34 @@ func TestNoRotationWhenMaxSizeZero(t *testing.T) {
 		t.Error("no rotation should occur when MaxSize is 0")
 	}
 }
+
+func TestMaxEntriesZeroDoesNotPanic(t *testing.T) {
+	l := New(Options{MaxEntries: 0})
+	defer l.Close()
+
+	for i := range 5 {
+		l.Log(Info, fmt.Sprintf("message %d", i))
+	}
+
+	if len(l.Entries()) != 0 {
+		t.Error("Entries() should remain empty when MaxEntries is 0")
+	}
+}
+
+func TestRotationWithMaxFilesZeroClampsToOneBackup(t *testing.T) {
+	dir := t.TempDir()
+	l := New(Options{LogDir: dir, MaxEntries: 10, MaxSize: 50, MaxFiles: 0})
+	defer l.Close()
+
+	for i := range 30 {
+		l.Log(Info, fmt.Sprintf("entry-%03d-padding-to-exceed-fifty-bytes-easily", i))
+	}
+	l.Close()
+
+	if _, err := os.Stat(filepath.Join(dir, "snappy.log.1")); err != nil {
+		t.Error("snappy.log.1 should exist when MaxSize is set and MaxFiles is 0")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "snappy.log.2")); !os.IsNotExist(err) {
+		t.Error("snappy.log.2 should NOT exist when MaxFiles is clamped to 1")
+	}
+}

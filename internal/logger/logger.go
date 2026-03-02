@@ -56,11 +56,26 @@ type Logger struct {
 // New creates a Logger. If LogDir is non-empty, it creates the directory
 // and opens a log file. File logging failures are non-fatal.
 func New(opts Options) *Logger {
+	maxEntries := opts.MaxEntries
+	if maxEntries < 0 {
+		maxEntries = 0
+	}
+
+	maxBytes := opts.MaxSize
+	if maxBytes < 0 {
+		maxBytes = 0
+	}
+
+	maxFiles := opts.MaxFiles
+	if maxBytes > 0 && maxFiles <= 0 {
+		maxFiles = 1
+	}
+
 	l := &Logger{
-		entries:  make([]Entry, 0, opts.MaxEntries),
-		maxSize:  opts.MaxEntries,
-		maxBytes: opts.MaxSize,
-		maxFiles: opts.MaxFiles,
+		entries:  make([]Entry, 0, maxEntries),
+		maxSize:  maxEntries,
+		maxBytes: maxBytes,
+		maxFiles: maxFiles,
 		now:      time.Now,
 	}
 
@@ -100,11 +115,13 @@ func (l *Logger) Log(eventType EventType, message string) {
 		Formatted: formatted,
 	}
 
-	if len(l.entries) < l.maxSize {
-		l.entries = append(l.entries, entry)
-	} else {
-		copy(l.entries, l.entries[1:])
-		l.entries[l.maxSize-1] = entry
+	if l.maxSize > 0 {
+		if len(l.entries) < l.maxSize {
+			l.entries = append(l.entries, entry)
+		} else {
+			copy(l.entries, l.entries[1:])
+			l.entries[l.maxSize-1] = entry
+		}
 	}
 
 	if l.file != nil {
