@@ -83,10 +83,10 @@ continues).
 
 New fields in `Config`:
 
-| Field         | Viper key        | Env var                | Default     |
-| ------------- | ---------------- | ---------------------- | ----------- |
-| `LogMaxSize`  | `log_max_size`   | `SNAPPY_LOG_MAX_SIZE`  | `5242880`   |
-| `LogMaxFiles` | `log_max_files`  | `SNAPPY_LOG_MAX_FILES` | `3`         |
+| Field         | Viper key       | Env var                | Default   |
+| ------------- | --------------- | ---------------------- | --------- |
+| `LogMaxSize`  | `log_max_size`  | `SNAPPY_LOG_MAX_SIZE`  | `5242880` |
+| `LogMaxFiles` | `log_max_files` | `SNAPPY_LOG_MAX_FILES` | `3`       |
 
 Add to `SetDefaults()` and `Load()`.
 
@@ -125,15 +125,15 @@ configuration table.
 
 ## Files to modify
 
-| File                                | Change                              |
-| ----------------------------------- | ----------------------------------- |
-| `internal/logger/logger.go`        | Ring buffer fix, Options, rotation  |
-| `internal/logger/logger_test.go`   | Update calls, add rotation tests    |
-| `internal/config/config.go`        | New config fields and defaults      |
-| `internal/config/config_test.go`   | Test new config fields              |
-| `cmd/root.go`                      | Update `logger.New()` call          |
-| `internal/tui/model_test.go`       | Update `logger.New()` call          |
-| `README.md`                        | Document new config options         |
+| File                             | Change                             |
+| -------------------------------- | ---------------------------------- |
+| `internal/logger/logger.go`      | Ring buffer fix, Options, rotation |
+| `internal/logger/logger_test.go` | Update calls, add rotation tests   |
+| `internal/config/config.go`      | New config fields and defaults     |
+| `internal/config/config_test.go` | Test new config fields             |
+| `cmd/root.go`                    | Update `logger.New()` call         |
+| `internal/tui/model_test.go`     | Update `logger.New()` call         |
+| `README.md`                      | Document new config options        |
 
 ## Commit strategy
 

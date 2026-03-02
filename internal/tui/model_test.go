@@ -49,7 +49,7 @@ func testConfig() *config.Config {
 
 func testModel() Model {
 	cfg := testConfig()
-	log := logger.New("", 50)
+	log := logger.New(logger.Options{MaxEntries: 50})
 	runner := &mockRunner{responses: map[string]mockResponse{}}
 	m := NewModel(cfg, runner, log, "", "Configured", "dev")
 	m.width = 80

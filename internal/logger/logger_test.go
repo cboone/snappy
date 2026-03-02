@@ -10,7 +10,7 @@ import (
 )
 
 func TestLogAndEntries(t *testing.T) {
-	l := New("", 50)
+	l := New(Options{MaxEntries: 50})
 	defer l.Close()
 
 	fixedTime := time.Date(2026, 3, 1, 14, 30, 25, 0, time.Local)
@@ -39,7 +39,7 @@ func TestLogAndEntries(t *testing.T) {
 }
 
 func TestRingBufferLimit(t *testing.T) {
-	l := New("", 3)
+	l := New(Options{MaxEntries: 3})
 	defer l.Close()
 
 	for i := range 5 {
@@ -58,7 +58,7 @@ func TestRingBufferLimit(t *testing.T) {
 }
 
 func TestEntriesReturnsCopy(t *testing.T) {
-	l := New("", 50)
+	l := New(Options{MaxEntries: 50})
 	defer l.Close()
 
 	l.Log(Info, "test")
@@ -73,7 +73,7 @@ func TestEntriesReturnsCopy(t *testing.T) {
 
 func TestFileLogging(t *testing.T) {
 	dir := t.TempDir()
-	l := New(dir, 50)
+	l := New(Options{LogDir: dir, MaxEntries: 50})
 	defer l.Close()
 
 	l.Log(Info, "test message")
@@ -89,7 +89,7 @@ func TestFileLogging(t *testing.T) {
 }
 
 func TestRingBufferBackingArrayDoesNotGrow(t *testing.T) {
-	l := New("", 3)
+	l := New(Options{MaxEntries: 3})
 	defer l.Close()
 
 	// Fill the buffer.
@@ -126,9 +126,61 @@ func TestRingBufferBackingArrayDoesNotGrow(t *testing.T) {
 }
 
 func TestNoFileLogging(t *testing.T) {
-	l := New("", 50)
+	l := New(Options{MaxEntries: 50})
 	defer l.Close()
 
 	// Should not panic when file is nil
 	l.Log(Info, "test")
+}
+
+func TestRotationCreatesBackups(t *testing.T) {
+	dir := t.TempDir()
+	// 100 byte max to trigger rotation quickly.
+	l := New(Options{LogDir: dir, MaxEntries: 50, MaxSize: 100, MaxFiles: 3})
+	defer l.Close()
+
+	for i := range 20 {
+		l.Log(Info, fmt.Sprintf("message number %03d with padding to fill space", i))
+	}
+	l.Close()
+
+	if _, err := os.Stat(filepath.Join(dir, "snappy.log")); err != nil {
+		t.Error("snappy.log should exist after rotation")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "snappy.log.1")); err != nil {
+		t.Error("snappy.log.1 should exist after rotation")
+	}
+}
+
+func TestRotationDeletesOldestBackup(t *testing.T) {
+	dir := t.TempDir()
+	l := New(Options{LogDir: dir, MaxEntries: 50, MaxSize: 50, MaxFiles: 2})
+	defer l.Close()
+
+	for i := range 50 {
+		l.Log(Info, fmt.Sprintf("entry-%03d-padding-to-exceed-fifty-bytes-easily", i))
+	}
+	l.Close()
+
+	if _, err := os.Stat(filepath.Join(dir, "snappy.log.2")); err != nil {
+		t.Error("snappy.log.2 should exist")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "snappy.log.3")); !os.IsNotExist(err) {
+		t.Error("snappy.log.3 should NOT exist with MaxFiles=2")
+	}
+}
+
+func TestNoRotationWhenMaxSizeZero(t *testing.T) {
+	dir := t.TempDir()
+	l := New(Options{LogDir: dir, MaxEntries: 50, MaxSize: 0, MaxFiles: 3})
+	defer l.Close()
+
+	for i := range 20 {
+		l.Log(Info, fmt.Sprintf("message %d", i))
+	}
+	l.Close()
+
+	if _, err := os.Stat(filepath.Join(dir, "snappy.log.1")); !os.IsNotExist(err) {
+		t.Error("no rotation should occur when MaxSize is 0")
+	}
 }
