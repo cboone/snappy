@@ -31,8 +31,9 @@ Error: flag needs an argument: --config
 
 ## Unknown flag after help flag
 
-Cobra parses all flags before dispatching help, so `--bogus` still triggers
-an error even though `--help` is present.
+Cobra validates flag names before dispatching help, so `--bogus` still triggers
+an error even though `--help` is present. (Flag _values_ may not be consumed;
+see the `--help --config` edge case in `config.md`.)
 
 ```scrut {output_stream: stderr}
 $ "${SNAPPY_BIN}" --help --bogus
@@ -43,7 +44,9 @@ Error: unknown flag: --bogus
 ## Double-dash separator
 
 `--` stops flag parsing; `--help` is treated as a positional argument, so the
-binary proceeds to the TUI stage and fails without a TTY.
+binary proceeds to the TUI stage and fails without a TTY. Unlike bare positional
+arguments (e.g., `snappy foo`), arguments after `--` bypass Cobra's subcommand
+matching, so they reach `RunE` even when subcommands are registered.
 
 ```scrut {output_stream: stderr}
 $ "${SNAPPY_BIN}" -- --help
