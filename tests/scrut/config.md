@@ -47,6 +47,24 @@ $ "${SNAPPY_BIN}" --version --config /nonexistent/path/config.yaml
 snappy version * (glob)
 ```
 
+## Config flag with equals syntax
+
+`--config=value` works the same as `--config value`.
+
+```scrut {output_stream: stderr}
+$ "${SNAPPY_BIN}" --config=/nonexistent/path/config.yaml
+Warning: config file error: * (glob)
+Error: running TUI: * (glob)
+[1]
+```
+
+## Version with config equals syntax
+
+```scrut
+$ "${SNAPPY_BIN}" --version --config=/nonexistent/path/config.yaml
+snappy version * (glob)
+```
+
 ## Nonexistent config file warning
 
 When `--config` points to a file that does not exist, `initConfig()` prints a
