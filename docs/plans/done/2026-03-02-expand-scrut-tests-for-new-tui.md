@@ -20,12 +20,12 @@ flag interaction behavior.
 Tests the `SNAPPY_*` environment variable system (`viper.SetEnvPrefix("SNAPPY")`
 and `viper.AutomaticEnv()` in `cmd/root.go:62-63`).
 
-| Test                                        | Command                                                                        | Validates                                    |
-| ------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------- |
-| SNAPPY_LOG_DIR env var affects logger setup  | `SNAPPY_LOG_DIR="/dev/null/snappy" "${SNAPPY_BIN}"`                            | Log dir env var read and applied             |
-| SNAPPY_MOUNT env var reaches TUI stage      | `SNAPPY_MOUNT="/Volumes/Test" "${SNAPPY_BIN}"`                                 | String env var accepted, reaches TUI         |
-| SNAPPY_MOUNT env var produces no stdout     | Same + `2>/dev/null`                                                           | No stdout leak with env vars                 |
-| SNAPPY_AUTO_ENABLED=false reaches TUI stage | `SNAPPY_AUTO_ENABLED=false "${SNAPPY_BIN}"`                                    | Boolean env var accepted                     |
+| Test                                        | Command                                                                        | Validates                                 |
+| ------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------- |
+| SNAPPY_LOG_DIR env var affects logger setup | `SNAPPY_LOG_DIR="/dev/null/snappy" "${SNAPPY_BIN}"`                            | Log dir env var read and applied          |
+| SNAPPY_MOUNT env var reaches TUI stage      | `SNAPPY_MOUNT="/Volumes/Test" "${SNAPPY_BIN}"`                                 | String env var accepted, reaches TUI      |
+| SNAPPY_MOUNT env var produces no stdout     | Same + `2>/dev/null`                                                           | No stdout leak with env vars              |
+| SNAPPY_AUTO_ENABLED=false reaches TUI stage | `SNAPPY_AUTO_ENABLED=false "${SNAPPY_BIN}"`                                    | Boolean env var accepted                  |
 | SNAPPY_REFRESH with numeric value           | `SNAPPY_REFRESH=30 "${SNAPPY_BIN}"`                                            | Numeric duration env var works end-to-end |
 | SNAPPY_REFRESH with Go duration string      | `SNAPPY_REFRESH="2m" "${SNAPPY_BIN}"`                                          | Duration string env var works end-to-end  |
 | Multiple SNAPPY env vars together           | `SNAPPY_MOUNT=... SNAPPY_REFRESH=30 SNAPPY_AUTO_ENABLED=false "${SNAPPY_BIN}"` | Multiple env vars coexist                 |
