@@ -33,14 +33,18 @@ changelog:
       - "^test:"
       - "^chore:"
 
-brews:
+homebrew_casks:
   - repository:
       owner: cboone
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
-    directory: Formula
     homepage: "https://github.com/cboone/snappy"
     description: "Automatically increase your Time Machine snapshot frequency (macOS only)"
-    license: MIT
-    test: |
-      assert_match version.to_s, shell_output("#{bin}/snappy --version")
+    binaries:
+      - snappy
+    url:
+      verified: "github.com/cboone/snappy"
+    hooks:
+      post:
+        install:
+          - 'xattr -dr com.apple.quarantine "#{staged_path}/snappy"'
