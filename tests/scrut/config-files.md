@@ -19,7 +19,7 @@ Error: running TUI: * (glob)
 
 ```scrut {output_stream: stderr}
 $ "${SNAPPY_BIN}" --config /dev/null
-Warning: config file error: Unsupported Config Type ""
+Warning: config file error: * (glob)
 Error: running TUI: * (glob)
 [1]
 ```
@@ -38,7 +38,7 @@ provides an empty config file.
 
 ```scrut {output_stream: stderr}
 $ SNAPPY_MOUNT="/Volumes/Test" "${SNAPPY_BIN}" --config /dev/null
-Warning: config file error: Unsupported Config Type ""
+Warning: config file error: * (glob)
 Error: running TUI: * (glob)
 [1]
 ```

@@ -9,23 +9,23 @@ scrut CLI tests (17 tests in 5 files) only cover basic flag parsing and error
 handling. Three significant areas have zero scrut coverage: environment
 variables, config file content scenarios, and flag precedence behavior.
 
-**Goal:** Expand from 17 to ~33 scrut tests across 3 new files and 2 updated
+**Goal:** Expand from 17 to 38 scrut tests across 3 new files and 2 updated
 files, covering environment variable integration, config file edge cases, and
 flag interaction behavior.
 
 ## Files to create
 
-### 1. `tests/scrut/environment.md` (8 tests)
+### 1. `tests/scrut/environment.md` (9 tests)
 
 Tests the `SNAPPY_*` environment variable system (`viper.SetEnvPrefix("SNAPPY")`
+and `viper.AutomaticEnv()` in `cmd/root.go:62-63`).
 
-- `viper.AutomaticEnv()` in `cmd/root.go:62-63`).
-
-| Test                                        | Command                                                                        | Validates                                 |
-| ------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------- |
-| SNAPPY_MOUNT env var reaches TUI stage      | `SNAPPY_MOUNT="/Volumes/Test" "${SNAPPY_BIN}"`                                 | String env var accepted, reaches TUI      |
-| SNAPPY_MOUNT env var produces no stdout     | Same + `2>/dev/null`                                                           | No stdout leak with env vars              |
-| SNAPPY_AUTO_ENABLED=false reaches TUI stage | `SNAPPY_AUTO_ENABLED=false "${SNAPPY_BIN}"`                                    | Boolean env var accepted                  |
+| Test                                        | Command                                                                        | Validates                                    |
+| ------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------- |
+| SNAPPY_LOG_DIR env var affects logger setup  | `SNAPPY_LOG_DIR="/dev/null/snappy" "${SNAPPY_BIN}"`                            | Log dir env var read and applied             |
+| SNAPPY_MOUNT env var reaches TUI stage      | `SNAPPY_MOUNT="/Volumes/Test" "${SNAPPY_BIN}"`                                 | String env var accepted, reaches TUI         |
+| SNAPPY_MOUNT env var produces no stdout     | Same + `2>/dev/null`                                                           | No stdout leak with env vars                 |
+| SNAPPY_AUTO_ENABLED=false reaches TUI stage | `SNAPPY_AUTO_ENABLED=false "${SNAPPY_BIN}"`                                    | Boolean env var accepted                     |
 | SNAPPY_REFRESH with numeric value           | `SNAPPY_REFRESH=30 "${SNAPPY_BIN}"`                                            | Numeric duration env var works end-to-end |
 | SNAPPY_REFRESH with Go duration string      | `SNAPPY_REFRESH="2m" "${SNAPPY_BIN}"`                                          | Duration string env var works end-to-end  |
 | Multiple SNAPPY env vars together           | `SNAPPY_MOUNT=... SNAPPY_REFRESH=30 SNAPPY_AUTO_ENABLED=false "${SNAPPY_BIN}"` | Multiple env vars coexist                 |
