@@ -32,7 +32,7 @@ Error: flag needs an argument: --config
 ## Unknown flag after help flag
 
 Cobra validates flag names before dispatching help, so `--bogus` still triggers
-an error even though `--help` is present. (Flag *values* may not be consumed;
+an error even though `--help` is present. (Flag _values_ may not be consumed;
 see the `--help --config` edge case in `config.md`.)
 
 ```scrut {output_stream: stderr}
