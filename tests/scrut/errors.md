@@ -40,6 +40,28 @@ Error: unknown flag: --bogus
 [1]
 ```
 
+## Double-dash separator
+
+`--` stops flag parsing; `--help` is treated as a positional argument, so the
+binary proceeds to the TUI stage and fails without a TTY.
+
+```scrut {output_stream: stderr}
+$ "${SNAPPY_BIN}" -- --help
+Error: running TUI: * (glob)
+[1]
+```
+
+## Empty config value
+
+An empty string for `--config` is equivalent to omitting the flag, since
+`initConfig()` treats `""` as unset.
+
+```scrut {output_stream: stderr}
+$ "${SNAPPY_BIN}" --config ""
+Error: running TUI: * (glob)
+[1]
+```
+
 ## Unknown flag produces no stdout
 
 ```scrut
