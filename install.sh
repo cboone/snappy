@@ -18,6 +18,11 @@ function parse_args() {
   while [[ ${#} -gt 0 ]]; do
     case "${1}" in
       --version)
+        if [[ ${#} -lt 2 || -z "${2-}" ]]; then
+          printf 'Error: --version requires a non-empty argument.\n' >&2
+          printf 'Usage: %s --version VERSION\n' "${0##*/}" >&2
+          exit 1
+        fi
         VERSION="${2}"
         shift 2
         ;;
@@ -36,10 +41,30 @@ function parse_args() {
 #   0 on success, 1 if the tag cannot be determined
 function fetch_latest_version() {
   local tag
-  tag="$(curl --fail --silent --show-error --location \
-    "https://api.github.com/repos/${REPO}/releases/latest" \
+  local api_url="https://api.github.com/repos/${REPO}/releases/latest"
+
+  local curl_opts=(--fail --silent --show-error --location)
+  if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    curl_opts+=(--header "Authorization: Bearer ${GITHUB_TOKEN}"
+                --header "Accept: application/vnd.github+json")
+  fi
+
+  tag="$(curl "${curl_opts[@]}" "${api_url}" 2>/dev/null \
     | grep '"tag_name"' \
     | sed -E 's/.*"([^"]+)".*/\1/' || true)"
+
+  # Fallback: resolve the /releases/latest redirect to extract the tag.
+  if [[ -z "${tag}" ]]; then
+    local redirect_url
+    redirect_url="$(curl --silent --show-error --head --location \
+      --output /dev/null --write-out '%{url_effective}' \
+      "https://github.com/${REPO}/releases/latest" 2>/dev/null || true)"
+
+    if [[ -n "${redirect_url}" ]]; then
+      tag="$(printf '%s\n' "${redirect_url}" \
+        | sed -E 's#.*/tag/([^/?]+).*#\1#' || true)"
+    fi
+  fi
 
   if [[ -z "${tag}" ]]; then
     printf 'Error: could not determine latest version.\n' >&2
@@ -95,11 +120,11 @@ function verify_checksum() {
   local checksums_path="${3}"
 
   local expected
-  expected="$(awk -v t="${tarball_name}" '$2 ~ t { print $1 }' "${checksums_path}")"
+  expected="$(awk -v t="${tarball_name}" '$2 == t || $2 == "*" t || $2 == "./" t { print $1 }' "${checksums_path}")"
 
   if [[ -z "${expected}" ]]; then
-    printf 'Warning: no checksum found for %s, skipping verification.\n' "${tarball_name}" >&2
-    return 0
+    printf 'Error: checksum entry for %s not found in %s; aborting installation.\n' "${tarball_name}" "${checksums_path}" >&2
+    return 1
   fi
 
   local actual
@@ -169,10 +194,23 @@ function main() {
 
   local extract_dir="${tmp_dir}/extract"
   mkdir -p "${extract_dir}"
-  tar -xzf "${tmp_dir}/${tarball}" -C "${extract_dir}"
+
+  # Extract only the expected binary from the archive.
+  tar -xzf "${tmp_dir}/${tarball}" -C "${extract_dir}" -- "${BINARY}"
+
+  local extracted_binary="${extract_dir}/${BINARY}"
+
+  if [[ ! -f "${extracted_binary}" ]]; then
+    printf 'Error: expected binary "%s" not found in archive.\n' "${BINARY}" >&2
+    exit 1
+  fi
+  if [[ -h "${extracted_binary}" ]]; then
+    printf 'Error: extracted file "%s" is a symlink; refusing to install.\n' "${BINARY}" >&2
+    exit 1
+  fi
 
   mkdir -p "${INSTALL_DIR}"
-  install -m 755 "${extract_dir}/${BINARY}" "${INSTALL_DIR}/${BINARY}"
+  install -m 755 "${extracted_binary}" "${INSTALL_DIR}/${BINARY}"
 
   printf 'Installed %s to %s/%s\n' "${BINARY}" "${INSTALL_DIR}" "${BINARY}"
 
