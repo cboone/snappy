@@ -46,6 +46,7 @@ type Logger struct {
 // and opens a log file. File logging failures are non-fatal.
 func New(logDir string, maxEntries int) *Logger {
 	l := &Logger{
+		entries: make([]Entry, 0, maxEntries),
 		maxSize: maxEntries,
 		now:     time.Now,
 	}
@@ -88,9 +89,11 @@ func (l *Logger) Log(eventType EventType, message string) {
 		Formatted: formatted,
 	}
 
-	l.entries = append(l.entries, entry)
-	if len(l.entries) > l.maxSize {
-		l.entries = l.entries[1:]
+	if len(l.entries) < l.maxSize {
+		l.entries = append(l.entries, entry)
+	} else {
+		copy(l.entries, l.entries[1:])
+		l.entries[l.maxSize-1] = entry
 	}
 
 	if l.file != nil {

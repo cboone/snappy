@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -84,6 +85,43 @@ func TestFileLogging(t *testing.T) {
 	}
 	if !strings.Contains(string(content), "test message") {
 		t.Errorf("log file content = %q, want to contain %q", content, "test message")
+	}
+}
+
+func TestRingBufferBackingArrayDoesNotGrow(t *testing.T) {
+	l := New("", 3)
+	defer l.Close()
+
+	// Fill the buffer.
+	for i := range 3 {
+		l.Log(Info, fmt.Sprintf("msg-%d", i))
+	}
+
+	// Record the capacity after filling.
+	l.mu.Lock()
+	capAfterFill := cap(l.entries)
+	l.mu.Unlock()
+
+	// Write many more entries, cycling through the buffer.
+	for i := range 100 {
+		l.Log(Info, fmt.Sprintf("overflow-%d", i))
+	}
+
+	l.mu.Lock()
+	capAfterOverflow := cap(l.entries)
+	l.mu.Unlock()
+
+	if capAfterOverflow != capAfterFill {
+		t.Errorf("backing array capacity grew from %d to %d, want no growth", capAfterFill, capAfterOverflow)
+	}
+
+	entries := l.Entries()
+	if len(entries) != 3 {
+		t.Fatalf("Entries() len = %d, want 3", len(entries))
+	}
+	// Should have the last 3 entries.
+	if entries[0].Message != "overflow-97" {
+		t.Errorf("entries[0].Message = %q, want %q", entries[0].Message, "overflow-97")
 	}
 }
 
