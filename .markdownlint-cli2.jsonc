@@ -3,6 +3,9 @@
     // Line length: disabled (Prettier handles wrapping)
     "MD013": false,
 
+    // Dollar signs before commands: disabled (scrut test files use $ notation)
+    "MD014": false,
+
     // Allow duplicate headings in different sections (e.g., ## Install / ## Notes)
     "MD024": { "siblings_only": true },
 
