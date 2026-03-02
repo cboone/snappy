@@ -1,20 +1,20 @@
 # Snappy
 
-<img align="right" alt="Snappy the Swamp Protector vs The Rusty Clanker" src="./docs/images/snappy-1x1.jpg" width="50%">
+![Snappy the Swamp Protector vs The Rusty Clanker](./docs/images/scary-snappy-4x1.jpg)
 
 ![macOS 11+](https://img.shields.io/badge/macOS-11+-critical?style=for-the-badge&labelColor=f3eecd&color=b18655) [![MIT License](https://img.shields.io/github/license/cboone/snappy?style=for-the-badge&labelColor=f3eecd&color=b18655)](./LICENSE)
 <br>
 [![Go Report Card](https://img.shields.io/badge/go%20report%20card-A+-important?style=for-the-badge&labelColor=f3eecd&color=81834a)](https://goreportcard.com/report/github.com/cboone/snappy) [![GitHub branch check runs](https://img.shields.io/github/check-runs/cboone/snappy/main?style=for-the-badge&label=tests&labelColor=f3eecd&color=81834a)](https://github.com/cboone/snappy/actions)
 
-[**Quick Start**](#quick-start) | [**Why Use Snappy?**](#why-use-snappy) | [**Usage**](#usage) | [**Restoring Files and Snapshots**](#restoring-files-and-snapshots) | [**Limitations**](#limitations) | [**Other Tools**](#comparison)
+[**Quick Start**](#quick-start) | [**Why Use Snappy?**](#why-use-snappy) | [**Usage**](#commands-and-options) | [**Restoring Files and Snapshots**](#restoring-files-and-snapshots) | [**Limitations**](#limitations) | [**Other Tools**](#comparison)
 
-**Frequent, automatic snapshot backups of your hard drive.** Snappy uses the macOS built-in snapshotting system to allow easy access and rollbacks to individual files, directories, or the entire disk.
+**Frequent, automatic, super fast, lightweight snapshot backups of your entire drive.** Snappy uses the macOS built-in snapshotting system to allow easy access and rollbacks to individual files, directories, or the entire disk.
 
 `brew install cboone/tap/snappy` and it's automatically installed and running. Run `snappy` on its own to see the status of your snapshots, view your config, and mount your snapshot backups to restore files.
 
 Snappy only runs on macOS. It relies on [`tmutil`](https://ss64.com/mac/tmutil.html) and [APFS snapshots](https://eclecticlight.co/2026/01/31/explainer-snapshots-2/). If you're on Linux, [`zsh-auto-snapshot`](https://manpages.debian.org/trixie/zfs-auto-snapshot/zfs-auto-snapshot.8.en.html) is a good option (and is what inspired Snappy in the first place). AFAICT, it should work on pretty much any macOS version since 11 (macOS Big Sur), when [Time Machine](<https://en.wikipedia.org/wiki/Time_Machine_(macOS)>) began to use APFS snapshotting.
 
-**You don't need to use Time Machine for Snappy to work.** You can use Time Machine's fancy UI to view your backups and restore files if you want, or you can use Snappy's snapshot mounting
+**You don't need to use Time Machine for Snappy to work.** You can use Time Machine's fancy UI to view your backups and restore files if you want, or you can use Snappy's snapshot mounting to browse and restore your files via the Finder. None of the functionality requires Time Machine to be enabled, even using the Time Machine UI to view backups.
 
 You barely even need Snappy, for that matter. It provides easy setup, handy config options (with good defaults), a TUI to view and manage your snapshots, commands to mount your snapshots, and a few other niceties. But at its core, Snappy's a glorified Bash script cron job. So much so that I've included a super simple Bash script you could use instead, if you want frequent snapshots without installing a binary: [`snappy-ez`](./bin/snappy-ez). More details on [how to use it](#snappy-ez) below.
 
@@ -177,7 +177,7 @@ now            -1 hour          -1 day           -1 week
  ├────────────────┼────────────────┼────────────────┼────╶╶╶╶╶╶
  │                |   |   |    |   │        |       │
  │                │     hourly     │      daily     │  weekly
- ╰────────────────────────────── macOS ─────────────┴────╶╶╶╶╶╶
+ ╰────────────────┴───────────── macOS ─────────────┴────╶╶╶╶╶╶
 ```
 
 ## Background
