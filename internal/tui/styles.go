@@ -21,7 +21,6 @@ func adaptiveColor(hasDarkBG bool, light, dark string) color.Color {
 
 // modelStyles holds all precomputed Lipgloss styles for the TUI.
 type modelStyles struct {
-	textBold    lipgloss.Style
 	textDim     lipgloss.Style
 	textGreen   lipgloss.Style
 	textYellow  lipgloss.Style
@@ -36,7 +35,6 @@ type modelStyles struct {
 	helpBar      lipgloss.Style
 	statusOn     lipgloss.Style
 	statusOff    lipgloss.Style
-	keyBind      lipgloss.Style
 	snapNumber   lipgloss.Style
 	spinner      lipgloss.Style
 }
@@ -55,8 +53,7 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 	magenta := lipgloss.Color("5")
 
 	return modelStyles{
-		textBold:    lipgloss.NewStyle().Bold(true),
-		textDim:     lipgloss.NewStyle().Faint(true),
+		textDim: lipgloss.NewStyle().Faint(true),
 		textGreen:   lipgloss.NewStyle().Foreground(green),
 		textYellow:  lipgloss.NewStyle().Foreground(yellow),
 		textRed:     lipgloss.NewStyle().Foreground(red),
@@ -91,7 +88,6 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 		statusOn:  lipgloss.NewStyle().Bold(true).Foreground(green),
 		statusOff: lipgloss.NewStyle().Bold(true).Foreground(red),
 
-		keyBind:    lipgloss.NewStyle().Bold(true).Foreground(colorHighlight),
 		snapNumber: lipgloss.NewStyle().Bold(true).Foreground(green),
 		spinner:    lipgloss.NewStyle().Foreground(colorHighlight),
 	}

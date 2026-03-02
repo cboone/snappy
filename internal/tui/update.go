@@ -89,6 +89,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.snapshotting = true
 		m.loading = true
 		m.log.Log(logger.Info, "Creating snapshot...")
+		m.updateLogViewContent()
 		return m, tea.Batch(doCreateSnapshot(m.runner), m.spinner.Tick)
 
 	case key.Matches(msg, m.keys.Refresh):
@@ -154,6 +155,7 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 		m.loading = true
 		m.auto.RecordSnapshot(now)
 		m.log.Log(logger.Auto, "Creating auto-snapshot...")
+		m.updateLogViewContent()
 		cmds = append(cmds, doCreateSnapshot(m.runner), m.spinner.Tick)
 	}
 
@@ -171,7 +173,9 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 
 func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 	m.refreshing = false
-	m.loading = false
+	if !m.thinning && !m.snapshotting {
+		m.loading = false
+	}
 	m.tmStatus = msg.TMStatus
 
 	if msg.APFSInfo.Volume != "" {

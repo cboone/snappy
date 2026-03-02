@@ -186,7 +186,7 @@ Use `m.snapView.SetHeight(snapViewHeight)` and `m.logView.SetHeight(logViewHeigh
 **Viewport content updates:**
 
 - **Snapshot viewport**: In `handleRefreshResult`, rebuild the full snapshot list content (all snapshots rendered as lines, newest first) and call `m.snapView.SetContent(...)`. This replaces the old bookend/ellipsis logic with a scrollable list of ALL snapshots. Note: in bubbles v2, `SetContent` is a method (not direct field assignment).
-- **Log viewport**: In `handleRefreshResult`, `handleSnapshotCreated`, `handleThinResult`, and `handleKey` (for 'a' toggle), rebuild the log content from `m.log.Entries()` (colorized, newest first) and call `m.logView.SetContent(...)`. Call `m.logView.GotoBottom()` to auto-scroll to the newest entry.
+- **Log viewport**: In `handleRefreshResult`, `handleSnapshotCreated`, `handleThinResult`, and `handleKey` (for 'a' toggle), rebuild the log content from `m.log.Entries()` (colorized, chronological order; oldest first) and call `m.logView.SetContent(...)`. Call `m.logView.GotoBottom()` to auto-scroll the viewport to the newest entry.
 
 **Add helper methods** on Model:
 
