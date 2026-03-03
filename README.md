@@ -2,9 +2,7 @@
 
 ![Snappy the Swamp Protector vs The Rusty Clanker](./docs/images/scary-snappy-4x1.jpg)
 
-![macOS 11+](https://img.shields.io/badge/macOS-11+-critical?style=for-the-badge&labelColor=f3eecd&color=b18655) [![MIT License](https://img.shields.io/github/license/cboone/snappy?style=for-the-badge&labelColor=f3eecd&color=b18655)](./LICENSE)
-<br>
-[![Go Report Card](https://img.shields.io/badge/go%20report%20card-A+-important?style=for-the-badge&labelColor=f3eecd&color=81834a)](https://goreportcard.com/report/github.com/cboone/snappy) [![GitHub branch check runs](https://img.shields.io/github/check-runs/cboone/snappy/main?style=for-the-badge&label=tests&labelColor=f3eecd&color=81834a)](https://github.com/cboone/snappy/actions)
+[![Go Report Card](https://img.shields.io/badge/go%20report%20card-A+-important?style=for-the-badge&labelColor=f3eecd&color=81834a)](https://goreportcard.com/report/github.com/cboone/snappy) [![GitHub branch check runs](https://img.shields.io/github/check-runs/cboone/snappy/main?style=for-the-badge&label=tests&labelColor=f3eecd&color=81834a)](https://github.com/cboone/snappy/actions) ![macOS 11+](https://img.shields.io/badge/macOS-11+-critical?style=for-the-badge&labelColor=f3eecd&color=b18655) [![MIT License](https://img.shields.io/github/license/cboone/snappy?style=for-the-badge&labelColor=f3eecd&color=b18655)](./LICENSE)
 
 [**Quick Start**](#quick-start) | [**Why Use Snappy?**](#why-use-snappy) | [**Usage**](#commands-and-options) | [**Restoring Files and Snapshots**](#restoring-files-and-snapshots) | [**Limitations**](#limitations) | [**Other Tools**](#comparison)
 
@@ -32,7 +30,7 @@ now            -10 min          -1 hour          -1 day           -1 week
  ╰──────────── Snappy ─────────────┴───────────── macOS ─────────────┴────╶╶╶╶╶
 ```
 
-These snapshots are complete clones of your hard drive, stored exactly as it is at the moment the snapshot is taken. Because of the copy-on-write cloning technique they use, minimal storage is needed for each one. Megabytes or gigabytes per clone on a many-terabyte file system, typically. This is what allows you to save so many copies of everything on your drive.
+These snapshots are complete clones of your hard drive, stored exactly as it was at the moment the snapshot was taken. Because of the copy-on-write cloning technique they use, minimal storage is needed for each one. Megabytes or gigabytes per clone on a many-terabyte file system, typically. This is what allows you to save so many copies of everything on your drive.
 
 Hopefully you'll install Snappy and let it run and rarely think about it. But if something goes wrong, like an LLM agent deleting what it shouldn't, a ransomware attack encrypting your sensitive data, an installation gone bad, or just a simple mistake, you can easily restore your files or even your entire drive.
 
@@ -54,9 +52,15 @@ All of this can be done non-interactively via various [commands and options](#co
 
 ## Restoring Files and Snapshots
 
+TODO: Write.
+
 ## Commands and Options
 
+TODO: Write.
+
 ## Installation
+
+TODO: Update.
 
 ### Shell script
 
@@ -80,6 +84,8 @@ make build
 ```
 
 ## snappy-ez
+
+TODO: Update.
 
 A standalone bash script that provides snappy's core functionality (create
 snapshots, thin old ones, log state) without the TUI, Go, or a build step.
@@ -118,13 +124,9 @@ Edit the constants at the top of the script:
 | `THIN_AGE_THRESHOLD` | `600`   | Snapshots younger than this are never thinned |
 | `THIN_CADENCE`       | `300`   | Minimum gap between kept old snapshots        |
 
-## Usage
-
-```sh
-snappy
-```
-
 ## Configuration
+
+TODO: Update.
 
 Snappy reads configuration from `~/.config/snappy/config.yaml` or environment
 variables prefixed with `SNAPPY_`. Pass `--config <path>` to use a custom file.
@@ -170,6 +172,8 @@ snappy config
 
 ## How Snappy Works
 
+TODO: Write.
+
 ### Time Machine's Default Behavior
 
 ```text
@@ -182,11 +186,17 @@ now            -1 hour          -1 day           -1 week
 
 ## Background
 
+TODO: Write.
+
 I began building it to replicate the functionality of [`zsh-auto-snapshot`](https://manpages.debian.org/trixie/zfs-auto-snapshot/zfs-auto-snapshot.8.en.html), which allows Linux users (who are using [the zfs filesystem](https://en.wikipedia.org/wiki/ZFS)) to
 
 ## Limitations
 
+TODO: Write.
+
 ## Comparison
+
+TODO: Write.
 
 There are other good tools that provide similar functionality.
 
