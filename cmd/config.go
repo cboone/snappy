@@ -60,10 +60,12 @@ func runConfigInit(cmd *cobra.Command, _ []string) error {
 
 	if err := config.WriteDefaultConfig(f); err != nil {
 		_ = f.Close()
+		_ = os.Remove(target)
 		return fmt.Errorf("writing config: %w", err)
 	}
 
 	if err := f.Close(); err != nil {
+		_ = os.Remove(target)
 		return fmt.Errorf("closing config file: %w", err)
 	}
 

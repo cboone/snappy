@@ -8,22 +8,15 @@ import (
 	"testing"
 
 	"github.com/spf13/viper"
+
+	"github.com/cboone/snappy/internal/config"
 )
 
 func TestConfigShow(t *testing.T) {
 	viper.Reset()
 	defer viper.Reset()
 
-	// Set up defaults the way initConfig does.
-	viper.SetDefault("refresh", "60s")
-	viper.SetDefault("mount", "/")
-	viper.SetDefault("log_dir", "")
-	viper.SetDefault("log_max_size", 5*1024*1024)
-	viper.SetDefault("log_max_files", 3)
-	viper.SetDefault("auto_enabled", true)
-	viper.SetDefault("auto_snapshot_interval", "60s")
-	viper.SetDefault("thin_age_threshold", "600s")
-	viper.SetDefault("thin_cadence", "300s")
+	config.SetDefaults()
 
 	var buf bytes.Buffer
 	configCmd.SetOut(&buf)

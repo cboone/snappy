@@ -256,7 +256,10 @@ func TestDefaultConfigPath(t *testing.T) {
 		t.Fatalf("DefaultConfigPath() error: %v", err)
 	}
 
-	home, _ := os.UserHomeDir()
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatalf("os.UserHomeDir() error: %v", err)
+	}
 	if !strings.HasPrefix(path, home) {
 		t.Errorf("path %q does not start with home directory %q", path, home)
 	}
