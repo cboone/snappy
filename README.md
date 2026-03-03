@@ -2,7 +2,7 @@
 
 ![Snappy the Swamp Protector vs The Rusty Clanker](./docs/images/scary-snappy-4x1.jpg)
 
-[![Go Report Card](https://img.shields.io/badge/go%20report%20card-A+-important?style=for-the-badge&labelColor=f3eecd&color=81834a)](https://goreportcard.com/report/github.com/cboone/snappy) [![GitHub branch check runs](https://img.shields.io/github/check-runs/cboone/snappy/main?style=for-the-badge&label=tests&labelColor=f3eecd&color=81834a)](https://github.com/cboone/snappy/actions) ![macOS 11+](https://img.shields.io/badge/macOS-11+-critical?style=for-the-badge&labelColor=f3eecd&color=b18655) [![MIT License](https://img.shields.io/github/license/cboone/snappy?style=for-the-badge&labelColor=f3eecd&color=b18655)](./LICENSE)
+[![GitHub branch check runs](https://img.shields.io/github/check-runs/cboone/snappy/main?style=for-the-badge&label=tests&labelColor=f3eecd&color=81834a)](https://github.com/cboone/snappy/actions) [![Go Report Card](https://img.shields.io/badge/go%20report%20card-A+-important?style=for-the-badge&labelColor=f3eecd&color=81834a)](https://goreportcard.com/report/github.com/cboone/snappy) ![macOS 11+](https://img.shields.io/badge/macOS-11+-critical?style=for-the-badge&labelColor=f3eecd&color=b18655) [![MIT License](https://img.shields.io/github/license/cboone/snappy?style=for-the-badge&labelColor=f3eecd&color=b18655)](./LICENSE)
 
 [**Quick Start**](#quick-start) | [**Why Use Snappy?**](#why-use-snappy) | [**Usage**](#commands-and-options) | [**Restoring Files and Snapshots**](#restoring-files-and-snapshots) | [**Limitations**](#limitations) | [**Other Tools**](#comparison)
 
@@ -16,7 +16,7 @@ Snappy only runs on macOS. It relies on [`tmutil`](https://ss64.com/mac/tmutil.h
 
 You barely even need Snappy, for that matter. It provides easy setup, handy config options (with good defaults), a TUI to view and manage your snapshots, commands to mount your snapshots, and a few other niceties. But at its core, Snappy's a glorified Bash script cron job. So much so that I've included a super simple Bash script you could use instead, if you want frequent snapshots without installing a binary: [`snappy-ez`](./bin/snappy-ez). More details on [how to use it](#snappy-ez) below.
 
-**AI usage:** Snappy is a 3 out of 5 on [my personal vibes scale](#TODO), meaning that the code and tests were written by LLMs micro-managed by me. Robot code; human architecture, design (in all senses), code review, and manual testing. I wrote this README; other docs are a mix. Read more about my use of LLMs and my workflow in [my AI transparency statement](#TODO).
+**AI usage:** Snappy is a 3 out of 5 on [my personal vibes scale](#vibes), meaning that the code and tests were written by LLMs micro-managed by me. Robot code; human architecture, design (in all senses), code review, and manual testing. I wrote this README; other docs are a mix. Read more about my use of LLMs and my workflow in [my AI transparency statement](#transparency).
 
 ## Why Use Snappy?
 
@@ -208,6 +208,10 @@ Details I haven't yet resolved with my own experimentation and haven't found def
 - [ ] Do the TM backup exclusions apply to local snapshots?
 - [ ] It appears that without TM local backups enabled, macOS prevents snapshots from being kept longer than 24 hours. Is this still true with TM local backups only enabled? With remote backups only enabled?
 - [ ] How long does TM keep the weekly snapshots?
+
+## Vibes
+
+## Transparency
 
 ## License
 
