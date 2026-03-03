@@ -6,8 +6,8 @@
 
 Instead, please report them via GitHub's private vulnerability reporting:
 
-1. Go to the repository's **Security** tab (in the top navigation bar, next to Issues/Pull Requests)
-1. Click "Report a vulnerability" in the left sidebar under Advisories
+1. Go to the repository's **Security** tab in the top navigation
+1. In the Security tab, click **Report a vulnerability**
 1. Fill out the form with details
 
 ### What to Include

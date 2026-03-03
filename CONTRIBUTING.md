@@ -18,6 +18,14 @@ Please note that this project has a [Code of Conduct](CODE_OF_CONDUCT.md). By pa
 - Make
 - golangci-lint
 
+#### Optional (for full linting and formatting)
+
+- Node.js/npx (for markdownlint-cli2 and prettier)
+- actionlint (for GitHub Actions workflow linting)
+- shfmt (for shell script formatting)
+
+Without these, you can use `make lint-go` and `make vet` for Go-only checks.
+
 ### Getting Started
 
 ```bash

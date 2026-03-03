@@ -19,9 +19,9 @@ Fixes #
 
 ## Checklist
 
-- [ ] I have read the [CONTRIBUTING](../CONTRIBUTING.md) guide
+- [ ] I have read the [CONTRIBUTING](CONTRIBUTING.md) guide
 - [ ] My code follows the project's style guidelines
 - [ ] I have added tests that prove my fix/feature works
 - [ ] All new and existing tests pass (`make test`)
 - [ ] I have updated the documentation if needed
-- [ ] I have updated [CHANGELOG](../CHANGELOG.md) if this is a user-facing change
+- [ ] I have updated [CHANGELOG](CHANGELOG.md) if this is a user-facing change
