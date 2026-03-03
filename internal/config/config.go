@@ -28,34 +28,49 @@ type Config struct {
 	ThinCadence          time.Duration
 }
 
+const (
+	defaultMount       = "/"
+	defaultLogDir      = ""
+	defaultLogMaxSize  = int64(5 * 1024 * 1024) // 5 MB
+	defaultLogMaxFiles = 3
+	defaultAutoEnabled = true
+)
+
+var (
+	defaultRefreshInterval      = 60 * time.Second
+	defaultAutoSnapshotInterval = 60 * time.Second
+	defaultThinAgeThreshold     = 600 * time.Second
+	defaultThinCadence          = 300 * time.Second
+)
+
 // Load reads configuration from Viper, applying defaults for any
 // values not set via environment variables or config file.
 func Load() *Config {
 	return &Config{
-		RefreshInterval:      parseSecondsOrDuration(viper.Get("refresh"), 60*time.Second),
+		RefreshInterval:      parseSecondsOrDuration(viper.Get("refresh"), defaultRefreshInterval),
 		MountPoint:           viper.GetString("mount"),
 		LogDir:               viper.GetString("log_dir"),
 		LogMaxSize:           viper.GetInt64("log_max_size"),
 		LogMaxFiles:          viper.GetInt("log_max_files"),
 		AutoEnabled:          viper.GetBool("auto_enabled"),
-		AutoSnapshotInterval: parseSecondsOrDuration(viper.Get("auto_snapshot_interval"), 60*time.Second),
-		ThinAgeThreshold:     parseSecondsOrDuration(viper.Get("thin_age_threshold"), 600*time.Second),
-		ThinCadence:          parseSecondsOrDuration(viper.Get("thin_cadence"), 300*time.Second),
+		AutoSnapshotInterval: parseSecondsOrDuration(viper.Get("auto_snapshot_interval"), defaultAutoSnapshotInterval),
+		ThinAgeThreshold:     parseSecondsOrDuration(viper.Get("thin_age_threshold"), defaultThinAgeThreshold),
+		ThinCadence:          parseSecondsOrDuration(viper.Get("thin_cadence"), defaultThinCadence),
 	}
 }
 
 // SetDefaults registers default values with Viper. Call this during
 // Cobra's initConfig phase before Load.
 func SetDefaults() {
-	viper.SetDefault("refresh", 60*time.Second)
-	viper.SetDefault("mount", "/")
-	viper.SetDefault("log_dir", "")
-	viper.SetDefault("log_max_size", 5*1024*1024) // 5 MB
-	viper.SetDefault("log_max_files", 3)
-	viper.SetDefault("auto_enabled", true)
-	viper.SetDefault("auto_snapshot_interval", 60*time.Second)
-	viper.SetDefault("thin_age_threshold", 600*time.Second)
-	viper.SetDefault("thin_cadence", 300*time.Second)
+	viper.SetDefault("refresh", defaultRefreshInterval)
+	viper.SetDefault("mount", defaultMount)
+	viper.SetDefault("log_dir", defaultLogDir)
+	viper.SetDefault("log_max_size", defaultLogMaxSize)
+	viper.SetDefault("log_max_files", defaultLogMaxFiles)
+	viper.SetDefault("auto_enabled", defaultAutoEnabled)
+	viper.SetDefault("auto_snapshot_interval", defaultAutoSnapshotInterval)
+	viper.SetDefault("thin_age_threshold", defaultThinAgeThreshold)
+	viper.SetDefault("thin_cadence", defaultThinCadence)
 }
 
 // DefaultConfigPath returns the default config file path:
@@ -106,24 +121,31 @@ func WriteDefaultConfig(w io.Writer) error {
 		Refresh              string
 		Mount                string
 		LogDir               string
-		LogMaxSize           int
+		LogMaxSize           int64
 		LogMaxFiles          int
 		AutoEnabled          bool
 		AutoSnapshotInterval string
 		ThinAgeThreshold     string
 		ThinCadence          string
 	}{
-		Refresh:              "60s",
-		Mount:                "/",
-		LogDir:               "",
-		LogMaxSize:           5 * 1024 * 1024,
-		LogMaxFiles:          3,
-		AutoEnabled:          true,
-		AutoSnapshotInterval: "60s",
-		ThinAgeThreshold:     "600s",
-		ThinCadence:          "300s",
+		Refresh:              formatDurationAsSeconds(defaultRefreshInterval),
+		Mount:                defaultMount,
+		LogDir:               defaultLogDir,
+		LogMaxSize:           defaultLogMaxSize,
+		LogMaxFiles:          defaultLogMaxFiles,
+		AutoEnabled:          defaultAutoEnabled,
+		AutoSnapshotInterval: formatDurationAsSeconds(defaultAutoSnapshotInterval),
+		ThinAgeThreshold:     formatDurationAsSeconds(defaultThinAgeThreshold),
+		ThinCadence:          formatDurationAsSeconds(defaultThinCadence),
 	}
 	return defaultConfigTmpl.Execute(w, data)
+}
+
+func formatDurationAsSeconds(d time.Duration) string {
+	if d%time.Second == 0 {
+		return strconv.FormatInt(int64(d/time.Second), 10) + "s"
+	}
+	return d.String()
 }
 
 var formatConfigTmpl = template.Must(template.New("format").Parse(`Config file: {{.ConfigFile}}

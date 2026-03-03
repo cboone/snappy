@@ -45,17 +45,16 @@ func runConfigInit(cmd *cobra.Command, _ []string) error {
 		target = p
 	}
 
-	if _, err := os.Stat(target); err == nil {
-		return fmt.Errorf("config file already exists: %s", target)
-	}
-
 	dir := filepath.Dir(target)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("creating directory %s: %w", dir, err)
 	}
 
-	f, err := os.Create(target)
+	f, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
 	if err != nil {
+		if os.IsExist(err) {
+			return fmt.Errorf("config file already exists: %s", target)
+		}
 		return fmt.Errorf("creating config file: %w", err)
 	}
 
