@@ -10,7 +10,7 @@ Config file: none
 
 refresh: 1m0s
 mount: /
-log_dir:
+log_dir: */.local/share/snappy (glob)
 log_max_size: 5242880
 log_max_files: 3
 auto_enabled: true
@@ -27,7 +27,7 @@ Config file: none
 
 refresh: 1m0s
 mount: /Volumes/Test
-log_dir:
+log_dir: */.local/share/snappy (glob)
 log_max_size: 5242880
 log_max_files: 3
 auto_enabled: true

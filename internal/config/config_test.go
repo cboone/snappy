@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -69,8 +70,13 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.MountPoint != "/" {
 		t.Errorf("MountPoint = %q, want %q", cfg.MountPoint, "/")
 	}
-	if cfg.LogDir != "" {
-		t.Errorf("LogDir = %q, want %q", cfg.LogDir, "")
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatalf("os.UserHomeDir() error: %v", err)
+	}
+	wantLogDir := filepath.Join(home, ".local", "share", "snappy")
+	if cfg.LogDir != wantLogDir {
+		t.Errorf("LogDir = %q, want %q", cfg.LogDir, wantLogDir)
 	}
 	if cfg.LogMaxSize != 5*1024*1024 {
 		t.Errorf("LogMaxSize = %d, want %d", cfg.LogMaxSize, 5*1024*1024)
@@ -382,8 +388,13 @@ func TestLoadWithoutSetDefaults(t *testing.T) {
 	if cfg.MountPoint != "" {
 		t.Errorf("MountPoint = %q, want %q", cfg.MountPoint, "")
 	}
-	if cfg.LogDir != "" {
-		t.Errorf("LogDir = %q, want %q", cfg.LogDir, "")
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatalf("os.UserHomeDir() error: %v", err)
+	}
+	wantLogDir := filepath.Join(home, ".local", "share", "snappy")
+	if cfg.LogDir != wantLogDir {
+		t.Errorf("LogDir = %q, want %q", cfg.LogDir, wantLogDir)
 	}
 	if cfg.AutoEnabled != false {
 		t.Errorf("AutoEnabled = %v, want %v", cfg.AutoEnabled, false)

@@ -78,14 +78,6 @@ func runTUI(_ *cobra.Command, _ []string) error {
 
 	cfg := config.Load()
 
-	// Resolve default log directory
-	if cfg.LogDir == "" {
-		home, err := os.UserHomeDir()
-		if err == nil {
-			cfg.LogDir = filepath.Join(home, ".local", "share", "snappy")
-		}
-	}
-
 	log := logger.New(logger.Options{
 		LogDir:     cfg.LogDir,
 		MaxEntries: 50,

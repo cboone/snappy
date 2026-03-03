@@ -36,7 +36,7 @@ const (
 	defaultAutoEnabled = true
 )
 
-var (
+const (
 	defaultRefreshInterval      = 60 * time.Second
 	defaultAutoSnapshotInterval = 60 * time.Second
 	defaultThinAgeThreshold     = 600 * time.Second
@@ -46,7 +46,7 @@ var (
 // Load reads configuration from Viper, applying defaults for any
 // values not set via environment variables or config file.
 func Load() *Config {
-	return &Config{
+	cfg := &Config{
 		RefreshInterval:      parseSecondsOrDuration(viper.Get("refresh"), defaultRefreshInterval),
 		MountPoint:           viper.GetString("mount"),
 		LogDir:               viper.GetString("log_dir"),
@@ -57,6 +57,14 @@ func Load() *Config {
 		ThinAgeThreshold:     parseSecondsOrDuration(viper.Get("thin_age_threshold"), defaultThinAgeThreshold),
 		ThinCadence:          parseSecondsOrDuration(viper.Get("thin_cadence"), defaultThinCadence),
 	}
+
+	if cfg.LogDir == "" {
+		if home, err := os.UserHomeDir(); err == nil {
+			cfg.LogDir = filepath.Join(home, ".local", "share", "snappy")
+		}
+	}
+
+	return cfg
 }
 
 // SetDefaults registers default values with Viper. Call this during
