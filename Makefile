@@ -65,7 +65,7 @@ test-scrut-ez: ## Run scrut tests for snappy-ez
 test-scrut-ez-update: ## Update snappy-ez scrut test expectations
 	SNAPPY_EZ_BIN="$(CURDIR)/bin/snappy-ez" scrut update --replace --assume-yes tests/scrut/snappy-ez/
 
-test-all: test test-scrut test-scrut-ez ## Run all tests (unit + scrut)
+test-all: test test-scrut test-scrut-ez ## Run all tests (unit + scrut + scrut-ez)
 
 clean: ## Remove build artifacts
 	rm -rf $(OUTDIR) dist coverage.out
