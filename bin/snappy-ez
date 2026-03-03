@@ -1,0 +1,276 @@
+#!/usr/bin/env bash
+# snappy-ez -- Standalone Time Machine snapshot manager
+# Author: Christopher Boone
+# Date: 2026-03-02
+#
+# A lightweight alternative to the full snappy TUI. No dependencies
+# beyond macOS and tmutil. Download, edit the constants below, and run.
+#
+# Usage:
+#
+#   Foreground (Ctrl-C to stop):
+#     ./snappy-ez
+#
+#   Background (redirect output to a log file):
+#     ./snappy-ez >> ~/snappy-ez.log 2>&1 &     # run in background
+#     tail -f ~/snappy-ez.log                   # monitor
+#     kill %1                                   # stop
+#
+# How thinning works:
+#
+#   After each snapshot, snappy-ez walks existing snapshots oldest-first.
+#   Snapshots younger than THIN_AGE_THRESHOLD are never touched. Among
+#   older snapshots, the first is always kept. Each subsequent old snapshot
+#   is kept only if at least THIN_CADENCE seconds have elapsed since the
+#   last kept snapshot. The rest are deleted.
+#
+# License: MIT
+
+set -euo pipefail
+
+# -- Constants ----------------------------------------------------------------
+
+# How often to create a new snapshot, in seconds.
+# Default: 60 (one snapshot per minute).
+# Change this to snapshot more or less frequently.
+readonly SNAPSHOT_INTERVAL=60
+
+# Snapshots younger than this (in seconds) are never thinned.
+# Default: 600 (10 minutes).
+# Increase to protect more recent snapshots from thinning.
+readonly THIN_AGE_THRESHOLD=600
+
+# Minimum gap (in seconds) between kept old snapshots.
+# Default: 300 (5 minutes).
+# Increase to keep fewer old snapshots; decrease to keep more.
+readonly THIN_CADENCE=300
+
+# -- Logging ------------------------------------------------------------------
+
+# Write a timestamped log line to stdout.
+# Arguments:
+#   $1 - Event type (e.g., STARTUP, SNAPSHOT, THIN, LIST, ERROR)
+#   $2 - Message text
+# Outputs:
+#   Writes one line to stdout
+function log() {
+  local event="${1}"
+  local message="${2}"
+
+  local timestamp
+  timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+
+  printf '[%s] %s %s\n' "${timestamp}" "${event}" "${message}"
+}
+
+# -- Dependency checks --------------------------------------------------------
+
+# Verify the current OS is macOS.
+# Returns:
+#   0 if macOS, exits with 1 otherwise
+function require_macos() {
+  local os
+  os=$(uname -s)
+
+  if [[ "${os}" != "Darwin" ]]; then
+    log "ERROR" "snappy-ez requires macOS. Detected OS: ${os}"
+    exit 1
+  fi
+}
+
+# Verify tmutil is available.
+# Returns:
+#   0 if present, exits with 1 otherwise
+function require_tmutil() {
+  if ! command -v tmutil > /dev/null 2>&1; then
+    log "ERROR" "tmutil not found. This tool requires macOS with Time Machine support."
+    exit 1
+  fi
+}
+
+# -- Date conversion ----------------------------------------------------------
+
+# Convert a snapshot date string to a Unix epoch timestamp.
+# Arguments:
+#   $1 - Snapshot date in YYYY-MM-DD-HHMMSS format
+# Outputs:
+#   Writes epoch seconds to stdout, or 0 on parse failure
+function snapshot_date_to_epoch() {
+  local snapshot_date="${1}"
+
+  local year="${snapshot_date:0:4}"
+  local month="${snapshot_date:5:2}"
+  local day="${snapshot_date:8:2}"
+  local hour="${snapshot_date:11:2}"
+  local min="${snapshot_date:13:2}"
+  local sec="${snapshot_date:15:2}"
+
+  local formatted="${year}-${month}-${day} ${hour}:${min}:${sec}"
+
+  date -j -f "%Y-%m-%d %H:%M:%S" "${formatted}" "+%s" 2> /dev/null || echo 0
+}
+
+# -- Snapshot operations -------------------------------------------------------
+
+# Create a new local Time Machine snapshot.
+# Outputs:
+#   Logs success or failure
+function create_snapshot() {
+  local output
+  if output=$(tmutil localsnapshot 2>&1); then
+    local snapshot_date
+    snapshot_date=$(echo "${output}" \
+      | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}' || true)
+    if [[ -n "${snapshot_date}" ]]; then
+      log "SNAPSHOT" "Created: ${snapshot_date}"
+    else
+      log "SNAPSHOT" "Created"
+    fi
+  else
+    log "ERROR" "Failed to create snapshot: ${output}"
+  fi
+}
+
+# List local snapshot dates and log each one.
+# Outputs:
+#   Logs snapshot count and each date
+function list_snapshots() {
+  local output
+  if output=$(tmutil listlocalsnapshotdates / 2> /dev/null); then
+    local -a snapshots=()
+    readarray -t snapshots < <(
+      echo "${output}" \
+        | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}$' || true
+    )
+
+    local -i count="${#snapshots[@]}"
+    log "LIST" "${count} snapshot(s)"
+
+    local snap
+    for snap in "${snapshots[@]}"; do
+      [[ -n "${snap}" ]] && log "LIST" "  ${snap}"
+    done
+  else
+    log "ERROR" "Failed to list snapshots"
+  fi
+}
+
+# Thin old snapshots using the cadence-based algorithm.
+#
+# Algorithm:
+#   1. List snapshots sorted ascending (tmutil default order).
+#   2. Walk oldest-first. Skip any snapshot younger than THIN_AGE_THRESHOLD.
+#   3. Keep the first old snapshot unconditionally.
+#   4. Keep subsequent old snapshots only if the gap from the last kept
+#      snapshot is >= THIN_CADENCE. Mark the rest for deletion.
+#   5. Delete marked snapshots and log the count.
+#
+# Outputs:
+#   Logs thinning activity
+function thin_snapshots() {
+  local output
+  if ! output=$(tmutil listlocalsnapshotdates / 2> /dev/null); then
+    return
+  fi
+
+  local -a snapshots=()
+  readarray -t snapshots < <(
+    echo "${output}" \
+      | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}$' || true
+  )
+
+  local -i count="${#snapshots[@]}"
+  if ((count == 0)); then
+    return
+  fi
+
+  local -i now_epoch
+  now_epoch=$(date "+%s")
+
+  local -i last_kept_epoch=0
+  local -a to_delete=()
+
+  local -i i
+  for ((i = 0; i < count; i++)); do
+    local snap="${snapshots[${i}]}"
+    local -i snap_epoch
+    snap_epoch=$(snapshot_date_to_epoch "${snap}")
+
+    if ((snap_epoch == 0)); then
+      continue
+    fi
+
+    local -i age=$((now_epoch - snap_epoch))
+
+    # Never thin snapshots younger than the threshold
+    if ((age < THIN_AGE_THRESHOLD)); then
+      continue
+    fi
+
+    # Keep the first old snapshot we encounter
+    if ((last_kept_epoch == 0)); then
+      last_kept_epoch="${snap_epoch}"
+      continue
+    fi
+
+    # Keep if far enough from the last kept snapshot
+    local -i gap=$((snap_epoch - last_kept_epoch))
+    if ((gap >= THIN_CADENCE)); then
+      last_kept_epoch="${snap_epoch}"
+      continue
+    fi
+
+    # Too close to the previous kept snapshot; mark for deletion
+    to_delete+=("${snap}")
+  done
+
+  # Delete marked snapshots
+  local snap_to_del
+  for snap_to_del in "${to_delete[@]}"; do
+    if tmutil deletelocalsnapshots "${snap_to_del}" > /dev/null 2>&1; then
+      log "THIN" "Deleted old snapshot: ${snap_to_del}"
+    else
+      log "ERROR" "Failed to delete snapshot: ${snap_to_del}"
+    fi
+  done
+
+  if ((${#to_delete[@]} > 0)); then
+    log "THIN" "Thinned ${#to_delete[@]} snapshot(s)"
+  fi
+}
+
+# -- Cleanup trap -------------------------------------------------------------
+
+# Handle graceful shutdown on Ctrl-C or SIGTERM.
+function cleanup() {
+  log "SHUTDOWN" "Shutting down."
+  exit 0
+}
+
+# -- Main loop ----------------------------------------------------------------
+
+# Run the snapshot-thin-list-sleep loop indefinitely.
+function run_loop() {
+  while true; do
+    create_snapshot
+    thin_snapshots
+    list_snapshots
+    sleep "${SNAPSHOT_INTERVAL}"
+  done
+}
+
+# -- Entry point --------------------------------------------------------------
+
+# Initialize and start the main loop.
+function main() {
+  require_macos
+  require_tmutil
+
+  trap cleanup INT TERM
+
+  log "STARTUP" "snappy-ez started (interval=${SNAPSHOT_INTERVAL}s, thin_age=${THIN_AGE_THRESHOLD}s, thin_cadence=${THIN_CADENCE}s)"
+
+  run_loop
+}
+
+main "${@}"
