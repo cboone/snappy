@@ -38,6 +38,7 @@ func TestThinNoTargets(t *testing.T) {
 	thinCmd.SetOut(&buf)
 	setFlag(t, thinCmd, "json", "false")
 
+	setTestContext(thinCmd)
 	if err := runThin(thinCmd, nil); err != nil {
 		t.Fatalf("runThin() error = %v", err)
 	}
@@ -77,6 +78,7 @@ func TestThinWithTargets(t *testing.T) {
 	thinCmd.SetOut(&buf)
 	setFlag(t, thinCmd, "json", "false")
 
+	setTestContext(thinCmd)
 	if err := runThin(thinCmd, nil); err != nil {
 		t.Fatalf("runThin() error = %v", err)
 	}
@@ -114,6 +116,7 @@ func TestThinPartialFailure(t *testing.T) {
 	thinCmd.SetOut(&buf)
 	setFlag(t, thinCmd, "json", "false")
 
+	setTestContext(thinCmd)
 	err := runThin(thinCmd, nil)
 	if err == nil {
 		t.Error("expected error for partial failure, got nil")
@@ -149,6 +152,7 @@ func TestThinJSONOutput(t *testing.T) {
 	setFlag(t, thinCmd, "json", "true")
 	defer setFlag(t, thinCmd, "json", "false")
 
+	setTestContext(thinCmd)
 	if err := runThin(thinCmd, nil); err != nil {
 		t.Fatalf("runThin() error = %v", err)
 	}
@@ -193,6 +197,7 @@ func TestThinJSONWithDeletions(t *testing.T) {
 	setFlag(t, thinCmd, "json", "true")
 	defer setFlag(t, thinCmd, "json", "false")
 
+	setTestContext(thinCmd)
 	if err := runThin(thinCmd, nil); err != nil {
 		t.Fatalf("runThin() error = %v", err)
 	}

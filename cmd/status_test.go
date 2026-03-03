@@ -52,6 +52,7 @@ func TestStatusHumanOutput(t *testing.T) {
 	statusCmd.SetOut(&buf)
 	setFlag(t, statusCmd, "json", "false")
 
+	setTestContext(statusCmd)
 	if err := runStatus(statusCmd, nil); err != nil {
 		t.Fatalf("runStatus() error = %v", err)
 	}
@@ -103,6 +104,7 @@ func TestStatusJSONOutput(t *testing.T) {
 	setFlag(t, statusCmd, "json", "true")
 	defer setFlag(t, statusCmd, "json", "false")
 
+	setTestContext(statusCmd)
 	if err := runStatus(statusCmd, nil); err != nil {
 		t.Fatalf("runStatus() error = %v", err)
 	}
@@ -155,6 +157,7 @@ func TestStatusSnapshotListError(t *testing.T) {
 	statusCmd.SetOut(&buf)
 	setFlag(t, statusCmd, "json", "false")
 
+	setTestContext(statusCmd)
 	if err := runStatus(statusCmd, nil); err != nil {
 		t.Fatalf("runStatus() error = %v", err)
 	}
@@ -190,6 +193,7 @@ func TestStatusSnapshotListErrorJSON(t *testing.T) {
 	setFlag(t, statusCmd, "json", "true")
 	defer setFlag(t, statusCmd, "json", "false")
 
+	setTestContext(statusCmd)
 	if err := runStatus(statusCmd, nil); err != nil {
 		t.Fatalf("runStatus() error = %v", err)
 	}

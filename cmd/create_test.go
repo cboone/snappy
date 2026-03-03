@@ -33,6 +33,7 @@ func TestCreateHumanOutput(t *testing.T) {
 	createCmd.SetOut(&buf)
 	setFlag(t, createCmd, "json", "false")
 
+	setTestContext(createCmd)
 	if err := runCreate(createCmd, nil); err != nil {
 		t.Fatalf("runCreate() error = %v", err)
 	}
@@ -65,6 +66,7 @@ func TestCreateJSONOutput(t *testing.T) {
 	setFlag(t, createCmd, "json", "true")
 	defer setFlag(t, createCmd, "json", "false")
 
+	setTestContext(createCmd)
 	if err := runCreate(createCmd, nil); err != nil {
 		t.Fatalf("runCreate() error = %v", err)
 	}
@@ -101,6 +103,7 @@ func TestCreateSnapshotError(t *testing.T) {
 	createCmd.SetOut(&buf)
 	setFlag(t, createCmd, "json", "false")
 
+	setTestContext(createCmd)
 	err := runCreate(createCmd, nil)
 	if err == nil {
 		t.Error("expected error from failed snapshot creation, got nil")

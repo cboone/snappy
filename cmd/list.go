@@ -32,7 +32,7 @@ func runList(cmd *cobra.Command, _ []string) error {
 	cfg := config.Load()
 	runner := newRunner()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
 	defer cancel()
 
 	snapshots, _, _, err := loadSnapshots(ctx, runner, cfg)
@@ -54,19 +54,22 @@ func writeListJSON(cmd *cobra.Command, cfg *config.Config, snapshots []snapshot.
 		Date         string `json:"date"`
 		Relative     string `json:"relative"`
 		UUID         string `json:"uuid,omitempty"`
-		Purgeable    bool   `json:"purgeable"`
-		LimitsShrink bool   `json:"limits_shrink"`
+		Purgeable    *bool  `json:"purgeable,omitempty"`
+		LimitsShrink *bool  `json:"limits_shrink,omitempty"`
 	}
 
 	items := make([]jsonSnapshot, len(snapshots))
 	for i, s := range snapshots {
-		items[i] = jsonSnapshot{
-			Date:         s.Date,
-			Relative:     snapshot.FormatRelativeTime(s.Time, now),
-			UUID:         s.UUID,
-			Purgeable:    s.Purgeable,
-			LimitsShrink: s.LimitsShrink,
+		item := jsonSnapshot{
+			Date:     s.Date,
+			Relative: snapshot.FormatRelativeTime(s.Time, now),
+			UUID:     s.UUID,
 		}
+		if s.UUID != "" {
+			item.Purgeable = &s.Purgeable
+			item.LimitsShrink = &s.LimitsShrink
+		}
+		items[i] = item
 	}
 
 	return writeJSON(cmd.OutOrStdout(), struct {

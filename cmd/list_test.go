@@ -33,6 +33,7 @@ func TestListHumanEmpty(t *testing.T) {
 	listCmd.SetOut(&buf)
 	setFlag(t, listCmd, "json", "false")
 
+	setTestContext(listCmd)
 	if err := runList(listCmd, nil); err != nil {
 		t.Fatalf("runList() error = %v", err)
 	}
@@ -64,6 +65,7 @@ func TestListHumanWithSnapshots(t *testing.T) {
 	listCmd.SetOut(&buf)
 	setFlag(t, listCmd, "json", "false")
 
+	setTestContext(listCmd)
 	if err := runList(listCmd, nil); err != nil {
 		t.Fatalf("runList() error = %v", err)
 	}
@@ -100,6 +102,7 @@ func TestListJSONOutput(t *testing.T) {
 	setFlag(t, listCmd, "json", "true")
 	defer setFlag(t, listCmd, "json", "false")
 
+	setTestContext(listCmd)
 	if err := runList(listCmd, nil); err != nil {
 		t.Fatalf("runList() error = %v", err)
 	}
@@ -145,6 +148,7 @@ func TestListError(t *testing.T) {
 	listCmd.SetOut(&buf)
 	setFlag(t, listCmd, "json", "false")
 
+	setTestContext(listCmd)
 	err := runList(listCmd, nil)
 	if err == nil {
 		t.Error("expected error, got nil")

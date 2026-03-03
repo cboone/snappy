@@ -32,7 +32,7 @@ func runThin(cmd *cobra.Command, _ []string) error {
 	cfg := config.Load()
 	runner := newRunner()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
 	defer cancel()
 
 	snapshots, _, _, err := loadSnapshots(ctx, runner, cfg)
@@ -54,10 +54,7 @@ func runThin(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	ctx, cancel = context.WithCancel(context.Background())
-	defer cancel()
-
-	deleted, deleteErr := deleteSnapshots(ctx, runner, targets)
+	deleted, deleteErr := deleteSnapshots(cmd.Context(), runner, targets)
 
 	w := cmd.OutOrStdout()
 	if jsonOut {

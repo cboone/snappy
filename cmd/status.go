@@ -32,7 +32,7 @@ func runStatus(cmd *cobra.Command, _ []string) error {
 	cfg := config.Load()
 	runner := newRunner()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
 	defer cancel()
 
 	tmStatus := platform.CheckStatus(ctx, runner)

@@ -30,7 +30,7 @@ func runCreate(cmd *cobra.Command, _ []string) error {
 	jsonOut, _ := cmd.Flags().GetBool("json")
 	runner := newRunner()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(cmd.Context(), time.Minute)
 	defer cancel()
 
 	date, err := platform.CreateSnapshot(ctx, runner)

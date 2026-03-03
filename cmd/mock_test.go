@@ -29,6 +29,13 @@ func (m *mockRunner) Run(_ context.Context, name string, args ...string) ([]byte
 	return nil, fmt.Errorf("unmocked command: %s", key)
 }
 
+// setTestContext assigns a background context to the command so that
+// cmd.Context() returns a non-nil value when RunE is called directly
+// in tests (bypassing Cobra's ExecuteContext).
+func setTestContext(cmd *cobra.Command) {
+	cmd.SetContext(context.Background())
+}
+
 // setFlag sets a flag value on a command, failing the test if it errors.
 //
 //nolint:unparam // name is always "json" today, but this helper is general-purpose.
