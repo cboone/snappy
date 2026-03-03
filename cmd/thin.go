@@ -71,4 +71,3 @@ func runThin(cmd *cobra.Command, _ []string) error {
 
 	return deleteErr
 }
-
