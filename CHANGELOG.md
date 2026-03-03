@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-03-02
+
+### Added
+
+- `config` command and `config init` subcommand for managing configuration
+- `DefaultConfigPath`, `WriteDefaultConfig`, and `FormatConfig` config helpers
+- Size-based log file rotation (#5)
+- `help` and `version` subcommands
+
+### Fixed
+
+- Guarded home-dir prefix check with path separator
+- Derived `--config` flag help text from `DefaultConfigPath`
+- Resolved default `LogDir` in `config.Load` and used constants for duration defaults
+- Made config init atomic and unified config defaults
+- Preserved log data when active file rename fails during rotation
+- Guarded nil file after rotation and truncated rotated log
+- Warned on rename failure during log rotation, used `max` builtin
+- Guarded logger edge cases for zero limits
+- Printed version subcommand output to stdout
+- Used copy+reslice for ring buffer trimming (#13)
+
+### Changed
+
+- Migrated goreleaser config from `brews` to `homebrew_casks`
+
+## [0.3.1] - 2026-03-02
+
+### Fixed
+
+- Moved shell instructions to `.github/instructions/` directory
+
 ## [0.3.0] - 2026-03-02
 
 ### Added
@@ -75,7 +107,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add shellcheckrc with all checks enabled
 
-[unreleased]: https://github.com/cboone/snappy/compare/v0.3.0...HEAD
+[unreleased]: https://github.com/cboone/snappy/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/cboone/snappy/compare/v0.3.1...v0.4.0
+[0.3.1]: https://github.com/cboone/snappy/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/cboone/snappy/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/cboone/snappy/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/cboone/snappy/releases/tag/v0.1.0
