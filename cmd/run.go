@@ -64,11 +64,12 @@ func runIteration(ctx context.Context, w io.Writer, runner platform.CommandRunne
 	date, err := platform.CreateSnapshot(createCtx, runner)
 	createCancel()
 
-	if err != nil {
+	switch {
+	case err != nil:
 		logLine(w, "ERROR", "create snapshot: %v", err)
-	} else if date == "" {
+	case date == "":
 		logLine(w, "SNAPSHOT", "Created: <unknown date>")
-	} else {
+	default:
 		logLine(w, "SNAPSHOT", "Created: %s", date)
 	}
 
