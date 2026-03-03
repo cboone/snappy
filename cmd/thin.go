@@ -3,13 +3,11 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/cboone/snappy/internal/config"
-	"github.com/cboone/snappy/internal/platform"
 	"github.com/cboone/snappy/internal/snapshot"
 )
 
@@ -56,7 +54,10 @@ func runThin(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	deleted, deleteErr := deleteThinTargets(runner, targets)
+	ctx, cancel = context.WithCancel(context.Background())
+	defer cancel()
+
+	deleted, deleteErr := deleteSnapshots(ctx, runner, targets)
 
 	w := cmd.OutOrStdout()
 	if jsonOut {
@@ -74,25 +75,3 @@ func runThin(cmd *cobra.Command, _ []string) error {
 	return deleteErr
 }
 
-func deleteThinTargets(runner platform.CommandRunner, targets []string) (int, error) {
-	deleted := 0
-	var failed []string
-
-	for _, date := range targets {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		err := platform.DeleteSnapshot(ctx, runner, date)
-		cancel()
-
-		if err != nil {
-			failed = append(failed, fmt.Sprintf("%s (%v)", date, err))
-			continue
-		}
-		deleted++
-	}
-
-	if len(failed) > 0 {
-		return deleted, fmt.Errorf("%d snapshot deletion(s) failed: %s", len(failed), strings.Join(failed, "; "))
-	}
-
-	return deleted, nil
-}

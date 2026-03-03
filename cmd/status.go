@@ -39,7 +39,7 @@ func runStatus(cmd *cobra.Command, _ []string) error {
 	apfsVolume, _ := platform.FindAPFSVolume(ctx, runner, cfg.MountPoint)
 	diskInfo, diskErr := platform.GetDiskInfo(ctx, runner, cfg.MountPoint)
 
-	dates, _ := platform.ListSnapshots(ctx, runner, cfg.MountPoint)
+	dates, snapErr := platform.ListSnapshots(ctx, runner, cfg.MountPoint)
 	localCount := len(dates)
 
 	var otherCount int
@@ -48,13 +48,13 @@ func runStatus(cmd *cobra.Command, _ []string) error {
 	}
 
 	if jsonOut {
-		return writeStatusJSON(cmd, cfg, tmStatus, apfsVolume, diskInfo, diskErr, localCount, otherCount)
+		return writeStatusJSON(cmd, cfg, tmStatus, apfsVolume, diskInfo, diskErr, localCount, otherCount, snapErr)
 	}
 
-	return writeStatusHuman(cmd, cfg, tmStatus, apfsVolume, diskInfo, diskErr, localCount, otherCount)
+	return writeStatusHuman(cmd, cfg, tmStatus, apfsVolume, diskInfo, diskErr, localCount, otherCount, snapErr)
 }
 
-func writeStatusJSON(cmd *cobra.Command, cfg *config.Config, tmStatus, apfsVolume string, diskInfo platform.DiskInfo, diskErr error, localCount, otherCount int) error {
+func writeStatusJSON(cmd *cobra.Command, cfg *config.Config, tmStatus, apfsVolume string, diskInfo platform.DiskInfo, diskErr error, localCount, otherCount int, snapErr error) error {
 	type diskJSON struct {
 		Total     string `json:"total"`
 		Used      string `json:"used"`
@@ -70,8 +70,9 @@ func writeStatusJSON(cmd *cobra.Command, cfg *config.Config, tmStatus, apfsVolum
 	}
 
 	type snapshotsJSON struct {
-		Local int `json:"local"`
-		Other int `json:"other"`
+		Local int    `json:"local"`
+		Other int    `json:"other"`
+		Error string `json:"error,omitempty"`
 	}
 
 	var disk *diskJSON
@@ -82,6 +83,11 @@ func writeStatusJSON(cmd *cobra.Command, cfg *config.Config, tmStatus, apfsVolum
 			Available: diskInfo.Available,
 			Percent:   diskInfo.Percent,
 		}
+	}
+
+	snaps := snapshotsJSON{Local: localCount, Other: otherCount}
+	if snapErr != nil {
+		snaps.Error = snapErr.Error()
 	}
 
 	return writeJSON(cmd.OutOrStdout(), struct {
@@ -96,7 +102,7 @@ func writeStatusJSON(cmd *cobra.Command, cfg *config.Config, tmStatus, apfsVolum
 		Mount:       cfg.MountPoint,
 		APFSVolume:  apfsVolume,
 		Disk:        disk,
-		Snapshots:   snapshotsJSON{Local: localCount, Other: otherCount},
+		Snapshots:   snaps,
 		Auto: autoJSON{
 			Enabled:  cfg.AutoEnabled,
 			Interval: cfg.AutoSnapshotInterval.String(),
@@ -106,7 +112,7 @@ func writeStatusJSON(cmd *cobra.Command, cfg *config.Config, tmStatus, apfsVolum
 	})
 }
 
-func writeStatusHuman(cmd *cobra.Command, cfg *config.Config, tmStatus, apfsVolume string, diskInfo platform.DiskInfo, diskErr error, localCount, otherCount int) error {
+func writeStatusHuman(cmd *cobra.Command, cfg *config.Config, tmStatus, apfsVolume string, diskInfo platform.DiskInfo, diskErr error, localCount, otherCount int, snapErr error) error {
 	w := cmd.OutOrStdout()
 
 	if _, err := fmt.Fprintf(w, "Time Machine: %s\n", tmStatus); err != nil {
@@ -125,8 +131,14 @@ func writeStatusHuman(cmd *cobra.Command, cfg *config.Config, tmStatus, apfsVolu
 			return err
 		}
 	}
-	if _, err := fmt.Fprintf(w, "Snapshots: %d local, %d other\n", localCount, otherCount); err != nil {
-		return err
+	if snapErr != nil {
+		if _, err := fmt.Fprintf(w, "Snapshots: unknown (%v)\n", snapErr); err != nil {
+			return err
+		}
+	} else {
+		if _, err := fmt.Fprintf(w, "Snapshots: %d local, %d other\n", localCount, otherCount); err != nil {
+			return err
+		}
 	}
 
 	autoStatus := "disabled"

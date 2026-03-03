@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"strings"
+	"time"
 
 	"github.com/cboone/snappy/internal/config"
 	"github.com/cboone/snappy/internal/platform"
@@ -71,4 +73,30 @@ func writeJSON(w io.Writer, v any) error {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(v)
+}
+
+// deleteSnapshots deletes each snapshot date with an individual timeout,
+// collecting failures. It returns the count of successful deletions and an
+// error summarizing any failures.
+func deleteSnapshots(ctx context.Context, runner platform.CommandRunner, targets []string) (int, error) {
+	deleted := 0
+	var failed []string
+
+	for _, date := range targets {
+		delCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		err := platform.DeleteSnapshot(delCtx, runner, date)
+		cancel()
+
+		if err != nil {
+			failed = append(failed, fmt.Sprintf("%s (%v)", date, err))
+			continue
+		}
+		deleted++
+	}
+
+	if len(failed) > 0 {
+		return deleted, fmt.Errorf("%d snapshot deletion(s) failed: %s", len(failed), strings.Join(failed, "; "))
+	}
+
+	return deleted, nil
 }

@@ -130,3 +130,80 @@ func TestStatusJSONOutput(t *testing.T) {
 		t.Error("auto.enabled = false, want true")
 	}
 }
+
+func TestStatusSnapshotListError(t *testing.T) {
+	viper.Reset()
+	defer viper.Reset()
+	config.SetDefaults()
+
+	origNewRunner := newRunner
+	origRequire := requireTmutil
+	defer func() { newRunner = origNewRunner; requireTmutil = origRequire }()
+	requireTmutil = func() error { return nil }
+
+	runner := &mockRunner{responses: map[string]mockResponse{
+		"tmutil destinationinfo":          {output: []byte("Name          : My Backup\n")},
+		"tmutil listlocalsnapshotdates /": {err: fmt.Errorf("tmutil failed")},
+		"diskutil info -plist /":          {err: fmt.Errorf("no device")},
+		"df -h /": {
+			output: []byte("Filesystem     Size   Used  Avail Capacity\n/dev/disk3s1  466Gi  280Gi  186Gi    60%\n"),
+		},
+	}}
+	newRunner = func() platform.CommandRunner { return runner }
+
+	var buf bytes.Buffer
+	statusCmd.SetOut(&buf)
+	setFlag(t, statusCmd, "json", "false")
+
+	if err := runStatus(statusCmd, nil); err != nil {
+		t.Fatalf("runStatus() error = %v", err)
+	}
+
+	output := buf.String()
+	if !strings.Contains(output, "Snapshots: unknown") {
+		t.Errorf("output missing 'Snapshots: unknown', got:\n%s", output)
+	}
+}
+
+func TestStatusSnapshotListErrorJSON(t *testing.T) {
+	viper.Reset()
+	defer viper.Reset()
+	config.SetDefaults()
+
+	origNewRunner := newRunner
+	origRequire := requireTmutil
+	defer func() { newRunner = origNewRunner; requireTmutil = origRequire }()
+	requireTmutil = func() error { return nil }
+
+	runner := &mockRunner{responses: map[string]mockResponse{
+		"tmutil destinationinfo":          {output: []byte("Name          : My Backup\n")},
+		"tmutil listlocalsnapshotdates /": {err: fmt.Errorf("tmutil failed")},
+		"diskutil info -plist /":          {err: fmt.Errorf("no device")},
+		"df -h /": {
+			output: []byte("Filesystem     Size   Used  Avail Capacity\n/dev/disk3s1  466Gi  280Gi  186Gi    60%\n"),
+		},
+	}}
+	newRunner = func() platform.CommandRunner { return runner }
+
+	var buf bytes.Buffer
+	statusCmd.SetOut(&buf)
+	setFlag(t, statusCmd, "json", "true")
+	defer setFlag(t, statusCmd, "json", "false")
+
+	if err := runStatus(statusCmd, nil); err != nil {
+		t.Fatalf("runStatus() error = %v", err)
+	}
+
+	var result struct {
+		Snapshots struct {
+			Local int    `json:"local"`
+			Error string `json:"error"`
+		} `json:"snapshots"`
+	}
+	if err := json.Unmarshal(buf.Bytes(), &result); err != nil {
+		t.Fatalf("invalid JSON: %v\noutput: %s", err, buf.String())
+	}
+	if result.Snapshots.Error == "" {
+		t.Error("snapshots.error should be non-empty when listing fails")
+	}
+}

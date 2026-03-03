@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -88,7 +87,7 @@ func runIteration(ctx context.Context, w io.Writer, runner platform.CommandRunne
 	currentCount := len(snapshots)
 
 	if len(targets) > 0 {
-		deleted, deleteErr := deleteDaemonTargets(ctx, runner, targets)
+		deleted, deleteErr := deleteSnapshots(ctx, runner, targets)
 		if deleteErr != nil {
 			logLine(w, "ERROR", "thin: %v", deleteErr)
 		}
@@ -100,29 +99,6 @@ func runIteration(ctx context.Context, w io.Writer, runner platform.CommandRunne
 	}
 
 	logLine(w, "LIST", "%d snapshot(s)", currentCount)
-}
-
-func deleteDaemonTargets(ctx context.Context, runner platform.CommandRunner, targets []string) (int, error) {
-	deleted := 0
-	var failed []string
-
-	for _, date := range targets {
-		delCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-		err := platform.DeleteSnapshot(delCtx, runner, date)
-		cancel()
-
-		if err != nil {
-			failed = append(failed, fmt.Sprintf("%s (%v)", date, err))
-			continue
-		}
-		deleted++
-	}
-
-	if len(failed) > 0 {
-		return deleted, fmt.Errorf("%d deletion(s) failed: %s", len(failed), strings.Join(failed, "; "))
-	}
-
-	return deleted, nil
 }
 
 func logLine(w io.Writer, event, format string, args ...any) {

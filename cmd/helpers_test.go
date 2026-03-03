@@ -89,6 +89,36 @@ func TestWriteJSON(t *testing.T) {
 	}
 }
 
+func TestDeleteSnapshotsSuccess(t *testing.T) {
+	runner := &mockRunner{responses: map[string]mockResponse{
+		"tmutil deletelocalsnapshots 2026-03-01-140000": {output: []byte("Deleted\n")},
+		"tmutil deletelocalsnapshots 2026-03-01-140100": {output: []byte("Deleted\n")},
+	}}
+
+	deleted, err := deleteSnapshots(context.Background(), runner, []string{"2026-03-01-140000", "2026-03-01-140100"})
+	if err != nil {
+		t.Fatalf("deleteSnapshots() error = %v", err)
+	}
+	if deleted != 2 {
+		t.Errorf("deleteSnapshots() deleted = %d, want 2", deleted)
+	}
+}
+
+func TestDeleteSnapshotsPartialFailure(t *testing.T) {
+	runner := &mockRunner{responses: map[string]mockResponse{
+		"tmutil deletelocalsnapshots 2026-03-01-140000": {output: []byte("Deleted\n")},
+		"tmutil deletelocalsnapshots 2026-03-01-140100": {err: fmt.Errorf("permission denied")},
+	}}
+
+	deleted, err := deleteSnapshots(context.Background(), runner, []string{"2026-03-01-140000", "2026-03-01-140100"})
+	if err == nil {
+		t.Error("deleteSnapshots() expected error for partial failure, got nil")
+	}
+	if deleted != 1 {
+		t.Errorf("deleteSnapshots() deleted = %d, want 1", deleted)
+	}
+}
+
 func testInfoPlist(device string) string {
 	return fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

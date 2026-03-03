@@ -163,3 +163,47 @@ func TestThinJSONOutput(t *testing.T) {
 		t.Errorf("thinned = %d, want 0", result.Thinned)
 	}
 }
+
+func TestThinJSONWithDeletions(t *testing.T) {
+	viper.Reset()
+	defer viper.Reset()
+	config.SetDefaults()
+
+	origNewRunner := newRunner
+	origRequire := requireTmutil
+	defer func() { newRunner = origNewRunner; requireTmutil = origRequire }()
+	requireTmutil = func() error { return nil }
+
+	now := time.Now()
+	d1 := now.Add(-20 * time.Minute).Format("2006-01-02-150405")
+	d2 := now.Add(-19 * time.Minute).Format("2006-01-02-150405") // thin target
+	d3 := now.Add(-12 * time.Minute).Format("2006-01-02-150405")
+
+	runner := &mockRunner{responses: map[string]mockResponse{
+		"tmutil listlocalsnapshotdates /": {
+			output: []byte(d1 + "\n" + d2 + "\n" + d3 + "\n"),
+		},
+		"diskutil info -plist /":            {err: fmt.Errorf("no device")},
+		"tmutil deletelocalsnapshots " + d2: {output: []byte("Deleted\n")},
+	}}
+	newRunner = func() platform.CommandRunner { return runner }
+
+	var buf bytes.Buffer
+	thinCmd.SetOut(&buf)
+	setFlag(t, thinCmd, "json", "true")
+	defer setFlag(t, thinCmd, "json", "false")
+
+	if err := runThin(thinCmd, nil); err != nil {
+		t.Fatalf("runThin() error = %v", err)
+	}
+
+	var result struct {
+		Thinned int `json:"thinned"`
+	}
+	if err := json.Unmarshal(buf.Bytes(), &result); err != nil {
+		t.Fatalf("invalid JSON: %v\noutput: %s", err, buf.String())
+	}
+	if result.Thinned != 1 {
+		t.Errorf("thinned = %d, want 1", result.Thinned)
+	}
+}
