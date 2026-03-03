@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -44,7 +45,18 @@ func SetVersion(v string) {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default: ~/.config/snappy/config.yaml)")
+
+	helpDefault := "~/.config/snappy/config.yaml"
+	if p, err := config.DefaultConfigPath(); err == nil {
+		if home, err := os.UserHomeDir(); err == nil {
+			helpDefault = "~" + strings.TrimPrefix(p, home)
+		} else {
+			helpDefault = p
+		}
+	}
+
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "",
+		fmt.Sprintf("config file (default: %s)", helpDefault))
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 }
 
