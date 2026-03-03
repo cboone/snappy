@@ -37,6 +37,9 @@ func runCreate(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
+	if date == "" {
+		return fmt.Errorf("snapshot created but date could not be determined")
+	}
 
 	if jsonOut {
 		return writeJSON(cmd.OutOrStdout(), struct {

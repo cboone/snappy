@@ -38,7 +38,7 @@ func runDaemon(cmd *cobra.Command, _ []string) error {
 	logLine(w, "STARTUP", "snappy run (interval=%s, thin >%s to %s)",
 		cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence)
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(cmd.Context(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	// Run first iteration immediately.
@@ -66,6 +66,8 @@ func runIteration(ctx context.Context, w io.Writer, runner platform.CommandRunne
 
 	if err != nil {
 		logLine(w, "ERROR", "create snapshot: %v", err)
+	} else if date == "" {
+		logLine(w, "SNAPSHOT", "Created: <unknown date>")
 	} else {
 		logLine(w, "SNAPSHOT", "Created: %s", date)
 	}
