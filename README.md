@@ -44,6 +44,45 @@ make build
 ./bin/snappy
 ```
 
+## snappy-ez
+
+A standalone bash script that provides snappy's core functionality (create
+snapshots, thin old ones, log state) without the TUI, Go, or a build step.
+Download it, edit the constants, and run.
+
+### Download
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/cboone/snappy/main/bin/snappy-ez -o snappy-ez
+chmod +x snappy-ez
+```
+
+### Run in the foreground
+
+```sh
+./snappy-ez
+```
+
+Press `Ctrl-C` to stop.
+
+### Run in the background
+
+```sh
+./snappy-ez >> ~/snappy-ez.log 2>&1 &
+tail -f ~/snappy-ez.log    # monitor
+kill %1                     # stop
+```
+
+### Customize
+
+Edit the constants at the top of the script:
+
+| Constant             | Default | Description                                   |
+| -------------------- | ------- | --------------------------------------------- |
+| `SNAPSHOT_INTERVAL`  | `60`    | Seconds between snapshots                     |
+| `THIN_AGE_THRESHOLD` | `600`   | Snapshots younger than this are never thinned |
+| `THIN_CADENCE`       | `300`   | Minimum gap between kept old snapshots        |
+
 ## Usage
 
 ```sh

@@ -77,3 +77,6 @@ jobs:
 
       - name: Run scrut CLI tests
         run: make test-scrut
+
+      - name: Run snappy-ez scrut tests
+        run: make test-scrut-ez

@@ -20,7 +20,8 @@ token.json
 
 # Binary
 /snappy
-/bin/
+/bin/*
+!/bin/snappy-ez
 /dist/
 
 # Binaries for programs and plugins

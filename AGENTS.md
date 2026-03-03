@@ -10,6 +10,7 @@ Depends on `tmutil`, `diskutil`, and APFS snapshots.
 ```text
 main.go                          CLI entry point
 cmd/root.go                      Cobra root command, launches TUI
+bin/snappy-ez                    Standalone bash snapshot manager (sourceable)
 internal/
   config/config.go               Viper-backed configuration
   platform/
@@ -29,6 +30,8 @@ internal/
     styles.go                    Lipgloss style definitions
     messages.go                  Custom tea.Msg types
     commands.go                  tea.Cmd factories for async operations
+tests/scrut/                     Scrut CLI tests for the Go binary
+tests/scrut/snappy-ez/           Scrut tests for snappy-ez bash script
 docs/proof-of-concept/snappy     Original bash TUI (reference)
 docs/plans/                      Design plans and decision records
 ```
@@ -44,7 +47,10 @@ make build
 Run tests:
 
 ```bash
-make test
+make test              # Go unit tests
+make test-scrut        # Scrut CLI tests (Go binary)
+make test-scrut-ez     # Scrut tests (snappy-ez bash script)
+make test-all          # All tests (unit + scrut + scrut-ez)
 ```
 
 Lint:
