@@ -15,6 +15,7 @@ Usage:
   snappy [command]
 
 Available Commands:
+  config      Show or manage snappy configuration
   help        Help about any command
   version     Print the version number of snappy
 
@@ -39,6 +40,7 @@ Usage:
   snappy [command]
 
 Available Commands:
+  config      Show or manage snappy configuration
   help        Help about any command
   version     Print the version number of snappy
 
@@ -61,6 +63,7 @@ Usage:
   snappy [command]
 
 Available Commands:
+  config      Show or manage snappy configuration
   help        Help about any command
   version     Print the version number of snappy
 
@@ -85,6 +88,7 @@ Usage:
   snappy [command]
 
 Available Commands:
+  config      Show or manage snappy configuration
   help        Help about any command
   version     Print the version number of snappy
 
