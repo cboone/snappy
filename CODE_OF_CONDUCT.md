@@ -37,7 +37,7 @@ We agree to restrict the following behaviors in our community. Instances, threat
 1. **Misleading identity.** Impersonating someone else for any reason, or pretending to be someone else to evade enforcement actions.
 1. **Failing to credit sources.** Not properly crediting the sources of content you contribute.
 1. **Promotional materials**. Sharing marketing or other commercial content in a way that is outside the norms of the community.
-1. **Irresponsible communication.** Failing to responsibly present content which includes, links or describes any other restricted behaviors.
+1. **Irresponsible communication.** Failing to responsibly present content which includes, links to, or describes any other restricted behaviors.
 
 ## Reporting an Issue
 
@@ -68,7 +68,7 @@ If an investigation by the Community Moderators finds that this Code of Conduct 
    1. Consequence: Access to all community spaces, tools, and communication channels is removed. In general, permanent bans should be rarely used, should have strong reasoning behind them, and should only be resorted to if working through other remedies has failed to change the behavior.
    1. Repair: There is no possible repair in cases of this severity.
 
-This enforcement ladder is intended as a guideline. It does not limit the ability of Community Managers to use their discretion and judgment, in keeping with the best interests of our community.
+This enforcement ladder is intended as a guideline. It does not limit the ability of Community Moderators to use their discretion and judgment, in keeping with the best interests of our community.
 
 ## Scope
 

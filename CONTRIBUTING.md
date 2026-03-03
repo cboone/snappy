@@ -48,7 +48,7 @@ make lint
 
 ## Code Style
 
-- Run `make lint` before committing
+- Run `make lint` before committing (or `make lint-go && make vet` if you don't have the [optional tools](#optional-for-full-linting-and-formatting))
 - Run `make fmt` to format code
 
 ## Commit Messages
@@ -87,7 +87,7 @@ chore: update linter to latest version
 1. Create a feature branch
 1. Make your changes
 1. Ensure tests pass: `make test`
-1. Ensure linting passes: `make lint`
+1. Ensure linting passes: `make lint` (or `make lint-go && make vet`)
 1. Submit a pull request
 
 ### Branch Naming
