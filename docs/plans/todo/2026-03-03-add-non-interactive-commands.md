@@ -70,7 +70,7 @@ Mount: /
 APFS volume: disk3s5
 Disk: 466Gi total, 280Gi used, 186Gi available (60%)
 Snapshots: 3 local, 2 other
-Auto-snapshot: enabled (every 60s, thin >10m0s to 5m0s)
+Auto-snapshot: enabled (every 60s, thin >600s to 300s)
 ```
 
 ### `snappy thin`
@@ -88,7 +88,7 @@ No snapshots to thin
 ### `snappy run`
 
 ```text
-[2026-03-03 14:25:00] STARTUP  snappy run (interval=60s, thin >10m0s to 5m0s)
+[2026-03-03 14:25:00] STARTUP  snappy run (interval=60s, thin >600s to 300s)
 [2026-03-03 14:25:30] SNAPSHOT Created: 2026-03-03-142530
 [2026-03-03 14:25:31] THIN     Thinned 1 snapshot(s)
 [2026-03-03 14:25:31] LIST     3 snapshot(s)
@@ -108,7 +108,15 @@ Extracted logic reusable across commands:
   `internal/tui/commands.go:doRefresh` (lines 16-75) into a reusable function.
   Calls `platform.ListSnapshots`, `snapshot.ParseDate`, `platform.FindAPFSVolume`,
   `platform.GetSnapshotDetails`, and merges APFS details into snapshots.
-  Returns (snapshots, apfsVolume, otherSnapCount, error).
+  Returns (snapshots, apfsVolume, otherSnapCount, error). Returns snapshots in
+  ascending order (oldest first), matching `ListSnapshots`'s `sort.Strings`
+  output. Note: this intentionally duplicates ~20 lines from the TUI's
+  `doRefresh` because `internal/tui` cannot import `cmd` (dependency direction).
+  The TUI's version wraps the logic in a `tea.Cmd` closure and returns a
+  `RefreshResultMsg`; this helper returns data directly. Unlike the TUI, which
+  discovers the APFS volume once at startup (`root.go:112`) and caches it, each
+  CLI invocation discovers it fresh via `FindAPFSVolume`, adding one extra
+  `diskutil` call per invocation (acceptable for non-interactive use).
 - `writeJSON(w io.Writer, v any) error` -- marshals to indented JSON and writes
 
 ### `cmd/create.go` -- `snappy create`
@@ -126,7 +134,9 @@ Extracted logic reusable across commands:
 - Adds local `--json` flag for machine-readable output
 - Calls `loadSnapshots()` with 30-second timeout
 - Human output: count header, then newest-first numbered list with relative
-  time, UUID, purgeable/pinned flags, limits-shrink warning (plain text, no ANSI)
+  time, UUID, purgeable/pinned flags, limits-shrink warning (plain text, no ANSI).
+  Iterate snapshots in reverse since `loadSnapshots` returns ascending order
+  (matches TUI's `updateSnapViewContent` pattern at `update.go:324`).
 - JSON output: object with mount, count, snapshots array
 - Reuses `snapshot.FormatRelativeTime()` for relative timestamps
 
@@ -160,8 +170,10 @@ Extracted logic reusable across commands:
 - Adds local `--json` flag for machine-readable output
 - Calls `loadSnapshots()`, creates `AutoManager` with `enabled=true`, calls
   `ComputeThinTargets()`, deletes each target with individual 30-second timeouts
-- Reports successful deletions; returns error if any deletions failed
-- Human output: `"Thinned N snapshot(s)"` or `"No snapshots to thin"`
+- Reports successful deletions before returning error if any deletions failed
+  (non-zero exit code on partial failure, so scripts can detect problems)
+- Human output: `"Thinned N snapshot(s)"` or `"No snapshots to thin"` (printed
+  before the error, so callers see the successful count even on partial failure)
 - JSON output: `{"thinned": N}`
 
 ## Modified Files
@@ -212,7 +224,11 @@ can run without sudo (read-only operations).
 - `cmd/run_test.go` -- `runIteration` logs-and-continues on per-iteration
   failures, shutdown on context cancel
 
-Mock runner pattern (in `cmd/mock_test.go` or per-file):
+Mock runner pattern (in `cmd/mock_test.go`). The `cmd` package needs its own
+mock because `internal/platform/platform_test.go`'s mock is in the
+`platform_test` package and not exported. Follow the existing test patterns in
+`cmd/config_test.go` (table-driven tests, `bytes.Buffer` + `cmd.SetOut()`,
+`viper.Reset()` for cleanup):
 
 ```go
 type mockRunner struct {
@@ -234,30 +250,34 @@ type mockRunner struct {
 - `snapshot.NewAutoManager` / `ComputeThinTargets` -- `internal/snapshot/auto.go`
 - `config.Load` -- `internal/config/config.go`
 
-The `loadSnapshots` helper in `cmd/helpers.go` extracts lines 16-75 of
-`internal/tui/commands.go:doRefresh` into a standalone function. The TUI's
-`doRefresh` wraps this in a `tea.Cmd` closure and returns a `RefreshResultMsg`;
-the new helper returns the data directly.
+The `loadSnapshots` helper in `cmd/helpers.go` extracts the snapshot-fetching
+logic from `internal/tui/commands.go:doRefresh` (lines 16-75) into a standalone
+function. See the `loadSnapshots` entry under `cmd/helpers.go` above for details
+on the intentional duplication and design differences from the TUI version.
 
 ## Implementation Order
 
+1. Read `cmd/config.go` and `cmd/config_test.go` to absorb existing subcommand
+   registration and testing patterns (`bytes.Buffer`, `cmd.SetOut()`,
+   `viper.Reset()`)
 1. `cmd/helpers.go` -- shared infrastructure (requireTmutil,
    loadSnapshots, writeJSON, newRunner)
-2. `cmd/create.go` -- simplest command, validates the pattern and local `--json`
-3. `cmd/list.go` -- exercises loadSnapshots and formatted output
-4. `cmd/status.go` -- exercises different platform calls
-5. `cmd/thin.go` -- introduces AutoManager usage outside TUI
-6. `cmd/run.go` -- most complex, builds on thin + create patterns, daemon error policy
-7. Go unit tests for each command
-8. Scrut tests for new commands and `--json` support/rejection behavior
-9. Update existing scrut tests for changed help output
+1. `cmd/create.go` -- simplest command, validates the pattern and local `--json`
+1. `cmd/list.go` -- exercises loadSnapshots and formatted output
+1. `cmd/status.go` -- exercises different platform calls
+1. `cmd/thin.go` -- introduces AutoManager usage outside TUI
+1. `cmd/run.go` -- most complex, builds on thin + create patterns, daemon error
+   policy
+1. Go unit tests for each command
+1. Scrut tests for new commands and `--json` support/rejection behavior
+1. Update existing scrut tests for changed help output
 
 ## Verification
 
 1. `make build` -- compiles successfully
-2. `make test` -- Go unit tests pass
-3. `make test-scrut` -- scrut CLI tests pass (including updated help output)
-4. Manual testing on macOS:
+1. `make test` -- Go unit tests pass
+1. `make test-scrut` -- scrut CLI tests pass (including updated help output)
+1. Manual testing on macOS:
    - `snappy create` creates a snapshot (requires sudo)
    - `snappy create --json | jq .` produces valid, parseable JSON
    - `snappy list` shows snapshots with relative times and APFS details
@@ -269,5 +289,5 @@ the new helper returns the data directly.
    - `snappy run` starts daemon loop, Ctrl-C shuts down cleanly
    - `snappy run --json` fails fast with an unsupported/unknown flag error
    - transient `tmutil` failures during `snappy run` are logged and loop continues
-5. `make lint` -- no lint errors
-6. `make fmt-check` -- formatting clean
+1. `make lint` -- no lint errors
+1. `make fmt-check` -- formatting clean
