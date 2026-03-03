@@ -93,25 +93,27 @@ on:
   push:
     branches: [main]
     paths-ignore:
-      - "**.md"
-      - "docs/**"
-      - "LICENSE"
+      - "*.md"
+      - "**/CLAUDE.md"
+      - "**/AGENTS.md"
+      - ".claude/**"
+      - ".github/**/*.md"
       - ".github/ISSUE_TEMPLATE/**"
       - ".github/PULL_REQUEST_TEMPLATE/**"
-      - "CODE_OF_CONDUCT.md"
-      - "CONTRIBUTING.md"
-      - "SECURITY.md"
+      - "docs/**"
+      - "LICENSE"
   pull_request:
     branches: [main]
     paths-ignore:
-      - "**.md"
-      - "docs/**"
-      - "LICENSE"
+      - "*.md"
+      - "**/CLAUDE.md"
+      - "**/AGENTS.md"
+      - ".claude/**"
+      - ".github/**/*.md"
       - ".github/ISSUE_TEMPLATE/**"
       - ".github/PULL_REQUEST_TEMPLATE/**"
-      - "CODE_OF_CONDUCT.md"
-      - "CONTRIBUTING.md"
-      - "SECURITY.md"
+      - "docs/**"
+      - "LICENSE"
 ```
 
 **Trade-off:** If any CI job is a _required_ status check in branch protection,
@@ -153,13 +155,13 @@ risk for infrequent releases. Not worth changing.
 
 ## Expected Impact
 
-| Job            | Before            | After      | Savings  |
-| -------------- | ----------------- | ---------- | -------- |
-| `test`         | macos (10x)       | Linux (1x) | ~90%     |
-| `lint`         | macos (10x)       | Linux (1x) | ~90%     |
-| `test-scrut`   | macos (10x)       | macos (10x)| 0%       |
-| Docs-only runs | Full CI           | Skipped    | 100%     |
-| Stale PR runs  | Run to completion | Cancelled  | Variable |
+| Job            | Before            | After       | Savings  |
+| -------------- | ----------------- | ----------- | -------- |
+| `test`         | macos (10x)       | Linux (1x)  | ~90%     |
+| `lint`         | macos (10x)       | Linux (1x)  | ~90%     |
+| `test-scrut`   | macos (10x)       | macos (10x) | 0%       |
+| Docs-only runs | Full CI           | Skipped     | 100%     |
+| Stale PR runs  | Run to completion | Cancelled   | Variable |
 
 Net result: **2 of 3 CI jobs move from 10x to 1x cost**, docs-only changes skip
 CI entirely, and stale runs are cancelled. Estimated ~60-70% reduction in

@@ -4,25 +4,27 @@ on:
   push:
     branches: [main]
     paths-ignore:
-      - "**.md"
-      - "docs/**"
-      - "LICENSE"
+      - "*.md"
+      - "**/CLAUDE.md"
+      - "**/AGENTS.md"
+      - ".claude/**"
+      - ".github/**/*.md"
       - ".github/ISSUE_TEMPLATE/**"
       - ".github/PULL_REQUEST_TEMPLATE/**"
-      - "CODE_OF_CONDUCT.md"
-      - "CONTRIBUTING.md"
-      - "SECURITY.md"
+      - "docs/**"
+      - "LICENSE"
   pull_request:
     branches: [main]
     paths-ignore:
-      - "**.md"
-      - "docs/**"
-      - "LICENSE"
+      - "*.md"
+      - "**/CLAUDE.md"
+      - "**/AGENTS.md"
+      - ".claude/**"
+      - ".github/**/*.md"
       - ".github/ISSUE_TEMPLATE/**"
       - ".github/PULL_REQUEST_TEMPLATE/**"
-      - "CODE_OF_CONDUCT.md"
-      - "CONTRIBUTING.md"
-      - "SECURITY.md"
+      - "docs/**"
+      - "LICENSE"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
