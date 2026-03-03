@@ -16,16 +16,16 @@ runs entirely.
 
 **ci.yml** (triggers: push to main, PRs to main):
 
-| Job | Runner | What it does |
-|---|---|---|
-| `test` | macos-latest | `make test` (go test ./...) |
-| `lint` | macos-latest | go vet, fmt-check, golangci-lint, markdownlint, actionlint, shfmt |
-| `test-scrut` | macos-latest | Build binary, run scrut CLI tests + snappy-ez bash tests |
+| Job          | Runner       | What it does                                                      |
+| ------------ | ------------ | ----------------------------------------------------------------- |
+| `test`       | macos-latest | `make test` (go test ./...)                                       |
+| `lint`       | macos-latest | go vet, fmt-check, golangci-lint, markdownlint, actionlint, shfmt |
+| `test-scrut` | macos-latest | Build binary, run scrut CLI tests + snappy-ez bash tests          |
 
 **release.yml** (triggers: tag push `v*`):
 
-| Job | Runner | What it does |
-|---|---|---|
+| Job          | Runner       | What it does                                                  |
+| ------------ | ------------ | ------------------------------------------------------------- |
 | `goreleaser` | macos-latest | Build darwin binaries, create GH release, update Homebrew tap |
 
 **Total: 4 macOS jobs, 0 Linux jobs, no path filtering, no concurrency controls.**
@@ -153,13 +153,13 @@ risk for infrequent releases. Not worth changing.
 
 ## Expected Impact
 
-| Job | Before | After | Savings |
-|---|---|---|---|
-| `test` | macos (10x) | Linux (1x) | ~90% |
-| `lint` | macos (10x) | Linux (1x) | ~90% |
-| `test-scrut` | macos (10x) | macos (10x) | 0% |
-| Docs-only runs | Full CI | Skipped | 100% |
-| Stale PR runs | Run to completion | Cancelled | Variable |
+| Job            | Before            | After      | Savings  |
+| -------------- | ----------------- | ---------- | -------- |
+| `test`         | macos (10x)       | Linux (1x) | ~90%     |
+| `lint`         | macos (10x)       | Linux (1x) | ~90%     |
+| `test-scrut`   | macos (10x)       | macos (10x)| 0%       |
+| Docs-only runs | Full CI           | Skipped    | 100%     |
+| Stale PR runs  | Run to completion | Cancelled  | Variable |
 
 Net result: **2 of 3 CI jobs move from 10x to 1x cost**, docs-only changes skip
 CI entirely, and stale runs are cancelled. Estimated ~60-70% reduction in
