@@ -45,7 +45,7 @@ readonly THIN_AGE_THRESHOLD=600
 # Increase to keep fewer old snapshots; decrease to keep more.
 readonly THIN_CADENCE=300
 
-readonly VERSION="1.0.0"
+# Version: 1.0.0
 
 # -- Logging ------------------------------------------------------------------
 
@@ -150,7 +150,7 @@ function list_snapshots() {
     log "LIST" "${count} snapshot(s)"
 
     local snap
-    for snap in "${snapshots[@]}"; do
+    for snap in "${snapshots[@]+"${snapshots[@]}"}"; do
       [[ -n "${snap}" ]] && log "LIST" "  ${snap}"
     done
   else
@@ -233,7 +233,7 @@ function thin_snapshots() {
 
   # Delete marked snapshots
   local snap_to_del
-  for snap_to_del in "${to_delete[@]}"; do
+  for snap_to_del in "${to_delete[@]+"${to_delete[@]}"}"; do
     if tmutil deletelocalsnapshots "${snap_to_del}" > /dev/null 2>&1; then
       log "THIN" "Deleted old snapshot: ${snap_to_del}"
     else
