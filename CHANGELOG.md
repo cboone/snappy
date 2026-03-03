@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-03-02
+
+### Added
+
+- Standalone `snappy-ez` bash snapshot manager script, sourceable or directly executable
+
+### Changed
+
+- Made snappy-ez sourceable with BASH_SOURCE guard
+- Hoisted loop locals and added VERSION constant in snappy-ez
+- Added scrut tests for snappy-ez
+- Added snappy-ez section to README
+- Added community files for open-source readiness (CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, PR template)
+
+### Fixed
+
+- Made `clean` target preserve tracked `bin/snappy-ez` script
+- Updated `test-all` help comment to include scrut-ez
+- Fixed bash 3.2 empty array expansion and demoted VERSION to comment
+- Added macOS system bash support in snappy-ez
+
 ## [0.4.1] - 2026-03-02
 
 ### Changed
@@ -113,7 +134,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add shellcheckrc with all checks enabled
 
-[unreleased]: https://github.com/cboone/snappy/compare/v0.4.1...HEAD
+[unreleased]: https://github.com/cboone/snappy/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/cboone/snappy/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/cboone/snappy/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/cboone/snappy/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/cboone/snappy/compare/v0.3.0...v0.3.1
