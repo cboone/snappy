@@ -82,6 +82,45 @@ func TestRunIterationSuccess(t *testing.T) {
 	}
 }
 
+func TestRunIterationLogsPostThinCount(t *testing.T) {
+	viper.Reset()
+	defer viper.Reset()
+	config.SetDefaults()
+	viper.Set("thin_age_threshold", "1s")
+	viper.Set("thin_cadence", "1h")
+
+	now := time.Now()
+	oldest := now.Add(-3 * time.Hour).Format("2006-01-02-150405")
+	middle := now.Add(-150 * time.Minute).Format("2006-01-02-150405")
+
+	runner := &mockRunner{responses: map[string]mockResponse{
+		"tmutil localsnapshot": {
+			err: fmt.Errorf("permission denied"),
+		},
+		"tmutil listlocalsnapshotdates /": {
+			output: []byte(oldest + "\n" + middle + "\n"),
+		},
+		"tmutil deletelocalsnapshots " + middle: {},
+		"diskutil info -plist /":                {err: fmt.Errorf("no device")},
+	}}
+
+	cfg := config.Load()
+	var buf bytes.Buffer
+
+	runIteration(context.Background(), &buf, runner, cfg)
+
+	output := buf.String()
+	if !strings.Contains(output, "THIN") {
+		t.Fatalf("output missing THIN log line, got:\n%s", output)
+	}
+	if !strings.Contains(output, "Thinned 1 snapshot(s)") {
+		t.Fatalf("output missing thin count, got:\n%s", output)
+	}
+	if !strings.Contains(output, "LIST") || !strings.Contains(output, "1 snapshot(s)") {
+		t.Fatalf("output missing post-thin list count, got:\n%s", output)
+	}
+}
+
 func TestRunIterationContextCancelled(t *testing.T) {
 	viper.Reset()
 	defer viper.Reset()

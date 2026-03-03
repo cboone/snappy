@@ -85,16 +85,21 @@ func runIteration(ctx context.Context, w io.Writer, runner platform.CommandRunne
 	now := time.Now()
 	mgr := snapshot.NewAutoManager(true, cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence, now)
 	targets := mgr.ComputeThinTargets(snapshots, now)
+	currentCount := len(snapshots)
 
 	if len(targets) > 0 {
 		deleted, deleteErr := deleteDaemonTargets(ctx, runner, targets)
 		if deleteErr != nil {
 			logLine(w, "ERROR", "thin: %v", deleteErr)
 		}
+		currentCount -= deleted
+		if currentCount < 0 {
+			currentCount = 0
+		}
 		logLine(w, "THIN", "Thinned %d snapshot(s)", deleted)
 	}
 
-	logLine(w, "LIST", "%d snapshot(s)", len(snapshots))
+	logLine(w, "LIST", "%d snapshot(s)", currentCount)
 }
 
 func deleteDaemonTargets(ctx context.Context, runner platform.CommandRunner, targets []string) (int, error) {
