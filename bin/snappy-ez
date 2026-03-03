@@ -138,10 +138,11 @@ function list_snapshots() {
   local output
   if output=$(tmutil listlocalsnapshotdates / 2> /dev/null); then
     local -a snapshots=()
-    readarray -t snapshots < <(
-      echo "${output}" \
-        | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}$' || true
-    )
+    local line
+    while IFS= read -r line; do
+      [[ "${line}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}$ ]] || continue
+      snapshots+=("${line}")
+    done <<< "${output}"
 
     local -i count="${#snapshots[@]}"
     log "LIST" "${count} snapshot(s)"
@@ -174,10 +175,11 @@ function thin_snapshots() {
   fi
 
   local -a snapshots=()
-  readarray -t snapshots < <(
-    echo "${output}" \
-      | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}$' || true
-  )
+  local line
+  while IFS= read -r line; do
+    [[ "${line}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}$ ]] || continue
+    snapshots+=("${line}")
+  done <<< "${output}"
 
   local -i count="${#snapshots[@]}"
   if ((count == 0)); then
