@@ -280,4 +280,9 @@ function main() {
   run_loop
 }
 
-main "${@}"
+# Only run main when executed directly. When sourced (e.g., in tests),
+# this guard lets callers access individual functions without triggering
+# the infinite loop.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "${@}"
+fi
