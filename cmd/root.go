@@ -49,7 +49,13 @@ func init() {
 	helpDefault := "~/.config/snappy/config.yaml"
 	if p, err := config.DefaultConfigPath(); err == nil {
 		if home, err := os.UserHomeDir(); err == nil {
-			helpDefault = "~" + strings.TrimPrefix(p, home)
+			sep := string(os.PathSeparator)
+			if strings.HasPrefix(p, home+sep) {
+				rel := strings.TrimPrefix(p, home)
+				helpDefault = "~" + rel
+			} else {
+				helpDefault = p
+			}
 		} else {
 			helpDefault = p
 		}
