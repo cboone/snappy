@@ -1,0 +1,6 @@
+{
+  "config": {
+    // Dollar signs before commands: disabled (scrut test files use $ prompt notation)
+    "MD014": false,
+  },
+}
