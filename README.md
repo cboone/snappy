@@ -157,17 +157,12 @@ snappy config
 | ------------------------ | ------------------------------- | --------- | ---------------------------------- |
 | `auto_enabled`           | `SNAPPY_AUTO_ENABLED`           | `true`    | Enable auto-snapshots at startup   |
 | `auto_snapshot_interval` | `SNAPPY_AUTO_SNAPSHOT_INTERVAL` | `60s`     | Interval between auto-snapshots    |
-| `auto_snapshot_interval` | `SNAPPY_AUTO_SNAPSHOT_INTERVAL` | `60s`     | Interval between auto-snapshots    |
-| `log_dir`                | `SNAPPY_LOG_DIR`                | (auto)    | Log directory path                 |
 | `log_dir`                | `SNAPPY_LOG_DIR`                | (auto)    | Log directory path                 |
 | `log_max_files`          | `SNAPPY_LOG_MAX_FILES`          | `3`       | Number of rotated backup files     |
 | `log_max_size`           | `SNAPPY_LOG_MAX_SIZE`           | `5242880` | Max log file size in bytes (5 MB)  |
 | `mount`                  | `SNAPPY_MOUNT`                  | `/`       | Mount point to monitor             |
 | `refresh`                | `SNAPPY_REFRESH`                | `60s`     | How often to refresh snapshot list |
-| `refresh`                | `SNAPPY_REFRESH`                | `60s`     | How often to refresh snapshot list |
 | `thin_age_threshold`     | `SNAPPY_THIN_AGE_THRESHOLD`     | `600s`    | Age before snapshots are thinned   |
-| `thin_age_threshold`     | `SNAPPY_THIN_AGE_THRESHOLD`     | `600s`    | Age before snapshots are thinned   |
-| `thin_cadence`           | `SNAPPY_THIN_CADENCE`           | `300s`    | Minimum gap kept when thinning     |
 | `thin_cadence`           | `SNAPPY_THIN_CADENCE`           | `300s`    | Minimum gap kept when thinning     |
 
 ## How Snappy Works
