@@ -64,6 +64,28 @@ snappy
 Snappy reads configuration from `~/.config/snappy/config.yaml` or environment
 variables prefixed with `SNAPPY_`. Pass `--config <path>` to use a custom file.
 
+#### Generate a config file
+
+Create a default config file with all settings and comments:
+
+```sh
+snappy config init
+```
+
+This writes to `~/.config/snappy/config.yaml` (or the path given by
+`--config`). The command will not overwrite an existing file.
+
+#### View effective configuration
+
+Show the active configuration, including values from the config file,
+environment variables, and defaults:
+
+```sh
+snappy config
+```
+
+#### Settings
+
 | Setting                  | Env var                         | Default   | Description                        |
 | ------------------------ | ------------------------------- | --------- | ---------------------------------- |
 | `refresh`                | `SNAPPY_REFRESH`                | `60s`     | How often to refresh snapshot list |
