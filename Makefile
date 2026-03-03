@@ -68,7 +68,7 @@ test-scrut-ez-update: ## Update snappy-ez scrut test expectations
 test-all: test test-scrut test-scrut-ez ## Run all tests (unit + scrut + scrut-ez)
 
 clean: ## Remove build artifacts
-	rm -rf $(OUTDIR) dist coverage.out
+	rm -f $(OUTDIR)/$(BINARY) dist coverage.out
 
 cover: ## Run tests with coverage
 	go test -coverprofile=coverage.out ./...

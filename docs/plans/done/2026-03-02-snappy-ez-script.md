@@ -101,7 +101,7 @@ and exits 0.
 - All variables quoted: `"${var}"`
 - `[[ ... ]]` conditionals
 - Function documentation comments (Arguments, Outputs, Returns)
-- Section dividers: `# ===...===`
+- Section dividers: `# -- Section name ---`
 - 2-space indent, space redirects, binary next line (per `.editorconfig`)
 
 ### Inline documentation goals
