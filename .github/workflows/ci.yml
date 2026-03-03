@@ -4,10 +4,10 @@ on:
   push:
     branches: [main]
     paths-ignore:
-      - "*.md"
       - "**/CLAUDE.md"
       - "**/AGENTS.md"
       - ".claude/**"
+      - ".editorconfig"
       - ".github/**/*.md"
       - ".github/ISSUE_TEMPLATE/**"
       - ".github/PULL_REQUEST_TEMPLATE/**"
@@ -16,10 +16,10 @@ on:
   pull_request:
     branches: [main]
     paths-ignore:
-      - "*.md"
       - "**/CLAUDE.md"
       - "**/AGENTS.md"
       - ".claude/**"
+      - ".editorconfig"
       - ".github/**/*.md"
       - ".github/ISSUE_TEMPLATE/**"
       - ".github/PULL_REQUEST_TEMPLATE/**"
@@ -33,6 +33,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
 
@@ -45,6 +46,7 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
 
@@ -82,6 +84,7 @@ jobs:
   test-scrut:
     name: Test CLI (Scrut)
     runs-on: macos-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
 
