@@ -94,17 +94,20 @@ Follow existing patterns: table-driven, `viper.Reset()`, standard library only.
 New file following `cmd/version.go` pattern. Self-registers via `init()`.
 
 **`configCmd`** (parent):
+
 - `Use: "config"`, `Short: "Show or manage snappy configuration"`
 - `RunE: runConfigShow` -- calls `config.Load()` and `config.FormatConfig()`
   with `viper.ConfigFileUsed()` for the file path
 - `Args: cobra.NoArgs`
 
 **`configInitCmd`** (subcommand):
+
 - `Use: "init"`, `Short: "Create a default config file"`
 - `RunE: runConfigInit`
 - `Args: cobra.NoArgs`
 
 `runConfigInit` logic:
+
 1. Determine target path: use `cfgFile` (from `--config` persistent flag) if
    set, otherwise `config.DefaultConfigPath()`
 2. Check if file exists with `os.Stat` -- error if it does
@@ -185,7 +188,7 @@ Files to update (same set that changed when `version` was added):
 | File                             | Tests affected |
 | -------------------------------- | -------------- |
 | `tests/scrut/help.md`            | 4              |
-| `tests/scrut/config.md`         | 2              |
+| `tests/scrut/config.md`          | 2              |
 | `tests/scrut/flag-precedence.md` | 4              |
 | `tests/scrut/environment.md`     | 1              |
 
@@ -200,18 +203,18 @@ overrides. Close the issue with a comment.
 
 ## Files
 
-| File                               | Action | Description                              |
-| ---------------------------------- | ------ | ---------------------------------------- |
-| `internal/config/config.go`        | Modify | Add DefaultConfigPath, WriteDefaultConfig, FormatConfig |
-| `internal/config/config_test.go`   | Modify | Add tests for new functions              |
-| `cmd/config.go`                    | Create | config command and config init subcommand |
-| `cmd/config_test.go`               | Create | Go unit tests for commands               |
-| `cmd/root.go`                      | Modify | Use DefaultConfigPath in initConfig      |
-| `tests/scrut/config-command.md`    | Create | Scrut tests for config and config init   |
-| `tests/scrut/help.md`              | Modify | Add config to Available Commands         |
-| `tests/scrut/config.md`            | Modify | Add config to Available Commands         |
-| `tests/scrut/flag-precedence.md`   | Modify | Add config to Available Commands         |
-| `tests/scrut/environment.md`       | Modify | Add config to Available Commands         |
+| File                             | Action | Description                                             |
+| -------------------------------- | ------ | ------------------------------------------------------- |
+| `internal/config/config.go`      | Modify | Add DefaultConfigPath, WriteDefaultConfig, FormatConfig |
+| `internal/config/config_test.go` | Modify | Add tests for new functions                             |
+| `cmd/config.go`                  | Create | config command and config init subcommand               |
+| `cmd/config_test.go`             | Create | Go unit tests for commands                              |
+| `cmd/root.go`                    | Modify | Use DefaultConfigPath in initConfig                     |
+| `tests/scrut/config-command.md`  | Create | Scrut tests for config and config init                  |
+| `tests/scrut/help.md`            | Modify | Add config to Available Commands                        |
+| `tests/scrut/config.md`          | Modify | Add config to Available Commands                        |
+| `tests/scrut/flag-precedence.md` | Modify | Add config to Available Commands                        |
+| `tests/scrut/environment.md`     | Modify | Add config to Available Commands                        |
 
 ## Verification
 
