@@ -1,6 +1,10 @@
 package config
 
 import (
+	"bytes"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -66,8 +70,13 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.MountPoint != "/" {
 		t.Errorf("MountPoint = %q, want %q", cfg.MountPoint, "/")
 	}
-	if cfg.LogDir != "" {
-		t.Errorf("LogDir = %q, want %q", cfg.LogDir, "")
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatalf("os.UserHomeDir() error: %v", err)
+	}
+	wantLogDir := filepath.Join(home, ".local", "share", "snappy")
+	if cfg.LogDir != wantLogDir {
+		t.Errorf("LogDir = %q, want %q", cfg.LogDir, wantLogDir)
 	}
 	if cfg.LogMaxSize != 5*1024*1024 {
 		t.Errorf("LogMaxSize = %d, want %d", cfg.LogMaxSize, 5*1024*1024)
@@ -247,6 +256,109 @@ func TestLoadDurationFieldParsing(t *testing.T) {
 	}
 }
 
+func TestDefaultConfigPath(t *testing.T) {
+	path, err := DefaultConfigPath()
+	if err != nil {
+		t.Fatalf("DefaultConfigPath() error: %v", err)
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatalf("os.UserHomeDir() error: %v", err)
+	}
+	if !strings.HasPrefix(path, home) {
+		t.Errorf("path %q does not start with home directory %q", path, home)
+	}
+	if !strings.HasSuffix(path, ".config/snappy/config.yaml") {
+		t.Errorf("path %q does not end with .config/snappy/config.yaml", path)
+	}
+}
+
+func TestWriteDefaultConfig(t *testing.T) {
+	var buf bytes.Buffer
+	if err := WriteDefaultConfig(&buf); err != nil {
+		t.Fatalf("WriteDefaultConfig() error: %v", err)
+	}
+
+	output := buf.String()
+	if output == "" {
+		t.Fatal("WriteDefaultConfig() produced empty output")
+	}
+
+	if !strings.Contains(output, "#") {
+		t.Error("output does not contain comment lines")
+	}
+
+	keys := []string{
+		"refresh:", "mount:", "log_dir:", "log_max_size:", "log_max_files:",
+		"auto_enabled:", "auto_snapshot_interval:", "thin_age_threshold:", "thin_cadence:",
+	}
+	for _, key := range keys {
+		if !strings.Contains(output, key) {
+			t.Errorf("output missing key %q", key)
+		}
+	}
+}
+
+func TestFormatConfig(t *testing.T) {
+	cfg := &Config{
+		RefreshInterval:      60 * time.Second,
+		MountPoint:           "/",
+		LogDir:               "",
+		LogMaxSize:           5 * 1024 * 1024,
+		LogMaxFiles:          3,
+		AutoEnabled:          true,
+		AutoSnapshotInterval: 60 * time.Second,
+		ThinAgeThreshold:     600 * time.Second,
+		ThinCadence:          300 * time.Second,
+	}
+
+	var buf bytes.Buffer
+	if err := FormatConfig(&buf, cfg, "/some/config.yaml"); err != nil {
+		t.Fatalf("FormatConfig() error: %v", err)
+	}
+
+	output := buf.String()
+
+	if !strings.Contains(output, "Config file: /some/config.yaml") {
+		t.Error("output missing config file path")
+	}
+
+	expected := []string{
+		"refresh: 1m0s",
+		"mount: /",
+		"log_max_size: 5242880",
+		"log_max_files: 3",
+		"auto_enabled: true",
+		"auto_snapshot_interval: 1m0s",
+		"thin_age_threshold: 10m0s",
+		"thin_cadence: 5m0s",
+	}
+	for _, want := range expected {
+		if !strings.Contains(output, want) {
+			t.Errorf("output missing %q", want)
+		}
+	}
+}
+
+func TestFormatConfigNoFile(t *testing.T) {
+	cfg := &Config{
+		RefreshInterval:      60 * time.Second,
+		AutoSnapshotInterval: 60 * time.Second,
+		ThinAgeThreshold:     600 * time.Second,
+		ThinCadence:          300 * time.Second,
+	}
+
+	var buf bytes.Buffer
+	if err := FormatConfig(&buf, cfg, ""); err != nil {
+		t.Fatalf("FormatConfig() error: %v", err)
+	}
+
+	if !strings.Contains(buf.String(), "Config file: none") {
+		t.Error("output should show 'none' when no config file is used")
+	}
+}
+
 func TestLoadWithoutSetDefaults(t *testing.T) {
 	viper.Reset()
 
@@ -276,8 +388,13 @@ func TestLoadWithoutSetDefaults(t *testing.T) {
 	if cfg.MountPoint != "" {
 		t.Errorf("MountPoint = %q, want %q", cfg.MountPoint, "")
 	}
-	if cfg.LogDir != "" {
-		t.Errorf("LogDir = %q, want %q", cfg.LogDir, "")
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatalf("os.UserHomeDir() error: %v", err)
+	}
+	wantLogDir := filepath.Join(home, ".local", "share", "snappy")
+	if cfg.LogDir != wantLogDir {
+		t.Errorf("LogDir = %q, want %q", cfg.LogDir, wantLogDir)
 	}
 	if cfg.AutoEnabled != false {
 		t.Errorf("AutoEnabled = %v, want %v", cfg.AutoEnabled, false)

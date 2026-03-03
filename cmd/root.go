@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -44,7 +45,24 @@ func SetVersion(v string) {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default: ~/.config/snappy/config.yaml)")
+
+	helpDefault := "~/.config/snappy/config.yaml"
+	if p, err := config.DefaultConfigPath(); err == nil {
+		if home, err := os.UserHomeDir(); err == nil {
+			sep := string(os.PathSeparator)
+			if strings.HasPrefix(p, home+sep) {
+				rel := strings.TrimPrefix(p, home)
+				helpDefault = "~" + rel
+			} else {
+				helpDefault = p
+			}
+		} else {
+			helpDefault = p
+		}
+	}
+
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "",
+		fmt.Sprintf("config file (default: %s)", helpDefault))
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 }
 
@@ -52,9 +70,9 @@ func initConfig() {
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 	} else {
-		home, err := os.UserHomeDir()
+		defaultPath, err := config.DefaultConfigPath()
 		if err == nil {
-			viper.AddConfigPath(filepath.Join(home, ".config", "snappy"))
+			viper.AddConfigPath(filepath.Dir(defaultPath))
 			viper.SetConfigName("config")
 			viper.SetConfigType("yaml")
 		}
@@ -77,14 +95,6 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	}
 
 	cfg := config.Load()
-
-	// Resolve default log directory
-	if cfg.LogDir == "" {
-		home, err := os.UserHomeDir()
-		if err == nil {
-			cfg.LogDir = filepath.Join(home, ".local", "share", "snappy")
-		}
-	}
 
 	log := logger.New(logger.Options{
 		LogDir:     cfg.LogDir,
