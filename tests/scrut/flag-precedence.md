@@ -16,7 +16,12 @@ Usage:
 
 Available Commands:
   config      Show or manage snappy configuration
+  create      Create a new local Time Machine snapshot
   help        Help about any command
+  list        List local snapshots with details
+  run         Run the auto-snapshot loop (foreground daemon)
+  status      Show Time Machine and disk status
+  thin        Thin old snapshots based on configured cadence
   version     Print the version number of snappy
 
 Flags:
@@ -41,7 +46,12 @@ Usage:
 
 Available Commands:
   config      Show or manage snappy configuration
+  create      Create a new local Time Machine snapshot
   help        Help about any command
+  list        List local snapshots with details
+  run         Run the auto-snapshot loop (foreground daemon)
+  status      Show Time Machine and disk status
+  thin        Thin old snapshots based on configured cadence
   version     Print the version number of snappy
 
 Flags:
@@ -64,7 +74,12 @@ Usage:
 
 Available Commands:
   config      Show or manage snappy configuration
+  create      Create a new local Time Machine snapshot
   help        Help about any command
+  list        List local snapshots with details
+  run         Run the auto-snapshot loop (foreground daemon)
+  status      Show Time Machine and disk status
+  thin        Thin old snapshots based on configured cadence
   version     Print the version number of snappy
 
 Flags:
@@ -89,7 +104,12 @@ Usage:
 
 Available Commands:
   config      Show or manage snappy configuration
+  create      Create a new local Time Machine snapshot
   help        Help about any command
+  list        List local snapshots with details
+  run         Run the auto-snapshot loop (foreground daemon)
+  status      Show Time Machine and disk status
+  thin        Thin old snapshots based on configured cadence
   version     Print the version number of snappy
 
 Flags:
