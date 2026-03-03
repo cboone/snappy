@@ -52,9 +52,9 @@ func initConfig() {
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 	} else {
-		home, err := os.UserHomeDir()
+		defaultPath, err := config.DefaultConfigPath()
 		if err == nil {
-			viper.AddConfigPath(filepath.Join(home, ".config", "snappy"))
+			viper.AddConfigPath(filepath.Dir(defaultPath))
 			viper.SetConfigName("config")
 			viper.SetConfigType("yaml")
 		}
