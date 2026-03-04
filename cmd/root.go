@@ -115,7 +115,7 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	}
 	tmStatus := platform.CheckStatus(startupCtx, runner)
 
-	log.Log(logger.Startup, fmt.Sprintf("snappy v%s | volume=%s | refresh=%ds",
+	log.Log(logger.Startup, fmt.Sprintf("snappy %s | volume=%s | refresh=%ds",
 		version, cfg.MountPoint, int(cfg.RefreshInterval.Seconds())))
 	log.Log(logger.Startup, fmt.Sprintf("auto-snapshot=%v | every %ds | thin >%ds to %ds",
 		cfg.AutoEnabled, int(cfg.AutoSnapshotInterval.Seconds()),
