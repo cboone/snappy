@@ -233,11 +233,16 @@ function thin_snapshots() {
 
   # Delete marked snapshots
   local snap_to_del
+  local -i rc=0
   for snap_to_del in "${to_delete[@]+"${to_delete[@]}"}"; do
-    if tmutil deletelocalsnapshots "${snap_to_del}" > /dev/null 2>&1; then
+    rc=0
+    tmutil deletelocalsnapshots "${snap_to_del}" > /dev/null 2>&1 || rc=$?
+    if ((rc == 0)); then
       log "THIN" "Deleted old snapshot: ${snap_to_del}"
+    elif ((rc == 70)); then
+      log "THIN" "Skipped pinned snapshot: ${snap_to_del} (stale handle)"
     else
-      log "ERROR" "Failed to delete snapshot: ${snap_to_del}"
+      log "ERROR" "Failed to delete snapshot: ${snap_to_del} (exit ${rc})"
     fi
   done
 
