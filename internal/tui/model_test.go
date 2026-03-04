@@ -66,8 +66,8 @@ func TestViewEmpty(t *testing.T) {
 	m := testModel()
 	v := viewContent(m)
 
-	if !strings.Contains(v, "SNAPPY") {
-		t.Error("view missing SNAPPY title")
+	if !strings.Contains(v, "snappy") {
+		t.Error("view missing snappy title")
 	}
 	if !strings.Contains(v, "LOCAL SNAPSHOTS (0)") {
 		t.Error("view missing snapshot count")
@@ -483,19 +483,21 @@ func TestDoThinSnapshotsReportsDeleteFailures(t *testing.T) {
 func TestViewSpinnerDuringLoading(t *testing.T) {
 	m := testModel()
 
-	// Without loading, the title bar should not contain a spinner frame.
+	// Without loading, the border title should not contain an operation label.
 	noLoading := viewContent(m)
+	if strings.Contains(noLoading, "Refreshing") {
+		t.Error("expected no Refreshing label when not loading")
+	}
 
 	m.loading = true
 	withLoading := viewContent(m)
 
-	if !strings.Contains(withLoading, "SNAPPY") {
-		t.Error("view missing SNAPPY title during loading")
+	if !strings.Contains(withLoading, "snappy") {
+		t.Error("view missing snappy title during loading")
 	}
-	// The spinner adds at least one extra character (the dot frame) to the
-	// title bar when loading is true.
-	if len(withLoading) <= len(noLoading) {
-		t.Error("expected spinner to add content to the title bar when loading")
+	// The border title should include the operation label when loading.
+	if !strings.Contains(withLoading, "Refreshing") {
+		t.Error("expected Refreshing label in border title when loading")
 	}
 }
 

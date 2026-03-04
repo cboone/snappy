@@ -22,14 +22,12 @@ func (m Model) View() tea.View {
 		w = 80
 	}
 
-	titleBar := m.renderTitleBar(w)
 	infoPanel := m.renderInfoPanel(w)
 	snapPanel := m.renderSnapshotPanel(w)
 	logPanel := m.renderLogPanel(w)
 	helpBar := m.renderHelpBar(w)
 
 	content := lipgloss.JoinVertical(lipgloss.Left,
-		titleBar,
 		infoPanel,
 		snapPanel,
 		logPanel,
@@ -41,7 +39,10 @@ func (m Model) View() tea.View {
 	return v
 }
 
-func (m Model) renderTitleBar(width int) string {
+func (m Model) renderInfoPanel(width int) string {
+	cw := contentWidth(width)
+
+	// Build the title string for embedding in the border.
 	dot := indicatorOff
 	if m.auto.Enabled() {
 		dot = indicatorOn
@@ -52,7 +53,7 @@ func (m Model) renderTitleBar(width int) string {
 		dot = m.styles.textGreen.Render(dot)
 	}
 
-	title := dot + " SNAPPY"
+	title := dot + " " + lipgloss.NewStyle().Bold(true).Render("snappy")
 
 	switch {
 	case m.snapshotting:
@@ -63,12 +64,7 @@ func (m Model) renderTitleBar(width int) string {
 		title += "  Refreshing " + m.spinner.View()
 	}
 
-	return m.styles.titleBar.Width(width).Render(title)
-}
-
-func (m Model) renderInfoPanel(width int) string {
-	cw := contentWidth(width)
-
+	// Build the info panel body.
 	lastRefresh := "never"
 	if !m.lastRefresh.IsZero() {
 		lastRefresh = m.lastRefresh.Format("2006-01-02T15:04:05")
@@ -95,7 +91,10 @@ func (m Model) renderInfoPanel(width int) string {
 	)
 
 	body := strings.Join(lines, "\n")
-	return m.styles.section.Width(cw).Render(body)
+	rendered := m.styles.section.Width(cw).Render(body)
+
+	borderFg := lipgloss.NewStyle().Foreground(m.styles.section.GetBorderTopForeground())
+	return borderTitle(rendered, title, borderFg)
 }
 
 func (m Model) renderSnapshotPanel(width int) string {
@@ -175,6 +174,33 @@ func (m Model) formatSnapshotLine(i, count int) string {
 	}
 
 	return fmt.Sprintf("%s  %s   %s%s", number, snap.Date, timeStr, details)
+}
+
+// borderTitle replaces the top border of a lipgloss-rendered bordered box
+// with a new top line that embeds the given title, centered:
+//
+//	╭──────── title ────────╮
+func borderTitle(rendered, title string, borderFg lipgloss.Style) string {
+	lines := strings.SplitN(rendered, "\n", 2)
+	if len(lines) < 2 {
+		return rendered
+	}
+
+	topWidth := lipgloss.Width(lines[0])
+	titleWidth := lipgloss.Width(title)
+
+	border := lipgloss.RoundedBorder()
+
+	// TopLeft(1) + leftFill + space(1) + title + space(1) + rightFill + TopRight(1)
+	totalFill := max(topWidth-titleWidth-4, 0)
+	leftFill := totalFill / 2
+	rightFill := totalFill - leftFill
+
+	newTop := borderFg.Render(border.TopLeft+strings.Repeat(border.Top, leftFill)+" ") +
+		title +
+		borderFg.Render(" "+strings.Repeat(border.Top, rightFill)+border.TopRight)
+
+	return newTop + "\n" + lines[1]
 }
 
 func (m Model) colorizeLogEntry(entry logger.Entry) string {

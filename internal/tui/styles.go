@@ -28,7 +28,6 @@ type modelStyles struct {
 	textCyan    lipgloss.Style
 	textMagenta lipgloss.Style
 
-	titleBar     lipgloss.Style
 	section      lipgloss.Style
 	sectionFocus lipgloss.Style
 	sectionTitle lipgloss.Style
@@ -43,9 +42,6 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 	colorBorder := adaptiveColor(hasDarkBG, "#888888", "#555555")
 	colorHighlight := adaptiveColor(hasDarkBG, "#0066cc", "#88c0d0")
 	colorSubtle := adaptiveColor(hasDarkBG, "#666666", "#777777")
-	colorTitleBg := adaptiveColor(hasDarkBG, "#0066cc", "#2e3440")
-	colorTitleFg := adaptiveColor(hasDarkBG, "#ffffff", "#eceff4")
-
 	green := lipgloss.Color("2")
 	yellow := lipgloss.Color("3")
 	red := lipgloss.Color("1")
@@ -59,13 +55,6 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 		textRed:     lipgloss.NewStyle().Foreground(red),
 		textCyan:    lipgloss.NewStyle().Foreground(cyan),
 		textMagenta: lipgloss.NewStyle().Foreground(magenta),
-
-		titleBar: lipgloss.NewStyle().
-			Bold(true).
-			Foreground(colorTitleFg).
-			Background(colorTitleBg).
-			Padding(0, 1).
-			AlignHorizontal(lipgloss.Center),
 
 		section: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
