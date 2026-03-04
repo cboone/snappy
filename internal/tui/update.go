@@ -99,11 +99,11 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(doCreateSnapshot(m.runner), m.spinner.Tick)
 
 	case key.Matches(msg, m.keys.Refresh):
+		clear(m.thinPinned)
 		if m.refreshing {
 			m.refreshPending = true
 			return m, nil
 		}
-		clear(m.thinPinned)
 		m.refreshing = true
 		m.loading = true
 		return m, tea.Batch(doRefresh(m.runner, m.cfg, m.apfsVolume), m.spinner.Tick)

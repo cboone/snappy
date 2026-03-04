@@ -674,6 +674,25 @@ func TestManualRefreshClearsThinPinned(t *testing.T) {
 	}
 }
 
+func TestManualRefreshClearsThinPinnedWhileRefreshing(t *testing.T) {
+	m := testModel()
+	m.thinPinned["2026-03-01-140100"] = struct{}{}
+	m.refreshing = true
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'r', Text: "r"})
+	model := updated.(Model)
+
+	if cmd != nil {
+		t.Error("expected nil command when refresh already in flight")
+	}
+	if len(model.thinPinned) != 0 {
+		t.Errorf("thinPinned = %v, want empty after manual refresh during in-flight refresh", model.thinPinned)
+	}
+	if !model.refreshPending {
+		t.Error("expected refreshPending = true when manual refresh is requested in-flight")
+	}
+}
+
 func TestAutoToggleOnClearsThinPinned(t *testing.T) {
 	m := testModel()
 	m.thinPinned["2026-03-01-140100"] = struct{}{}
