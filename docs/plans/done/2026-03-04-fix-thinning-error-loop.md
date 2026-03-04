@@ -21,6 +21,7 @@ In `handleThinResult()`, only trigger an immediate refresh when at least one del
 Record which snapshot dates failed deletion in a `thinPinned map[string]struct{}` on the Model. These represent snapshots the system refuses to delete (stale handles, etc.). Filter them out in `handleRefreshResult()` before passing targets to `doThinSnapshots()`.
 
 Clear `thinPinned` on:
+
 - Manual refresh ('r' key): user explicitly asked for a fresh look
 - Auto toggle on ('a' key): user re-enabled auto-snapshots
 - Fully successful thin result (`msg.Err == nil`): conditions may have changed
@@ -34,28 +35,37 @@ Example: with 5-minute cadence and snapshots at :00, :01, :02, :05, :06, :07, :1
 ## Files to Modify
 
 ### `internal/snapshot/auto.go`
+
 Change `ComputeThinTargets` signature to accept pinned dates:
+
 ```go
 func (a *AutoManager) ComputeThinTargets(snapshots []Snapshot, now time.Time, pinned map[string]struct{}) []string
 ```
+
 In the walk loop, when a snapshot's date is in `pinned`, update `lastKeptTime` to its time and skip it (don't add to targets). This treats pinned snapshots as anchor points for cadence spacing.
 
 ### `internal/snapshot/auto_test.go`
+
 Add tests for pinned snapshot behavior:
+
 - Pinned snapshot is never included in targets
 - Pinned snapshot resets cadence (snapshots after it are measured from its time)
 - Empty/nil pinned map preserves existing behavior
 
 ### `internal/tui/messages.go`
+
 Add `FailedDates []string` to `ThinResultMsg` so the handler knows which specific dates failed (currently only a formatted error string is returned).
 
 ### `internal/tui/commands.go`
+
 In `doThinSnapshots()`, collect failed dates into a separate slice and populate `ThinResultMsg.FailedDates`. Keep the existing `Err` field for log display.
 
 ### `internal/tui/model.go`
+
 Add `thinPinned map[string]struct{}` to the Model struct. Initialize with `make(map[string]struct{})` in `NewModel()`.
 
 ### `internal/tui/update.go`
+
 Five changes:
 
 1. **`handleThinResult()`**: Record `msg.FailedDates` into `m.thinPinned`. On full success, clear `thinPinned`. Only call `doRefresh()` when `msg.Deleted > 0`.
@@ -69,6 +79,7 @@ Five changes:
 5. **`handleTick()`**: No changes needed; the tick naturally triggers refresh which uses the updated `ComputeThinTargets`.
 
 ### `internal/tui/model_test.go`
+
 Update existing tests and add new ones:
 
 - Update `TestDoThinSnapshotsReportsDeleteFailures` to verify `FailedDates`
@@ -81,9 +92,11 @@ Update existing tests and add new ones:
 - `TestSuccessfulThinClearsThinPinned`: full success clears the pinned set
 
 ### `cmd/helpers.go` and `cmd/thin.go` and `cmd/run.go`
+
 Update call sites for `ComputeThinTargets` to pass `nil` for pinned (the non-interactive commands don't track pinned state across invocations).
 
 ### `bin/snappy-ez`
+
 In `thin_snapshots()`, replace the `if tmutil ...; then ... else ... fi` pattern with exit code capture so ESTALE (exit code 70) is handled distinctly. Currently (lines 236-241) all failures log as "ERROR". Change to:
 
 ```bash
@@ -101,6 +114,7 @@ fi
 This keeps the script running normally; it just treats ESTALE as a non-error skip.
 
 ### `tests/scrut/snappy-ez/`
+
 Add or update scrut tests to cover the ESTALE handling in `thin_snapshots`.
 
 ## Verification
