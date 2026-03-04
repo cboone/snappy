@@ -42,10 +42,27 @@ func (m Model) View() tea.View {
 }
 
 func (m Model) renderTitleBar(width int) string {
-	title := fmt.Sprintf("%s SNAPPY v%s  Time Machine Local Snapshot Manager", indicatorOn, m.version)
-	if m.loading {
-		title += "  " + m.spinner.View()
+	dot := indicatorOff
+	if m.auto.Enabled() {
+		dot = indicatorOn
 	}
+	if m.loading {
+		dot = m.styles.textYellow.Render(dot)
+	} else {
+		dot = m.styles.textGreen.Render(dot)
+	}
+
+	title := dot + " SNAPPY"
+
+	switch {
+	case m.snapshotting:
+		title += "  Snapshotting " + m.spinner.View()
+	case m.thinning:
+		title += "  Thinning " + m.spinner.View()
+	case m.loading:
+		title += "  Refreshing " + m.spinner.View()
+	}
+
 	return m.styles.titleBar.Width(width).Render(title)
 }
 
