@@ -475,6 +475,9 @@ func TestDoThinSnapshotsReportsDeleteFailures(t *testing.T) {
 	if result.Err == nil {
 		t.Fatal("expected non-nil error for failed deletions")
 	}
+	if len(result.FailedDates) != 1 || result.FailedDates[0] != "2026-03-01-140100" {
+		t.Fatalf("FailedDates = %v, want [2026-03-01-140100]", result.FailedDates)
+	}
 }
 
 func TestViewSpinnerDuringLoading(t *testing.T) {
@@ -578,5 +581,135 @@ func TestRefreshResultStartsSpinnerWhenThinning(t *testing.T) {
 	}
 	if !model.loading {
 		t.Fatal("expected loading=true while thinning is in progress")
+	}
+}
+
+func TestThinResultErrorNoRefresh(t *testing.T) {
+	m := testModel()
+	m.thinning = true
+	m.loading = true
+	m.refreshing = false
+
+	updated, cmd := m.Update(ThinResultMsg{
+		Deleted:     0,
+		FailedDates: []string{"2026-03-01-140100"},
+		Err:         fmt.Errorf("1 snapshot deletion(s) failed: 2026-03-01-140100 (ESTALE)"),
+	})
+	model := updated.(Model)
+
+	if cmd != nil {
+		t.Error("expected nil command when all deletions failed (no refresh)")
+	}
+	if model.thinning {
+		t.Error("expected thinning = false")
+	}
+	if _, ok := model.thinPinned["2026-03-01-140100"]; !ok {
+		t.Error("expected failed date to be recorded in thinPinned")
+	}
+}
+
+func TestThinResultPartialSuccessRefreshes(t *testing.T) {
+	m := testModel()
+	m.thinning = true
+	m.loading = true
+	m.refreshing = false
+
+	updated, cmd := m.Update(ThinResultMsg{
+		Deleted:     1,
+		FailedDates: []string{"2026-03-01-140200"},
+		Err:         fmt.Errorf("1 snapshot deletion(s) failed: 2026-03-01-140200 (ESTALE)"),
+	})
+	model := updated.(Model)
+
+	if cmd == nil {
+		t.Error("expected refresh command when some deletions succeeded")
+	}
+	if _, ok := model.thinPinned["2026-03-01-140200"]; !ok {
+		t.Error("expected failed date to be recorded in thinPinned")
+	}
+	if model.thinning {
+		t.Error("expected thinning = false after ThinResultMsg")
+	}
+}
+
+func TestThinPinnedDatesFilteredFromTargets(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	// Pre-pin a date that would otherwise be a thin target.
+	m.thinPinned["2026-03-01-130100"] = struct{}{}
+
+	snaps := []snapshot.Snapshot{
+		{Date: "2026-03-01-130000", Time: now.Add(-2 * time.Hour)},
+		{Date: "2026-03-01-130100", Time: now.Add(-119 * time.Minute)},
+	}
+
+	updated, cmd := m.Update(RefreshResultMsg{
+		Snapshots: snaps,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	// The pinned date is the only thin target, so thinning should not start.
+	if model.thinning {
+		t.Error("expected thinning = false when all targets are pinned")
+	}
+	// cmd should be nil (no thinning batch); but there might be other cmds
+	// from the refresh result. Check that thinning flag is not set.
+	_ = cmd
+}
+
+func TestManualRefreshClearsThinPinned(t *testing.T) {
+	m := testModel()
+	m.thinPinned["2026-03-01-140100"] = struct{}{}
+	m.refreshing = false
+
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'r', Text: "r"})
+	model := updated.(Model)
+
+	if len(model.thinPinned) != 0 {
+		t.Errorf("thinPinned = %v, want empty after manual refresh", model.thinPinned)
+	}
+}
+
+func TestAutoToggleOnClearsThinPinned(t *testing.T) {
+	m := testModel()
+	m.thinPinned["2026-03-01-140100"] = struct{}{}
+
+	// Toggle off first (starts enabled).
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model := updated.(Model)
+
+	// Pinned should persist when toggling off.
+	if len(model.thinPinned) != 1 {
+		t.Errorf("thinPinned should persist when toggling auto off, got %d entries", len(model.thinPinned))
+	}
+
+	// Toggle back on: should clear pinned.
+	updated, _ = model.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model = updated.(Model)
+
+	if len(model.thinPinned) != 0 {
+		t.Errorf("thinPinned = %v, want empty after toggling auto on", model.thinPinned)
+	}
+}
+
+func TestSuccessfulThinClearsThinPinned(t *testing.T) {
+	m := testModel()
+	m.thinning = true
+	m.loading = true
+	m.refreshing = false
+	m.thinPinned["2026-03-01-140100"] = struct{}{}
+
+	updated, _ := m.Update(ThinResultMsg{
+		Deleted: 2,
+		Err:     nil,
+	})
+	model := updated.(Model)
+
+	if len(model.thinPinned) != 0 {
+		t.Errorf("thinPinned = %v, want empty after successful thin", model.thinPinned)
 	}
 }

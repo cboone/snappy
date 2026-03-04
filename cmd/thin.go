@@ -42,7 +42,7 @@ func runThin(cmd *cobra.Command, _ []string) error {
 
 	now := time.Now()
 	mgr := snapshot.NewAutoManager(true, cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence, now)
-	targets := mgr.ComputeThinTargets(snapshots, now)
+	targets := mgr.ComputeThinTargets(snapshots, now, nil)
 
 	if len(targets) == 0 {
 		if jsonOut {

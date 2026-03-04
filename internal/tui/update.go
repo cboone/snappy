@@ -103,6 +103,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			m.refreshPending = true
 			return m, nil
 		}
+		clear(m.thinPinned)
 		m.refreshing = true
 		m.loading = true
 		return m, tea.Batch(doRefresh(m.runner, m.cfg, m.apfsVolume), m.spinner.Tick)
@@ -111,6 +112,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		now := m.now()
 		enabled := m.auto.Toggle(now)
 		if enabled {
+			clear(m.thinPinned)
 			m.log.Log(logger.Info, fmt.Sprintf(
 				"Auto-snapshots enabled (every %ds, thin >%ds to %ds)",
 				int(m.auto.Interval().Seconds()),
@@ -247,16 +249,30 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// Check thinning (skip if already in flight).
-	if !m.thinning {
-		targets := m.auto.ComputeThinTargets(m.snapshots, m.now())
-		if len(targets) > 0 {
-			m.thinning = true
-			m.loading = true
-			cmds = append(cmds, doThinSnapshots(m.runner, targets), m.spinner.Tick)
-		}
-	}
+	cmds = m.maybeThin(cmds)
 
 	return m, tea.Batch(cmds...)
+}
+
+func (m *Model) maybeThin(cmds []tea.Cmd) []tea.Cmd {
+	if m.thinning {
+		return cmds
+	}
+	targets := m.auto.ComputeThinTargets(m.snapshots, m.now(), m.thinPinned)
+	// Belt-and-suspenders: filter out any pinned dates that slipped
+	// through (ComputeThinTargets already skips them).
+	filtered := targets[:0]
+	for _, d := range targets {
+		if _, ok := m.thinPinned[d]; !ok {
+			filtered = append(filtered, d)
+		}
+	}
+	if len(filtered) > 0 {
+		m.thinning = true
+		m.loading = true
+		cmds = append(cmds, doThinSnapshots(m.runner, filtered), m.spinner.Tick)
+	}
+	return cmds
 }
 
 func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd) {
@@ -298,10 +314,25 @@ func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if msg.Err != nil {
+		// Record which dates failed so we skip them next cycle.
+		for _, d := range msg.FailedDates {
+			m.thinPinned[d] = struct{}{}
+		}
 		m.log.Log(logger.Error, fmt.Sprintf("Thinning error: %v", msg.Err))
+	} else {
+		// Full success: conditions may have changed, clear pinned set.
+		clear(m.thinPinned)
 	}
 
 	m.updateLogViewContent()
+
+	// Only trigger a refresh when at least one deletion succeeded.
+	// When all deletions failed, the same targets would reappear
+	// immediately, causing a tight retry loop. The next regular tick
+	// will refresh instead.
+	if msg.Deleted == 0 {
+		return m, nil
+	}
 
 	if m.refreshing {
 		m.refreshPending = true
