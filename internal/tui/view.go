@@ -76,10 +76,12 @@ func (m Model) renderInfoPanel(width int) string {
 		diskInfo = "unavailable"
 	}
 
+	label := m.styles.infoLabel.Render
 	lines := []string{
-		fmt.Sprintf("Volume: %s    Disk: %s", m.volumeName, diskInfo),
-		fmt.Sprintf("Time Machine: %s    Refresh: %ds    Last: %s",
-			m.tmStatus, int(m.cfg.RefreshInterval.Seconds()), lastRefresh),
+		label("Volume:") + " " + m.volumeName + "    " + label("Disk:") + " " + diskInfo,
+		label("Time Machine:") + " " + m.tmStatus + "    " +
+			label("Refresh:") + fmt.Sprintf(" %ds    ", int(m.cfg.RefreshInterval.Seconds())) +
+			label("Last:") + " " + lastRefresh,
 		m.formatAutoStatus(),
 	}
 
@@ -128,22 +130,21 @@ func (m Model) renderHelpBar(_ int) string {
 }
 
 func (m Model) formatAutoStatus() string {
+	label := m.styles.infoLabel.Render
 	if m.auto.Enabled() {
 		now := m.now()
 		nextIn := int(m.auto.NextIn(now).Seconds())
-		return fmt.Sprintf("Auto-snapshot: %s %s    every %ds    next in %ds    thin >%dm to %ds",
-			indicatorOn,
-			m.styles.statusOn.Render("on"),
-			int(m.auto.Interval().Seconds()),
-			nextIn,
-			int(m.auto.ThinAge().Minutes()),
-			int(m.auto.ThinCadence().Seconds()),
-		)
+		return label("Auto-snapshot:") + " " + indicatorOn + " " +
+			m.styles.statusOn.Render("on") +
+			fmt.Sprintf("    %s %ds    %s %ds    %s >%dm to %ds",
+				label("every"), int(m.auto.Interval().Seconds()),
+				label("next in"), nextIn,
+				label("thin"), int(m.auto.ThinAge().Minutes()),
+				int(m.auto.ThinCadence().Seconds()),
+			)
 	}
-	return fmt.Sprintf("Auto-snapshot: %s %s",
-		indicatorOff,
-		m.styles.statusOff.Render("off"),
-	)
+	return label("Auto-snapshot:") + " " + indicatorOff + " " +
+		m.styles.statusOff.Render("off")
 }
 
 func (m Model) formatSnapshotLine(i, count int) string {

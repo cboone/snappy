@@ -1,11 +1,7 @@
 // Package tui implements the Bubbletea TUI for Snappy.
 package tui
 
-import (
-	"image/color"
-
-	"charm.land/lipgloss/v2"
-)
+import "charm.land/lipgloss/v2"
 
 const (
 	indicatorOn      = "●"
@@ -15,10 +11,6 @@ const (
 	indicatorWarning = "⚠"
 )
 
-func adaptiveColor(hasDarkBG bool, light, dark string) color.Color {
-	return lipgloss.LightDark(hasDarkBG)(lipgloss.Color(light), lipgloss.Color(dark))
-}
-
 // modelStyles holds all precomputed Lipgloss styles for the TUI.
 type modelStyles struct {
 	textDim     lipgloss.Style
@@ -27,6 +19,8 @@ type modelStyles struct {
 	textRed     lipgloss.Style
 	textCyan    lipgloss.Style
 	textMagenta lipgloss.Style
+
+	infoLabel lipgloss.Style
 
 	section      lipgloss.Style
 	sectionFocus lipgloss.Style
@@ -39,9 +33,11 @@ type modelStyles struct {
 }
 
 func newModelStyles(hasDarkBG bool) modelStyles {
-	colorBorder := adaptiveColor(hasDarkBG, "#888888", "#555555")
-	colorHighlight := adaptiveColor(hasDarkBG, "#0066cc", "#88c0d0")
-	colorSubtle := adaptiveColor(hasDarkBG, "#666666", "#777777")
+	lightDark := lipgloss.LightDark(hasDarkBG)
+
+	colorBorder := lightDark(lipgloss.Color("#888888"), lipgloss.Color("#555555"))
+	colorHighlight := lightDark(lipgloss.Color("#0066cc"), lipgloss.Color("#88c0d0"))
+	colorSubtle := lightDark(lipgloss.Color("#666666"), lipgloss.Color("#777777"))
 	green := lipgloss.Color("2")
 	yellow := lipgloss.Color("3")
 	red := lipgloss.Color("1")
@@ -50,6 +46,7 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 
 	return modelStyles{
 		textDim:     lipgloss.NewStyle().Faint(true),
+		infoLabel:   lipgloss.NewStyle().Foreground(lightDark(lipgloss.Color("#555555"), lipgloss.Color("#aaaaaa"))),
 		textGreen:   lipgloss.NewStyle().Foreground(green),
 		textYellow:  lipgloss.NewStyle().Foreground(yellow),
 		textRed:     lipgloss.NewStyle().Foreground(red),
