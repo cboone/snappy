@@ -23,20 +23,22 @@ type modelStyles struct {
 
 	infoLabel lipgloss.Style
 
-	section      lipgloss.Style
-	sectionFocus lipgloss.Style
-	sectionTitle lipgloss.Style
-	helpBar      lipgloss.Style
-	statusOn     lipgloss.Style
-	statusOff    lipgloss.Style
-	spinnerStyle lipgloss.Style
-	tableStyles  table.Styles
+	section         lipgloss.Style
+	sectionFocus    lipgloss.Style
+	sectionTitle    lipgloss.Style
+	sectionTitleDim lipgloss.Style
+	helpBar         lipgloss.Style
+	statusOn        lipgloss.Style
+	statusOff       lipgloss.Style
+	spinnerStyle    lipgloss.Style
+	tableStyles     table.Styles
 }
 
 func newModelStyles(hasDarkBG bool) modelStyles {
 	lightDark := lipgloss.LightDark(hasDarkBG)
 
-	colorBorder := lightDark(lipgloss.Color("245"), lipgloss.Color("240"))
+	colorBorder := lightDark(lipgloss.Color("250"), lipgloss.Color("237"))
+	colorFocus := lightDark(lipgloss.Black, lipgloss.White)
 	colorHighlight := lightDark(lipgloss.Color("26"), lipgloss.Color("110"))
 	colorSubtle := lightDark(lipgloss.Color("241"), lipgloss.Color("243"))
 	colorLabel := lightDark(lipgloss.Color("240"), lipgloss.Color("248"))
@@ -63,11 +65,15 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 
 		sectionFocus: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(colorHighlight).
+			BorderForeground(colorFocus).
 			Padding(0, 1),
 
 		sectionTitle: lipgloss.NewStyle().
 			Bold(true),
+
+		sectionTitleDim: lipgloss.NewStyle().
+			Bold(true).
+			Foreground(colorBorder),
 
 		helpBar: lipgloss.NewStyle().
 			Foreground(colorSubtle).

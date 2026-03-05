@@ -23,6 +23,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		return m.handleKey(msg)
 
+	case tea.MouseClickMsg:
+		return m.handleMouseClick(msg)
+
 	case tea.MouseWheelMsg:
 		return m.handleMouseWheel(msg)
 
@@ -151,12 +154,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 
 	case key.Matches(msg, m.keys.Tab):
-		m.focusLog = !m.focusLog
-		if m.focusLog {
-			m.snapTable.Blur()
-		} else {
-			m.snapTable.Focus()
-		}
+		m.setFocusPanel((m.focusPanel + 1) % 3)
 		return m, nil
 
 	case key.Matches(msg, m.keys.ScrollUp, m.keys.ScrollDown):
@@ -166,8 +164,40 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m Model) handleMouseClick(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
+	if msg.Button != tea.MouseLeft {
+		return m, nil
+	}
+	switch {
+	case msg.Y >= m.logPanelY:
+		m.setFocusPanel(panelLog)
+		// Translate click Y to a log cursor position.
+		// +1 for the border top line, +1 for any padding offset.
+		row := msg.Y - m.logPanelY - 1 + m.logView.YOffset()
+		if row >= 0 && row < m.logCount {
+			m.logCursor = row
+			m.updateLogViewContent()
+		}
+	case msg.Y >= m.snapPanelY:
+		m.setFocusPanel(panelSnap)
+		// Translate click Y to a table row. The table has a 1-line
+		// header inside the bordered panel (+1 border top, +1 header).
+		// The table's internal start = max(cursor - viewportHeight, 0).
+		vh := m.snapTable.Height()
+		start := max(m.snapTable.Cursor()-vh, 0)
+		row := start + msg.Y - m.snapPanelY - 2
+		if row >= 0 && row < len(m.snapshots) {
+			m.snapTable.SetCursor(row)
+		}
+	default:
+		m.setFocusPanel(panelInfo)
+	}
+	return m, nil
+}
+
 func (m Model) handleMouseWheel(msg tea.MouseWheelMsg) (tea.Model, tea.Cmd) {
 	if msg.Y >= m.logPanelY {
+		m.setFocusPanel(panelLog)
 		switch msg.Button {
 		case tea.MouseWheelUp:
 			m.moveLogCursor(-1)
@@ -177,8 +207,7 @@ func (m Model) handleMouseWheel(msg tea.MouseWheelMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	if msg.Y >= m.snapPanelY {
-		// The table component does not handle mouse events, so
-		// translate wheel direction into cursor movement.
+		m.setFocusPanel(panelSnap)
 		switch msg.Button {
 		case tea.MouseWheelUp:
 			m.snapTable.MoveUp(1)
@@ -190,17 +219,29 @@ func (m Model) handleMouseWheel(msg tea.MouseWheelMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleScroll(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	if m.focusLog {
+	switch m.focusPanel {
+	case panelLog:
 		if key.Matches(msg, m.keys.ScrollUp) {
 			m.moveLogCursor(-1)
 		} else {
 			m.moveLogCursor(1)
 		}
 		return m, nil
+	case panelSnap:
+		var cmd tea.Cmd
+		m.snapTable, cmd = m.snapTable.Update(msg)
+		return m, cmd
 	}
-	var cmd tea.Cmd
-	m.snapTable, cmd = m.snapTable.Update(msg)
-	return m, cmd
+	return m, nil
+}
+
+func (m *Model) setFocusPanel(panel int) {
+	m.focusPanel = panel
+	if panel == panelSnap {
+		m.snapTable.Focus()
+	} else {
+		m.snapTable.Blur()
+	}
 }
 
 func (m *Model) moveLogCursor(delta int) {
@@ -498,7 +539,7 @@ func (m *Model) updateLogViewContent() {
 			b.WriteByte('\n')
 		}
 		e := entries[i]
-		line := fmt.Sprintf("%-8s  %-7s  %s",
+		line := fmt.Sprintf("%-8s   %-7s   %s",
 			e.Timestamp.Format("15:04:05"),
 			string(e.Type),
 			e.Message,

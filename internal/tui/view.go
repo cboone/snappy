@@ -50,7 +50,11 @@ func (m Model) renderInfoPanel(width int) string {
 		dot = m.styles.textGreen.Render(dot)
 	}
 
-	title := dot + " " + lipgloss.NewStyle().Bold(true).Render("snappy")
+	titleStyle := m.styles.sectionTitle
+	if m.focusPanel != panelInfo {
+		titleStyle = m.styles.sectionTitleDim
+	}
+	title := dot + " " + titleStyle.Render("snappy")
 
 	switch {
 	case m.snapshotting:
@@ -84,10 +88,15 @@ func (m Model) renderInfoPanel(width int) string {
 		lines[i] = ansi.Truncate(line, cw, "")
 	}
 
-	body := strings.Join(lines, "\n")
-	rendered := m.styles.section.Width(cw + 4).Render(body)
+	style := m.styles.section
+	if m.focusPanel == panelInfo {
+		style = m.styles.sectionFocus
+	}
 
-	borderFg := lipgloss.NewStyle().Foreground(m.styles.section.GetBorderTopForeground())
+	body := strings.Join(lines, "\n")
+	rendered := style.Width(cw + 4).Render(body)
+
+	borderFg := lipgloss.NewStyle().Foreground(style.GetBorderTopForeground())
 	return borderTitle(rendered, title, borderFg)
 }
 
@@ -95,10 +104,14 @@ func (m Model) renderSnapshotPanel(width int) string {
 	sw := contentWidth(width) + 4
 	count := len(m.snapshots)
 
-	title := m.styles.sectionTitle.Render(fmt.Sprintf("local snapshots (%d)", count))
+	titleStyle := m.styles.sectionTitle
+	if m.focusPanel != panelSnap {
+		titleStyle = m.styles.sectionTitleDim
+	}
+	title := titleStyle.Render(fmt.Sprintf("local snapshots (%d)", count))
 
 	style := m.styles.section
-	if !m.focusLog {
+	if m.focusPanel == panelSnap {
 		style = m.styles.sectionFocus
 	}
 
@@ -109,10 +122,14 @@ func (m Model) renderSnapshotPanel(width int) string {
 
 func (m Model) renderLogPanel(width int) string {
 	sw := contentWidth(width) + 4
-	title := m.styles.sectionTitle.Render("recent log")
+	titleStyle := m.styles.sectionTitle
+	if m.focusPanel != panelLog {
+		titleStyle = m.styles.sectionTitleDim
+	}
+	title := titleStyle.Render("recent log")
 
 	style := m.styles.section
-	if m.focusLog {
+	if m.focusPanel == panelLog {
 		style = m.styles.sectionFocus
 	}
 

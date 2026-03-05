@@ -70,6 +70,13 @@ func defaultKeyMap() keyMap {
 	}
 }
 
+// Panel focus constants.
+const (
+	panelInfo = iota
+	panelSnap
+	panelLog
+)
+
 // Model is the Bubbletea model for the Snappy TUI.
 type Model struct {
 	cfg    *config.Config
@@ -96,17 +103,17 @@ type Model struct {
 	thinPinned     map[string]struct{}
 	version        string
 
-	keys      keyMap
-	help      help.Model
-	snapTable table.Model
-	logView   viewport.Model
-	logCursor int
-	logCount  int
-	spinner   spinner.Model
-	styles    modelStyles
-	loading   bool
-	focusLog  bool
-	hasDarkBG bool
+	keys       keyMap
+	help       help.Model
+	snapTable  table.Model
+	logView    viewport.Model
+	logCursor  int
+	logCount   int
+	spinner    spinner.Model
+	styles     modelStyles
+	loading    bool
+	focusPanel int
+	hasDarkBG  bool
 
 	snapPanelY int
 	logPanelY  int
@@ -160,6 +167,7 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 		logView:    lv,
 		spinner:    s,
 		styles:     styles,
+		focusPanel: panelSnap,
 		hasDarkBG:  hasDarkBG,
 		now:        time.Now,
 	}
