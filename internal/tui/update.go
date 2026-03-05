@@ -406,48 +406,42 @@ func (m *Model) updateSnapViewContent() {
 		date := snap.Time.Format("2006-01-02 15:04:05")
 		age := snapshot.FormatRelativeTime(snap.Time, now)
 
-		if m.apfsVolume != "" && snap.UUID != "" {
-			xid := fmt.Sprintf("%d", snap.XID)
-			flags := indicatorPurge + " purgeable"
+		var xid, uuid, flags string
+		if snap.UUID != "" {
+			xid = fmt.Sprintf("%d", snap.XID)
+			uuid = snap.UUID
+			flags = indicatorPurge + " purgeable"
 			if !snap.Purgeable {
 				flags = indicatorPinned + " pinned"
 			}
 			if snap.LimitsShrink {
 				flags += "  " + indicatorWarning + " limits shrink"
 			}
-			rows = append(rows, table.Row{date, age, xid, snap.UUID, flags})
-		} else {
-			row := make(table.Row, len(cols))
-			row[0] = date
-			row[1] = age
-			rows = append(rows, row)
 		}
+		rows = append(rows, table.Row{date, age, xid, uuid, flags})
 	}
 	m.snapTable.SetRows(rows)
 }
 
 // snapTableColumns returns the column definitions for the snapshot table,
-// sized to fit the current terminal width. APFS columns are included only
-// when an APFS volume is configured.
+// sized to fit the current terminal width. UUID acts as the flex column,
+// absorbing any remaining width so the table fills the panel.
 func (m *Model) snapTableColumns() []table.Column {
 	// Column.Width is the text content width. The Cell/Header styles add
 	// Padding(0,1) which contributes 2 extra rendered chars per column
-	// (1 left + 1 right). Widths below are sized so the total rendered
-	// row (content + padding) fits comfortably at 80 columns.
+	// (1 left + 1 right).
 	const (
+		colPad      = 2  // rendered padding per column
+		ncols       = 5
 		dateWidth   = 19 // "2006-01-02 15:04:05"
 		ageWidth    = 9
 		xidWidth    = 8
-		uuidWidth   = 10
 		statusWidth = 20
 	)
 
-	if m.apfsVolume == "" {
-		return []table.Column{
-			{Title: "DATE", Width: dateWidth},
-			{Title: "AGE", Width: ageWidth},
-		}
-	}
+	tw := m.snapTable.Width()
+	fixedWidth := dateWidth + ageWidth + xidWidth + statusWidth + ncols*colPad
+	uuidWidth := max(tw-fixedWidth, 10)
 
 	return []table.Column{
 		{Title: "DATE", Width: dateWidth},
