@@ -179,11 +179,11 @@ func (m Model) handleMouseClick(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case msg.Y >= m.logPanelY:
 		m.setFocusPanel(panelLog)
-		// Translate click Y to a log cursor position.
-		// +1 for the border top line, +1 for any padding offset.
-		row := msg.Y - m.logPanelY - 1 + m.logView.YOffset()
-		if row >= 0 && row < m.logCount {
-			m.logCursor = row
+		// Translate click Y to a visual line, then find the entry.
+		visualLine := msg.Y - m.logPanelY - 1 + m.logView.YOffset()
+		entry := logEntryAtVisualLine(m.logEntryY, visualLine)
+		if entry >= 0 && entry < m.logCount {
+			m.logCursor = entry
 			m.updateLogViewContent()
 		}
 	case msg.Y >= m.snapPanelY:
@@ -259,13 +259,17 @@ func (m *Model) moveLogCursor(delta int) {
 	m.logCursor = max(min(m.logCursor+delta, m.logCount-1), 0)
 	m.updateLogViewContent()
 
-	// Keep cursor visible in viewport.
+	// Keep cursor visible in viewport using visual line offsets.
+	if m.logCursor >= len(m.logEntryY) {
+		return
+	}
+	entryY := m.logEntryY[m.logCursor]
 	h := m.logView.Height()
 	offset := m.logView.YOffset()
-	if m.logCursor < offset {
-		m.logView.SetYOffset(m.logCursor)
-	} else if m.logCursor >= offset+h {
-		m.logView.SetYOffset(m.logCursor - h + 1)
+	if entryY < offset {
+		m.logView.SetYOffset(entryY)
+	} else if entryY >= offset+h {
+		m.logView.SetYOffset(entryY - h + 1)
 	}
 }
 
@@ -526,7 +530,8 @@ func (m *Model) snapTableColumns() []table.Column {
 
 // updateLogViewContent rebuilds the log viewport content.
 // Entries are shown newest first so both panels scroll the same direction.
-// The line at logCursor is rendered bold.
+// The line at logCursor is rendered bold. Long messages wrap within the
+// message column, with continuation lines indented to align.
 func (m *Model) updateLogViewContent() {
 	entries := m.log.Entries()
 	m.logCount = len(entries)
@@ -535,31 +540,79 @@ func (m *Model) updateLogViewContent() {
 	}
 
 	if m.logCount == 0 {
+		m.logEntryY = nil
 		m.logView.SetContent(m.styles.textDim.Render("(no log entries yet)"))
 		return
 	}
 
+	// Prefix: "15:04:05   TYPE     " = 8 + 3 + 7 + 3 = 21 chars.
+	const prefixW = 21
 	w := m.logView.Width()
+	msgW := w - prefixW
+	if msgW < 10 {
+		msgW = 10
+	}
+	indent := strings.Repeat(" ", prefixW)
+
+	m.logEntryY = make([]int, m.logCount)
 	var b strings.Builder
+	visualLine := 0
 	displayIdx := 0
 	for i := len(entries) - 1; i >= 0; i-- {
 		if displayIdx > 0 {
 			b.WriteByte('\n')
 		}
+		m.logEntryY[displayIdx] = visualLine
 		e := entries[i]
-		line := fmt.Sprintf("%-8s   %-7s   %s",
+		prefix := fmt.Sprintf("%-8s   %-7s   ",
 			e.Timestamp.Format("15:04:05"),
 			string(e.Type),
-			e.Message,
 		)
+
 		style := logEntryStyle(m.styles, e.Type)
 		if displayIdx == m.logCursor {
 			style = style.Bold(true)
 		}
-		b.WriteString(ansi.Truncate(style.Render(line), w, ""))
+
+		wrapped := ansi.Wordwrap(e.Message, msgW, "")
+		msgLines := strings.Split(wrapped, "\n")
+		for j, ml := range msgLines {
+			if j > 0 {
+				b.WriteByte('\n')
+			}
+			if j == 0 {
+				b.WriteString(style.Render(prefix + ml))
+			} else {
+				b.WriteString(style.Render(indent + ml))
+			}
+		}
+		visualLine += len(msgLines)
 		displayIdx++
 	}
 	m.logView.SetContent(b.String())
+}
+
+// logEntryAtVisualLine returns the entry index whose visual line range
+// contains the given visual line, using binary search on the sorted
+// logEntryY slice. Returns -1 if out of range.
+func logEntryAtVisualLine(entryY []int, line int) int {
+	if len(entryY) == 0 || line < 0 {
+		return -1
+	}
+	// Find the last entry whose start Y <= line.
+	lo, hi := 0, len(entryY)-1
+	for lo < hi {
+		mid := (lo + hi + 1) / 2
+		if entryY[mid] <= line {
+			lo = mid
+		} else {
+			hi = mid - 1
+		}
+	}
+	if entryY[lo] <= line {
+		return lo
+	}
+	return -1
 }
 
 // logEntryStyle returns the lipgloss style for the given log entry type.

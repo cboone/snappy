@@ -109,6 +109,7 @@ type Model struct {
 	logView    viewport.Model
 	logCursor  int
 	logCount   int
+	logEntryY  []int
 	spinner    spinner.Model
 	styles     modelStyles
 	loading    bool
