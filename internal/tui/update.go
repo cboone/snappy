@@ -497,8 +497,8 @@ func (m *Model) updateSnapViewContent() {
 // absorbing any remaining width so the table fills the panel.
 func (m *Model) snapTableColumns() []table.Column {
 	// Column.Width is the text content width. The Cell/Header styles add
-	// Padding(0,1) which contributes 2 extra rendered chars per column
-	// (1 left + 1 right).
+	// Padding(0, 3, 0, 0) which contributes 3 extra rendered chars per column
+	// (right padding only).
 	const (
 		colPad       = 3 // rendered padding per column (right only)
 		ncols        = 5

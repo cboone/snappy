@@ -171,6 +171,12 @@ func borderTitle(rendered, title string, borderFg lipgloss.Style) string {
 	}
 
 	topWidth := lipgloss.Width(lines[0])
+
+	// Truncate the title if it would exceed the available border width.
+	// Available space = topWidth - 4 (TopLeft + space + space + TopRight).
+	if maxTitle := topWidth - 4; maxTitle > 0 {
+		title = ansi.Truncate(title, maxTitle, "")
+	}
 	titleWidth := lipgloss.Width(title)
 
 	border := lipgloss.RoundedBorder()
