@@ -116,3 +116,9 @@ func refreshTick(interval time.Duration) tea.Cmd {
 		return RefreshTickMsg{}
 	})
 }
+
+func uiTick() tea.Cmd {
+	return tea.Tick(time.Second, func(_ time.Time) tea.Msg {
+		return UITickMsg{}
+	})
+}

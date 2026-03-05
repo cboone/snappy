@@ -5,6 +5,9 @@ import (
 	"github.com/cboone/snappy/internal/snapshot"
 )
 
+// UITickMsg drives a 1-second UI refresh so the countdown timer stays current.
+type UITickMsg struct{}
+
 // RefreshTickMsg signals that the periodic refresh timer has fired.
 type RefreshTickMsg struct{}
 
