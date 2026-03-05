@@ -12,6 +12,7 @@ type Snapshot struct {
 	Date         string
 	Time         time.Time
 	UUID         string
+	XID          int
 	Purgeable    bool
 	LimitsShrink bool
 }

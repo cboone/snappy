@@ -13,6 +13,7 @@ import (
 type SnapshotDetail struct {
 	Date         string
 	UUID         string
+	XID          int
 	Purgeable    bool
 	LimitsShrink bool
 }
@@ -34,6 +35,7 @@ type diskutilInfoPlist struct {
 type apfsSnapshotEntry struct {
 	SnapshotName            string      `plist:"SnapshotName"`
 	SnapshotUUID            string      `plist:"SnapshotUUID"`
+	SnapshotXID             int         `plist:"SnapshotXID"`
 	Purgeable               interface{} `plist:"Purgeable"`
 	LimitingContainerShrink interface{} `plist:"LimitingContainerShrink"`
 }
@@ -100,6 +102,7 @@ func GetSnapshotDetails(ctx context.Context, r CommandRunner, volume string) (de
 		details[date] = SnapshotDetail{
 			Date:         date,
 			UUID:         snap.SnapshotUUID,
+			XID:          snap.SnapshotXID,
 			Purgeable:    parseBoolish(snap.Purgeable),
 			LimitsShrink: parseBoolish(snap.LimitingContainerShrink),
 		}
