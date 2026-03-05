@@ -35,7 +35,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.BackgroundColorMsg:
 		m.hasDarkBG = msg.IsDark()
 		m.styles = newModelStyles(m.hasDarkBG)
-		m.help.Styles = helpStyles(m.hasDarkBG)
+		m.help.Styles = helpStyles(m.styles)
 		m.spinner.Style = m.styles.spinnerStyle
 		m.snapTable.SetStyles(m.styles.tableStyles)
 		m.updateSnapViewContent()
@@ -70,11 +70,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func helpStyles(hasDarkBG bool) help.Styles {
-	if hasDarkBG {
-		return help.DefaultDarkStyles()
+func helpStyles(s modelStyles) help.Styles {
+	keyStyle := s.helpBar.Bold(true)
+	descStyle := s.helpBar
+	sepStyle := s.helpBar.Faint(true)
+	return help.Styles{
+		ShortKey:       keyStyle,
+		ShortDesc:      descStyle,
+		ShortSeparator: sepStyle,
+		Ellipsis:       sepStyle,
+		FullKey:        keyStyle,
+		FullDesc:       descStyle,
+		FullSeparator:  sepStyle,
 	}
-	return help.DefaultLightStyles()
 }
 
 func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {

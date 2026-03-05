@@ -127,12 +127,11 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 	hasDarkBG := true
 
 	keys := defaultKeyMap()
+	styles := newModelStyles(hasDarkBG)
 
 	h := help.New()
 	h.SetWidth(80)
-	h.Styles = help.DefaultDarkStyles()
-
-	styles := newModelStyles(hasDarkBG)
+	h.Styles = helpStyles(styles)
 
 	st := table.New(
 		table.WithWidth(76),
