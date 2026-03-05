@@ -88,8 +88,9 @@ type Model struct {
 	prevSnapshots []snapshot.Snapshot
 
 	tmStatus    string
-	apfsVolume  string
-	volumeName  string
+	apfsVolume         string
+	volumeName         string
+	lastOtherSnapCount int
 	diskInfo    string
 	lastRefresh time.Time
 
@@ -107,9 +108,10 @@ type Model struct {
 	help       help.Model
 	snapTable  table.Model
 	logView    viewport.Model
-	logCursor  int
-	logCount   int
-	logEntryY  []int
+	logCursor      int
+	logCount       int
+	logEntryY      []int
+	logTotalLines  int
 	spinner    spinner.Model
 	styles     modelStyles
 	loading    bool

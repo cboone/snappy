@@ -181,7 +181,7 @@ func (m Model) handleMouseClick(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 		m.setFocusPanel(panelLog)
 		// Translate click Y to a visual line, then find the entry.
 		visualLine := msg.Y - m.logPanelY - 1 + m.logView.YOffset()
-		entry := logEntryAtVisualLine(m.logEntryY, visualLine)
+		entry := logEntryAtVisualLine(m.logEntryY, m.logTotalLines, visualLine)
 		if entry >= 0 && entry < m.logCount {
 			m.logCursor = entry
 			m.updateLogViewContent()
@@ -306,10 +306,11 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 
 	if msg.APFSInfo.Volume != "" {
 		m.apfsVolume = msg.APFSInfo.Volume
-		if msg.APFSInfo.OtherSnapCount > 0 {
+		if msg.APFSInfo.OtherSnapCount > 0 && msg.APFSInfo.OtherSnapCount != m.lastOtherSnapCount {
 			m.log.Log(logger.Info, fmt.Sprintf("Non-TM snapshots on %s: %d",
 				msg.APFSInfo.Volume, msg.APFSInfo.OtherSnapCount))
 		}
+		m.lastOtherSnapCount = msg.APFSInfo.OtherSnapCount
 	}
 
 	if msg.DiskErr {
@@ -586,14 +587,15 @@ func (m *Model) updateLogViewContent() {
 		visualLine += len(msgLines)
 		displayIdx++
 	}
+	m.logTotalLines = visualLine
 	m.logView.SetContent(b.String())
 }
 
 // logEntryAtVisualLine returns the entry index whose visual line range
 // contains the given visual line, using binary search on the sorted
 // logEntryY slice. Returns -1 if out of range.
-func logEntryAtVisualLine(entryY []int, line int) int {
-	if len(entryY) == 0 || line < 0 {
+func logEntryAtVisualLine(entryY []int, totalLines, line int) int {
+	if len(entryY) == 0 || line < 0 || line >= totalLines {
 		return -1
 	}
 	// Find the last entry whose start Y <= line.
