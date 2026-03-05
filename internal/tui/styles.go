@@ -77,8 +77,8 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 
 		spinnerStyle: lipgloss.NewStyle().Foreground(colorHighlight),
 		tableStyles: table.Styles{
-			Header:   lipgloss.NewStyle().Bold(true).Foreground(colorSubtle).Padding(0, 1),
-			Cell:     lipgloss.NewStyle().Padding(0, 1),
+			Header:   lipgloss.NewStyle().Bold(true).Foreground(colorSubtle).Padding(0, 3, 0, 0),
+			Cell:     lipgloss.NewStyle().Padding(0, 3, 0, 0),
 			Selected: lipgloss.NewStyle().Bold(true).Foreground(colorHighlight),
 		},
 	}

@@ -428,11 +428,11 @@ func (m *Model) snapTableColumns() []table.Column {
 	// Padding(0,1) which contributes 2 extra rendered chars per column
 	// (1 left + 1 right).
 	const (
-		colPad       = 2  // rendered padding per column
+		colPad       = 3  // rendered padding per column (right only)
 		ncols        = 5
 		dateWidth    = 19 // "2006-01-02 15:04:05"
 		ageWidth     = 5
-		xidWidth     = 8
+		xidWidth     = 7
 		uuidMinWidth = 9  // first UUID segment + ellipsis
 		uuidMaxWidth = 36 // full UUID
 		statusMin    = 20
