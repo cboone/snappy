@@ -1,7 +1,10 @@
 // Package tui implements the Bubbletea TUI for Snappy.
 package tui
 
-import "charm.land/lipgloss/v2"
+import (
+	"charm.land/bubbles/v2/table"
+	"charm.land/lipgloss/v2"
+)
 
 const (
 	indicatorOn      = "●"
@@ -28,8 +31,8 @@ type modelStyles struct {
 	helpBar      lipgloss.Style
 	statusOn     lipgloss.Style
 	statusOff    lipgloss.Style
-	snapNumber   lipgloss.Style
 	spinnerStyle lipgloss.Style
+	tableStyles  table.Styles
 }
 
 func newModelStyles(hasDarkBG bool) modelStyles {
@@ -74,8 +77,12 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 		statusOn:  lipgloss.NewStyle().Bold(true).Foreground(green),
 		statusOff: lipgloss.NewStyle().Bold(true).Foreground(red),
 
-		snapNumber:   lipgloss.NewStyle().Bold(true).Foreground(green),
 		spinnerStyle: lipgloss.NewStyle().Foreground(colorHighlight),
+		tableStyles: table.Styles{
+			Header:   lipgloss.NewStyle().Bold(true).Foreground(colorSubtle).Padding(0, 1),
+			Cell:     lipgloss.NewStyle().Padding(0, 1),
+			Selected: lipgloss.NewStyle().Bold(true).Foreground(colorHighlight),
+		},
 	}
 }
 

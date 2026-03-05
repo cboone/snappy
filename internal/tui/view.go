@@ -8,7 +8,6 @@ import (
 	"charm.land/lipgloss/v2"
 
 	"github.com/cboone/snappy/internal/logger"
-	"github.com/cboone/snappy/internal/snapshot"
 )
 
 // View renders the full TUI screen as a tea.View.
@@ -108,7 +107,7 @@ func (m Model) renderSnapshotPanel(width int) string {
 		style = m.styles.sectionFocus
 	}
 
-	rendered := style.Width(cw).Render(m.snapView.View())
+	rendered := style.Width(cw).Render(m.snapTable.View())
 	borderFg := lipgloss.NewStyle().Foreground(style.GetBorderTopForeground())
 	return borderTitle(rendered, title, borderFg)
 }
@@ -148,29 +147,6 @@ func (m Model) formatAutoStatus() string {
 	}
 	return label("Auto-snapshot:") + " " + indicatorOff + " " +
 		m.styles.statusOff.Render("off")
-}
-
-func (m Model) formatSnapshotLine(i, count int) string {
-	snap := m.snapshots[i]
-	now := m.now()
-	relative := snapshot.FormatRelativeTime(snap.Time, now)
-
-	number := m.styles.snapNumber.Render(fmt.Sprintf("%2d.", count-i))
-	timeStr := m.styles.textDim.Render(fmt.Sprintf("(%s)", relative))
-
-	details := ""
-	if m.apfsVolume != "" && snap.UUID != "" {
-		flags := indicatorPurge + " purgeable"
-		if !snap.Purgeable {
-			flags = m.styles.textYellow.Render(indicatorPinned + " pinned")
-		}
-		if snap.LimitsShrink {
-			flags += "  " + m.styles.textRed.Render(indicatorWarning+" limits shrink")
-		}
-		details = fmt.Sprintf("   %s   %s", snap.UUID, flags)
-	}
-
-	return fmt.Sprintf("%s  %s   %s%s", number, snap.Date, timeStr, details)
 }
 
 // borderTitle replaces the top border of a lipgloss-rendered bordered box

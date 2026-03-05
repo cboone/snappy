@@ -96,10 +96,10 @@ func TestViewWithSnapshots(t *testing.T) {
 	if !strings.Contains(v, "LOCAL SNAPSHOTS (3)") {
 		t.Error("view missing correct snapshot count")
 	}
-	if !strings.Contains(v, "2026-03-01-145000") {
+	if !strings.Contains(v, "2026-03-01 14:50:00") {
 		t.Error("view missing newest snapshot")
 	}
-	if !strings.Contains(v, "2026-03-01-143000") {
+	if !strings.Contains(v, "2026-03-01 14:30:00") {
 		t.Error("view missing oldest snapshot")
 	}
 }
@@ -125,10 +125,11 @@ func TestViewAllSnapshotsInViewport(t *testing.T) {
 	if !strings.Contains(v, "LOCAL SNAPSHOTS (6)") {
 		t.Error("view missing correct snapshot count")
 	}
-	// All 6 snapshots should be in the viewport content (no bookend/ellipsis)
+	// All 6 snapshots should be in the viewport content (no bookend/ellipsis).
 	for i, snap := range snaps {
-		if !strings.Contains(v, snap.Date) {
-			t.Errorf("snapshot %d (%s) missing from viewport", i, snap.Date)
+		formatted := snap.Time.Format("2006-01-02 15:04:05")
+		if !strings.Contains(v, formatted) {
+			t.Errorf("snapshot %d (%s) missing from viewport", i, formatted)
 		}
 	}
 }

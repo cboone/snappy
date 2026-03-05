@@ -44,9 +44,10 @@ linters:
       settings:
         hugeParam:
           # Bubbletea models use value receivers idiomatically.
-          # The threshold accounts for bubbles sub-models (viewport,
-          # help, spinner) which are large value types by design.
-          sizeThreshold: 24000
+          # The threshold accounts for bubbles sub-models (table,
+          # viewport, help, spinner) which are large value types
+          # by design.
+          sizeThreshold: 32000
 
     gocyclo:
       min-complexity: 15

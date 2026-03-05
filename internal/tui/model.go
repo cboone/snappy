@@ -6,6 +6,7 @@ import (
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/spinner"
+	"charm.land/bubbles/v2/table"
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 
@@ -99,7 +100,7 @@ type Model struct {
 
 	keys      keyMap
 	help      help.Model
-	snapView  viewport.Model
+	snapTable table.Model
 	logView   viewport.Model
 	spinner   spinner.Model
 	styles    modelStyles
@@ -124,10 +125,16 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 	h.SetWidth(80)
 	h.Styles = help.DefaultDarkStyles()
 
-	sv := viewport.New(viewport.WithWidth(76), viewport.WithHeight(10))
-	lv := viewport.New(viewport.WithWidth(76), viewport.WithHeight(10))
-
 	styles := newModelStyles(hasDarkBG)
+
+	st := table.New(
+		table.WithWidth(76),
+		table.WithHeight(10),
+		table.WithFocused(true),
+		table.WithStyles(styles.tableStyles),
+	)
+
+	lv := viewport.New(viewport.WithWidth(76), viewport.WithHeight(10))
 
 	s := spinner.New(
 		spinner.WithSpinner(spinner.Dot),
@@ -149,7 +156,7 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 		height:     24,
 		keys:       keys,
 		help:       h,
-		snapView:   sv,
+		snapTable:  st,
 		logView:    lv,
 		spinner:    s,
 		styles:     styles,

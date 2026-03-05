@@ -7,6 +7,7 @@ import (
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/spinner"
+	"charm.land/bubbles/v2/table"
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/cboone/snappy/internal/logger"
@@ -31,6 +32,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.styles = newModelStyles(m.hasDarkBG)
 		m.help.Styles = helpStyles(m.hasDarkBG)
 		m.spinner.Style = m.styles.spinnerStyle
+		m.snapTable.SetStyles(m.styles.tableStyles)
 		m.updateSnapViewContent()
 		m.updateLogViewContent()
 		return m, nil
@@ -75,7 +77,8 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 
 	// Fixed-height rows: info panel + snap/log chrome + help bar.
 	// Info panel: 2 borders + body lines (4 base, +1 if APFS volume present).
-	// Snap & log panels: 2 borders + 1 section title each = 3 each.
+	// Snap panel: 2 borders + 1 table header row = 3.
+	// Log panel: 2 borders + 1 section title = 3.
 	// Help bar: 1.
 	infoBody := 4
 	if m.apfsVolume != "" {
@@ -88,8 +91,8 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	m.snapPanelY = infoHeight
 	m.logPanelY = infoHeight + 3 + snapH
 
-	m.snapView.SetWidth(cw)
-	m.snapView.SetHeight(snapH)
+	m.snapTable.SetWidth(cw)
+	m.snapTable.SetHeight(snapH)
 	m.logView.SetWidth(cw)
 	m.logView.SetHeight(logH)
 
@@ -145,6 +148,11 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 	case key.Matches(msg, m.keys.Tab):
 		m.focusLog = !m.focusLog
+		if m.focusLog {
+			m.snapTable.Blur()
+		} else {
+			m.snapTable.Focus()
+		}
 		return m, nil
 
 	case key.Matches(msg, m.keys.ScrollUp, m.keys.ScrollDown):
@@ -155,13 +163,22 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleMouseWheel(msg tea.MouseWheelMsg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
 	if msg.Y >= m.logPanelY {
+		var cmd tea.Cmd
 		m.logView, cmd = m.logView.Update(msg)
-	} else if msg.Y >= m.snapPanelY {
-		m.snapView, cmd = m.snapView.Update(msg)
+		return m, cmd
 	}
-	return m, cmd
+	if msg.Y >= m.snapPanelY {
+		// The table component does not handle mouse events, so
+		// translate wheel direction into cursor movement.
+		switch msg.Button {
+		case tea.MouseWheelUp:
+			m.snapTable.MoveUp(1)
+		case tea.MouseWheelDown:
+			m.snapTable.MoveDown(1)
+		}
+	}
+	return m, nil
 }
 
 func (m Model) handleScroll(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
@@ -171,7 +188,7 @@ func (m Model) handleScroll(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	}
 	var cmd tea.Cmd
-	m.snapView, cmd = m.snapView.Update(msg)
+	m.snapTable, cmd = m.snapTable.Update(msg)
 	return m, cmd
 }
 
@@ -368,23 +385,77 @@ func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
 	return m, doRefresh(m.runner, m.cfg, m.apfsVolume)
 }
 
-// updateSnapViewContent rebuilds and sets the snapshot list content on the
-// viewport. All snapshots are listed (newest first) for scrolling.
+// updateSnapViewContent rebuilds columns and rows on the snapshot table.
+// All snapshots are listed (newest first) for scrolling.
 func (m *Model) updateSnapViewContent() {
+	cols := m.snapTableColumns()
+	m.snapTable.SetColumns(cols)
+
 	count := len(m.snapshots)
 	if count == 0 {
-		m.snapView.SetContent(m.styles.textDim.Render("(none, press 's' to create the first snapshot)"))
+		row := make(table.Row, len(cols))
+		row[0] = "(none, press 's' to create the first snapshot)"
+		m.snapTable.SetRows([]table.Row{row})
 		return
 	}
 
-	var b strings.Builder
+	rows := make([]table.Row, 0, count)
+	now := m.now()
 	for i := count - 1; i >= 0; i-- {
-		if i < count-1 {
-			b.WriteByte('\n')
+		snap := m.snapshots[i]
+		date := snap.Time.Format("2006-01-02 15:04:05")
+		age := snapshot.FormatRelativeTime(snap.Time, now)
+
+		if m.apfsVolume != "" && snap.UUID != "" {
+			xid := fmt.Sprintf("%d", snap.XID)
+			flags := indicatorPurge + " purgeable"
+			if !snap.Purgeable {
+				flags = indicatorPinned + " pinned"
+			}
+			if snap.LimitsShrink {
+				flags += "  " + indicatorWarning + " limits shrink"
+			}
+			rows = append(rows, table.Row{date, age, xid, snap.UUID, flags})
+		} else {
+			row := make(table.Row, len(cols))
+			row[0] = date
+			row[1] = age
+			rows = append(rows, row)
 		}
-		b.WriteString(m.formatSnapshotLine(i, count))
 	}
-	m.snapView.SetContent(b.String())
+	m.snapTable.SetRows(rows)
+}
+
+// snapTableColumns returns the column definitions for the snapshot table,
+// sized to fit the current terminal width. APFS columns are included only
+// when an APFS volume is configured.
+func (m *Model) snapTableColumns() []table.Column {
+	// Column.Width is the text content width. The Cell/Header styles add
+	// Padding(0,1) which contributes 2 extra rendered chars per column
+	// (1 left + 1 right). Widths below are sized so the total rendered
+	// row (content + padding) fits comfortably at 80 columns.
+	const (
+		dateWidth   = 19 // "2006-01-02 15:04:05"
+		ageWidth    = 9
+		xidWidth    = 8
+		uuidWidth   = 10
+		statusWidth = 20
+	)
+
+	if m.apfsVolume == "" {
+		return []table.Column{
+			{Title: "DATE", Width: dateWidth},
+			{Title: "AGE", Width: ageWidth},
+		}
+	}
+
+	return []table.Column{
+		{Title: "DATE", Width: dateWidth},
+		{Title: "AGE", Width: ageWidth},
+		{Title: "XID", Width: xidWidth},
+		{Title: "UUID", Width: uuidWidth},
+		{Title: "STATUS", Width: statusWidth},
+	}
 }
 
 // updateLogViewContent rebuilds and sets the log content on the viewport.
