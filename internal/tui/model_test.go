@@ -547,6 +547,46 @@ func TestLogViewShowsNewestFirst(t *testing.T) {
 	}
 }
 
+func TestMouseClickSnapshotSelectsTopVisibleRowWhenTableIsOffset(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	for i := range 8 {
+		d := now.Add(-time.Duration(8-i) * time.Minute)
+		m.snapshots = append(m.snapshots, snapshot.Snapshot{
+			Date:      d.Format("2006-01-02-150405"),
+			Time:      d,
+			UUID:      fmt.Sprintf("00000000-0000-0000-0000-%012d", i+1),
+			XID:       1547200 + i,
+			Purgeable: true,
+		})
+	}
+	m.updateSnapViewContent()
+
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 16})
+	model := updated.(Model)
+
+	for range 2 {
+		updated, _ = model.Update(tea.KeyPressMsg{Code: 'j', Text: "j"})
+		model = updated.(Model)
+	}
+
+	if got := model.snapTable.Cursor(); got != 2 {
+		t.Fatalf("cursor before click = %d, want 2", got)
+	}
+
+	updated, _ = model.Update(tea.MouseClickMsg{
+		Button: tea.MouseLeft,
+		Y:      model.snapPanelY + 2,
+	})
+	model = updated.(Model)
+
+	if got := model.snapTable.Cursor(); got != 1 {
+		t.Fatalf("cursor after click = %d, want 1 (top visible row)", got)
+	}
+}
+
 func TestSnapshotPanelKeepsViewportHeightWhenEmpty(t *testing.T) {
 	m := testModel()
 	updated, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 40})

@@ -188,13 +188,10 @@ func (m Model) handleMouseClick(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 		}
 	case msg.Y >= m.snapPanelY:
 		m.setFocusPanel(panelSnap)
-		// Translate click Y to a table row. The table has a 1-line
+		// Translate click Y to a visible table line. The table has a 1-line
 		// header inside the bordered panel (+1 border top, +1 header).
-		// The table's internal start = max(cursor - viewportHeight, 0).
-		vh := m.snapTable.Height()
-		start := max(m.snapTable.Cursor()-vh, 0)
-		row := start + msg.Y - m.snapPanelY - 2
-		if row >= 0 && row < len(m.snapshots) {
+		line := msg.Y - m.snapPanelY - 2
+		if row := m.snapRowAtVisualLine(line); row >= 0 {
 			m.snapTable.SetCursor(row)
 		}
 	default:
@@ -611,6 +608,36 @@ func logEntryAtVisualLine(entryY []int, line int) int {
 	}
 	if entryY[lo] <= line {
 		return lo
+	}
+	return -1
+}
+
+// snapRowAtVisualLine returns the snapshot row index shown at the given
+// viewport visual line, excluding the table header line. Returns -1 if
+// out of range or if the line doesn't map to a snapshot row.
+func (m Model) snapRowAtVisualLine(line int) int {
+	if line < 0 {
+		return -1
+	}
+
+	lines := strings.Split(m.snapTable.View(), "\n")
+	rowLine := line + 1 // Skip table header.
+	if rowLine >= len(lines) {
+		return -1
+	}
+
+	const dateWidth = len("2006-01-02 15:04:05")
+	text := strings.TrimSpace(ansi.Strip(lines[rowLine]))
+	if len(text) < dateWidth {
+		return -1
+	}
+
+	date := text[:dateWidth]
+	rows := m.snapTable.Rows()
+	for i := range rows {
+		if len(rows[i]) > 0 && rows[i][0] == date {
+			return i
+		}
 	}
 	return -1
 }
