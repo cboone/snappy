@@ -13,10 +13,6 @@ import (
 
 // View renders the full TUI screen as a tea.View.
 func (m Model) View() tea.View {
-	if m.quitting {
-		return tea.NewView("")
-	}
-
 	w := m.width
 	if w == 0 {
 		w = 80
@@ -35,8 +31,10 @@ func (m Model) View() tea.View {
 	)
 
 	v := tea.NewView(content)
-	v.AltScreen = true
-	v.MouseMode = tea.MouseModeCellMotion
+	if !m.quitting {
+		v.AltScreen = true
+		v.MouseMode = tea.MouseModeCellMotion
+	}
 	return v
 }
 

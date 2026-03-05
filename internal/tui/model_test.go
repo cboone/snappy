@@ -153,8 +153,11 @@ func TestViewQuitting(t *testing.T) {
 	m := testModel()
 	m.quitting = true
 	v := m.View()
-	if v.Content != "" {
-		t.Errorf("View() when quitting = %q, want empty", v.Content)
+	if v.AltScreen {
+		t.Error("View() when quitting should not use alt screen")
+	}
+	if v.Content == "" {
+		t.Error("View() when quitting should render final frame")
 	}
 }
 
