@@ -532,7 +532,7 @@ func TestViewFullHeight(t *testing.T) {
 	}
 }
 
-func TestLogViewportAutoScrollsToNewest(t *testing.T) {
+func TestLogViewportShowsNewestFirst(t *testing.T) {
 	m := testModel()
 	m.logView.SetHeight(3)
 
@@ -541,15 +541,14 @@ func TestLogViewportAutoScrollsToNewest(t *testing.T) {
 	}
 	m.updateLogViewContent()
 
-	// Chronological order: oldest at top, newest at bottom.
-	// GotoBottom should scroll so the newest entry is visible.
-	if m.logView.YOffset() == 0 {
-		t.Fatal("log viewport y-offset = 0, expected scrolled to bottom for newest entries")
+	// Newest-first order: newest at top, viewport stays at top.
+	if m.logView.YOffset() != 0 {
+		t.Fatalf("log viewport y-offset = %d, expected 0 (top)", m.logView.YOffset())
 	}
 
 	v := m.logView.View()
 	if !strings.Contains(v, "entry-7") {
-		t.Fatal("expected newest log entry to be visible")
+		t.Fatal("expected newest log entry to be visible at top")
 	}
 }
 

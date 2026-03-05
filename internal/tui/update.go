@@ -382,7 +382,7 @@ func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
 }
 
 // updateSnapViewContent rebuilds columns and rows on the snapshot table.
-// All snapshots are listed (newest first) for scrolling.
+// Snapshots are listed newest first so both panels scroll the same direction.
 func (m *Model) updateSnapViewContent() {
 	cols := m.snapTableColumns()
 	m.snapTable.SetColumns(cols)
@@ -449,8 +449,7 @@ func (m *Model) snapTableColumns() []table.Column {
 }
 
 // updateLogViewContent rebuilds and sets the log content on the viewport.
-// Entries are shown in chronological order (oldest first); the viewport
-// auto-scrolls to the bottom so the newest entry is always visible.
+// Entries are shown newest first so both panels scroll the same direction.
 func (m *Model) updateLogViewContent() {
 	entries := m.log.Entries()
 	if len(entries) == 0 {
@@ -460,12 +459,12 @@ func (m *Model) updateLogViewContent() {
 
 	w := m.logView.Width()
 	var b strings.Builder
-	for i, entry := range entries {
-		if i > 0 {
+	for i := len(entries) - 1; i >= 0; i-- {
+		if i < len(entries)-1 {
 			b.WriteByte('\n')
 		}
-		b.WriteString(ansi.Truncate(m.colorizeLogEntry(entry), w, ""))
+		b.WriteString(ansi.Truncate(m.colorizeLogEntry(entries[i]), w, ""))
 	}
 	m.logView.SetContent(b.String())
-	m.logView.GotoBottom()
+	m.logView.GotoTop()
 }
