@@ -259,13 +259,8 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 	m.prevSnapshots = prev
 	m.snapshots = msg.Snapshots
 
-	m.diffAdded = 0
-	m.diffRemoved = 0
-
 	if len(prev) > 0 || len(msg.Snapshots) > 0 {
 		diff := snapshot.ComputeDiff(prev, msg.Snapshots)
-		m.diffAdded = len(diff.Added)
-		m.diffRemoved = len(diff.Removed)
 
 		for _, s := range diff.Added {
 			m.log.Log(logger.Added, "Snapshot appeared: "+s.Date)

@@ -79,8 +79,6 @@ type Model struct {
 
 	snapshots     []snapshot.Snapshot
 	prevSnapshots []snapshot.Snapshot
-	diffAdded     int
-	diffRemoved   int
 
 	tmStatus    string
 	apfsVolume  string

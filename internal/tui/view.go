@@ -97,12 +97,7 @@ func (m Model) renderSnapshotPanel(width int) string {
 	sw := contentWidth(width) + 4
 	count := len(m.snapshots)
 
-	diffSummary := ""
-	if m.diffAdded > 0 || m.diffRemoved > 0 {
-		diffSummary = fmt.Sprintf("  [+%d added, %d removed]", m.diffAdded, m.diffRemoved)
-	}
-
-	title := m.styles.sectionTitle.Render(fmt.Sprintf("LOCAL SNAPSHOTS (%d)", count)) + diffSummary
+	title := m.styles.sectionTitle.Render(fmt.Sprintf("local snapshots (%d)", count))
 
 	style := m.styles.section
 	if !m.focusLog {
@@ -116,7 +111,7 @@ func (m Model) renderSnapshotPanel(width int) string {
 
 func (m Model) renderLogPanel(width int) string {
 	sw := contentWidth(width) + 4
-	title := m.styles.sectionTitle.Render("RECENT LOG")
+	title := m.styles.sectionTitle.Render("recent log")
 
 	style := m.styles.section
 	if m.focusLog {

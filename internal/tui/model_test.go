@@ -69,7 +69,7 @@ func TestViewEmpty(t *testing.T) {
 	if !strings.Contains(v, "snappy") {
 		t.Error("view missing snappy title")
 	}
-	if !strings.Contains(v, "LOCAL SNAPSHOTS (0)") {
+	if !strings.Contains(v, "local snapshots (0)") {
 		t.Error("view missing snapshot count")
 	}
 	if !strings.Contains(v, "press 's'") {
@@ -97,7 +97,7 @@ func TestViewWithSnapshots(t *testing.T) {
 
 	v := viewContent(m)
 
-	if !strings.Contains(v, "LOCAL SNAPSHOTS (3)") {
+	if !strings.Contains(v, "local snapshots (3)") {
 		t.Error("view missing correct snapshot count")
 	}
 	if !strings.Contains(v, "2026-03-01 14:50:00") {
@@ -137,7 +137,7 @@ func TestViewAllSnapshotsInViewport(t *testing.T) {
 
 	v := viewContent(m)
 
-	if !strings.Contains(v, "LOCAL SNAPSHOTS (6)") {
+	if !strings.Contains(v, "local snapshots (6)") {
 		t.Error("view missing correct snapshot count")
 	}
 	// All 6 snapshots should be in the viewport content (no bookend/ellipsis).
@@ -425,18 +425,6 @@ func TestExactlyFourSnapshots(t *testing.T) {
 	}
 }
 
-func TestDiffDisplay(t *testing.T) {
-	m := testModel()
-	m.diffAdded = 2
-	m.diffRemoved = 1
-	v := viewContent(m)
-	if !strings.Contains(v, "+2 added") {
-		t.Error("view missing diff added count")
-	}
-	if !strings.Contains(v, "1 removed") {
-		t.Error("view missing diff removed count")
-	}
-}
 
 func TestSnapshotKeyIgnoredWhileSnapshotting(t *testing.T) {
 	m := testModel()

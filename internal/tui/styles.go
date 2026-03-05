@@ -39,6 +39,8 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 	colorBorder := lightDark(lipgloss.Color("245"), lipgloss.Color("240"))
 	colorHighlight := lightDark(lipgloss.Color("26"), lipgloss.Color("110"))
 	colorSubtle := lightDark(lipgloss.Color("241"), lipgloss.Color("243"))
+	colorLabel := lightDark(lipgloss.Color("240"), lipgloss.Color("248"))
+	colorHeading := lightDark(lipgloss.Color("245"), lipgloss.Color("243"))
 	green := lipgloss.Green
 	yellow := lipgloss.Yellow
 	red := lipgloss.Red
@@ -47,7 +49,7 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 
 	return modelStyles{
 		textDim:     lipgloss.NewStyle().Faint(true),
-		infoLabel:   lipgloss.NewStyle().Foreground(lightDark(lipgloss.Color("240"), lipgloss.Color("248"))),
+		infoLabel:   lipgloss.NewStyle().Foreground(colorLabel),
 		textGreen:   lipgloss.NewStyle().Foreground(green),
 		textYellow:  lipgloss.NewStyle().Foreground(yellow),
 		textRed:     lipgloss.NewStyle().Foreground(red),
@@ -65,8 +67,7 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 			Padding(0, 1),
 
 		sectionTitle: lipgloss.NewStyle().
-			Bold(true).
-			Foreground(colorHighlight),
+			Bold(true),
 
 		helpBar: lipgloss.NewStyle().
 			Foreground(colorSubtle).
@@ -77,7 +78,7 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 
 		spinnerStyle: lipgloss.NewStyle().Foreground(colorHighlight),
 		tableStyles: table.Styles{
-			Header:   lipgloss.NewStyle().Bold(true).Foreground(colorSubtle).Padding(0, 3, 0, 0),
+			Header:   lipgloss.NewStyle().Bold(true).Foreground(colorHeading).Padding(0, 3, 0, 0),
 			Cell:     lipgloss.NewStyle().Padding(0, 3, 0, 0),
 			Selected: lipgloss.NewStyle().Bold(true).Foreground(colorHighlight),
 		},
