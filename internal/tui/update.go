@@ -20,6 +20,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		return m.handleKey(msg)
 
+	case tea.MouseWheelMsg:
+		return m.handleMouseWheel(msg)
+
 	case tea.WindowSizeMsg:
 		return m.handleWindowSize(msg)
 
@@ -78,8 +81,12 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	if m.apfsVolume != "" {
 		infoBody++
 	}
-	fixedHeight := (2 + infoBody) + 3 + 3 + 1
+	infoHeight := 2 + infoBody
+	fixedHeight := infoHeight + 3 + 3 + 1
 	snapH, logH := flexPanelHeights(m.height, fixedHeight)
+
+	m.snapPanelY = infoHeight
+	m.logPanelY = infoHeight + 3 + snapH
 
 	m.snapView.SetWidth(cw)
 	m.snapView.SetHeight(snapH)
@@ -145,6 +152,16 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+func (m Model) handleMouseWheel(msg tea.MouseWheelMsg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	if msg.Y >= m.logPanelY {
+		m.logView, cmd = m.logView.Update(msg)
+	} else if msg.Y >= m.snapPanelY {
+		m.snapView, cmd = m.snapView.Update(msg)
+	}
+	return m, cmd
 }
 
 func (m Model) handleScroll(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {

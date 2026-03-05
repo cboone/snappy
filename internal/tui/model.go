@@ -107,6 +107,9 @@ type Model struct {
 	focusLog  bool
 	hasDarkBG bool
 
+	snapPanelY int
+	logPanelY  int
+
 	now func() time.Time
 }
 
