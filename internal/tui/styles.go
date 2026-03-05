@@ -35,18 +35,18 @@ type modelStyles struct {
 func newModelStyles(hasDarkBG bool) modelStyles {
 	lightDark := lipgloss.LightDark(hasDarkBG)
 
-	colorBorder := lightDark(lipgloss.Color("#888888"), lipgloss.Color("#555555"))
-	colorHighlight := lightDark(lipgloss.Color("#0066cc"), lipgloss.Color("#88c0d0"))
-	colorSubtle := lightDark(lipgloss.Color("#666666"), lipgloss.Color("#777777"))
-	green := lipgloss.Color("2")
-	yellow := lipgloss.Color("3")
-	red := lipgloss.Color("1")
-	cyan := lipgloss.Color("6")
-	magenta := lipgloss.Color("5")
+	colorBorder := lightDark(lipgloss.Color("245"), lipgloss.Color("240"))
+	colorHighlight := lightDark(lipgloss.Color("26"), lipgloss.Color("110"))
+	colorSubtle := lightDark(lipgloss.Color("241"), lipgloss.Color("243"))
+	green := lipgloss.Green
+	yellow := lipgloss.Yellow
+	red := lipgloss.Red
+	cyan := lipgloss.Cyan
+	magenta := lipgloss.Magenta
 
 	return modelStyles{
 		textDim:     lipgloss.NewStyle().Faint(true),
-		infoLabel:   lipgloss.NewStyle().Foreground(lightDark(lipgloss.Color("#555555"), lipgloss.Color("#aaaaaa"))),
+		infoLabel:   lipgloss.NewStyle().Foreground(lightDark(lipgloss.Color("240"), lipgloss.Color("248"))),
 		textGreen:   lipgloss.NewStyle().Foreground(green),
 		textYellow:  lipgloss.NewStyle().Foreground(yellow),
 		textRed:     lipgloss.NewStyle().Foreground(red),
