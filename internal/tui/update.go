@@ -70,9 +70,15 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	cw := contentWidth(m.width)
 	m.help.SetWidth(m.width)
 
-	// Fixed heights: title(1) + info(~7 with border) + section titles(2 each)
-	// + borders(4 for 2 panels) + help(1) = ~19
-	fixedHeight := 19
+	// Fixed-height rows: info panel + snap/log chrome + help bar.
+	// Info panel: 2 borders + body lines (4 base, +1 if APFS volume present).
+	// Snap & log panels: 2 borders + 1 section title each = 3 each.
+	// Help bar: 1.
+	infoBody := 4
+	if m.apfsVolume != "" {
+		infoBody++
+	}
+	fixedHeight := (2 + infoBody) + 3 + 3 + 1
 	snapH, logH := flexPanelHeights(m.height, fixedHeight)
 
 	m.snapView.SetWidth(cw)
