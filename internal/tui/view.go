@@ -103,26 +103,29 @@ func (m Model) renderSnapshotPanel(width int) string {
 
 	title := m.styles.sectionTitle.Render(fmt.Sprintf("LOCAL SNAPSHOTS (%d)", count)) + diffSummary
 
-	body := title + "\n" + m.snapView.View()
-
 	style := m.styles.section
 	if !m.focusLog {
 		style = m.styles.sectionFocus
 	}
-	return style.Width(cw).Render(body)
+
+	rendered := style.Width(cw).Render(m.snapView.View())
+	borderFg := lipgloss.NewStyle().Foreground(style.GetBorderTopForeground())
+	return borderTitle(rendered, title, borderFg)
 }
 
 func (m Model) renderLogPanel(width int) string {
 	cw := contentWidth(width)
 
 	title := m.styles.sectionTitle.Render("RECENT LOG")
-	body := title + "\n" + m.logView.View()
 
 	style := m.styles.section
 	if m.focusLog {
 		style = m.styles.sectionFocus
 	}
-	return style.Width(cw).Render(body)
+
+	rendered := style.Width(cw).Render(m.logView.View())
+	borderFg := lipgloss.NewStyle().Foreground(style.GetBorderTopForeground())
+	return borderTitle(rendered, title, borderFg)
 }
 
 func (m Model) renderHelpBar(_ int) string {
