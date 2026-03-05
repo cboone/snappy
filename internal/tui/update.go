@@ -9,6 +9,7 @@ import (
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/table"
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/cboone/snappy/internal/logger"
 	"github.com/cboone/snappy/internal/snapshot"
@@ -406,19 +407,15 @@ func (m *Model) updateSnapViewContent() {
 		date := snap.Time.Format("2006-01-02 15:04:05")
 		age := snapshot.FormatRelativeTime(snap.Time, now)
 
-		var xid, uuid, flags string
+		var xid, uuid, status string
 		if snap.UUID != "" {
 			xid = fmt.Sprintf("%d", snap.XID)
 			uuid = snap.UUID
-			flags = indicatorPurge + " purgeable"
-			if !snap.Purgeable {
-				flags = indicatorPinned + " pinned"
-			}
 			if snap.LimitsShrink {
-				flags += "  " + indicatorWarning + " limits shrink"
+				status = indicatorWarning + " limits shrink"
 			}
 		}
-		rows = append(rows, table.Row{date, age, xid, uuid, flags})
+		rows = append(rows, table.Row{date, age, xid, uuid, status})
 	}
 	m.snapTable.SetRows(rows)
 }
@@ -431,17 +428,21 @@ func (m *Model) snapTableColumns() []table.Column {
 	// Padding(0,1) which contributes 2 extra rendered chars per column
 	// (1 left + 1 right).
 	const (
-		colPad      = 2  // rendered padding per column
-		ncols       = 5
-		dateWidth   = 19 // "2006-01-02 15:04:05"
-		ageWidth    = 9
-		xidWidth    = 8
-		statusWidth = 20
+		colPad       = 2  // rendered padding per column
+		ncols        = 5
+		dateWidth    = 19 // "2006-01-02 15:04:05"
+		ageWidth     = 9
+		xidWidth     = 8
+		uuidMinWidth = 9  // first UUID segment + ellipsis
+		uuidMaxWidth = 36 // full UUID
+		statusMin    = 20
 	)
 
 	tw := m.snapTable.Width()
-	fixedWidth := dateWidth + ageWidth + xidWidth + statusWidth + ncols*colPad
-	uuidWidth := max(tw-fixedWidth, 10)
+	fixedWidth := dateWidth + ageWidth + xidWidth + ncols*colPad
+	remaining := tw - fixedWidth
+	uuidWidth := min(max(remaining-statusMin, uuidMinWidth), uuidMaxWidth)
+	statusWidth := max(remaining-uuidWidth, 0)
 
 	return []table.Column{
 		{Title: "DATE", Width: dateWidth},
@@ -462,12 +463,13 @@ func (m *Model) updateLogViewContent() {
 		return
 	}
 
+	w := m.logView.Width()
 	var b strings.Builder
 	for i, entry := range entries {
 		if i > 0 {
 			b.WriteByte('\n')
 		}
-		b.WriteString(m.colorizeLogEntry(entry))
+		b.WriteString(ansi.Truncate(m.colorizeLogEntry(entry), w, ""))
 	}
 	m.logView.SetContent(b.String())
 	m.logView.GotoBottom()

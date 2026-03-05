@@ -6,6 +6,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/cboone/snappy/internal/logger"
 )
@@ -83,16 +84,19 @@ func (m Model) renderInfoPanel(width int) string {
 			label("Last:") + " " + lastRefresh,
 		m.formatAutoStatus(),
 	}
+	for i, line := range lines {
+		lines[i] = ansi.Truncate(line, cw, "")
+	}
 
 	body := strings.Join(lines, "\n")
-	rendered := m.styles.section.Width(cw).Render(body)
+	rendered := m.styles.section.Width(cw + 4).Render(body)
 
 	borderFg := lipgloss.NewStyle().Foreground(m.styles.section.GetBorderTopForeground())
 	return borderTitle(rendered, title, borderFg)
 }
 
 func (m Model) renderSnapshotPanel(width int) string {
-	cw := contentWidth(width)
+	sw := contentWidth(width) + 4
 	count := len(m.snapshots)
 
 	diffSummary := ""
@@ -107,14 +111,13 @@ func (m Model) renderSnapshotPanel(width int) string {
 		style = m.styles.sectionFocus
 	}
 
-	rendered := style.Width(cw).Render(m.snapTable.View())
+	rendered := style.Width(sw).Render(m.snapTable.View())
 	borderFg := lipgloss.NewStyle().Foreground(style.GetBorderTopForeground())
 	return borderTitle(rendered, title, borderFg)
 }
 
 func (m Model) renderLogPanel(width int) string {
-	cw := contentWidth(width)
-
+	sw := contentWidth(width) + 4
 	title := m.styles.sectionTitle.Render("RECENT LOG")
 
 	style := m.styles.section
@@ -122,7 +125,7 @@ func (m Model) renderLogPanel(width int) string {
 		style = m.styles.sectionFocus
 	}
 
-	rendered := style.Width(cw).Render(m.logView.View())
+	rendered := style.Width(sw).Render(m.logView.View())
 	borderFg := lipgloss.NewStyle().Foreground(style.GetBorderTopForeground())
 	return borderTitle(rendered, title, borderFg)
 }
