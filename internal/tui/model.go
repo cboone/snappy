@@ -171,13 +171,10 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 // Init returns the initial commands: a refresh, a tick timer, and a
 // background color request.
 func (m Model) Init() tea.Cmd {
-	cmds := []tea.Cmd{
+	return tea.Batch(
 		doRefresh(m.runner, m.cfg, m.apfsVolume),
 		refreshTick(m.cfg.RefreshInterval),
 		tea.RequestBackgroundColor,
-	}
-	if m.auto.Enabled() {
-		cmds = append(cmds, uiTick())
-	}
-	return tea.Batch(cmds...)
+		uiTick(),
+	)
 }

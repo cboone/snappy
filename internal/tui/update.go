@@ -47,10 +47,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case UITickMsg:
-		if m.auto.Enabled() {
-			return m, uiTick()
-		}
-		return m, nil
+		m.updateSnapViewContent()
+		return m, uiTick()
 
 	case RefreshTickMsg:
 		return m.handleTick()
@@ -144,9 +142,6 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			m.log.Log(logger.Info, "Auto-snapshots disabled")
 		}
 		m.updateLogViewContent()
-		if enabled {
-			return m, uiTick()
-		}
 		return m, nil
 
 	case key.Matches(msg, m.keys.Quit):
