@@ -85,14 +85,14 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 }
 
 // contentWidth returns the usable text width inside a bordered, padded
-// section. The floor (56) guarantees all five table columns fit at
-// minimum widths (DATE 19 + AGE 9 + XID 8 + UUID 9 + STATUS 1 + 10 pad).
+// section. The floor (52) guarantees all five table columns fit at
+// minimum widths (DATE 19 + AGE 5 + XID 8 + UUID 9 + STATUS 1 + 10 pad).
 // Render functions derive section Width as cw + 4 so lipgloss wraps at
 // exactly this content width.
 func contentWidth(termWidth int) int {
 	w := termWidth - 4
-	if w < 56 {
-		return 56
+	if w < 52 {
+		return 52
 	}
 	return w
 }

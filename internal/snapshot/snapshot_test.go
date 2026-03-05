@@ -78,29 +78,29 @@ func TestFormatRelativeTime(t *testing.T) {
 		want string
 	}{
 		{
-			name: "seconds ago",
+			name: "seconds",
 			t:    now.Add(-30 * time.Second),
-			want: "30s ago",
+			want: "30s",
 		},
 		{
 			name: "zero seconds",
 			t:    now,
-			want: "0s ago",
+			want: "0s",
 		},
 		{
-			name: "minutes ago",
+			name: "minutes",
 			t:    now.Add(-3 * time.Minute),
-			want: "3m ago",
+			want: "3m",
 		},
 		{
-			name: "hours ago",
+			name: "hours",
 			t:    now.Add(-2 * time.Hour),
-			want: "2h ago",
+			want: "2h",
 		},
 		{
-			name: "days ago",
+			name: "days",
 			t:    now.Add(-48 * time.Hour),
-			want: "2d ago",
+			want: "2d",
 		},
 		{
 			name: "future",
@@ -110,22 +110,47 @@ func TestFormatRelativeTime(t *testing.T) {
 		{
 			name: "just under a minute",
 			t:    now.Add(-59 * time.Second),
-			want: "59s ago",
+			want: "59s",
 		},
 		{
 			name: "exactly one minute",
 			t:    now.Add(-60 * time.Second),
-			want: "1m ago",
+			want: "1m",
 		},
 		{
 			name: "just under an hour",
 			t:    now.Add(-59 * time.Minute),
-			want: "59m ago",
+			want: "59m",
 		},
 		{
 			name: "exactly one hour",
 			t:    now.Add(-60 * time.Minute),
-			want: "1h ago",
+			want: "1h",
+		},
+		{
+			name: "six days",
+			t:    now.Add(-6 * 24 * time.Hour),
+			want: "6d",
+		},
+		{
+			name: "one week",
+			t:    now.Add(-7 * 24 * time.Hour),
+			want: "1w",
+		},
+		{
+			name: "three weeks",
+			t:    now.Add(-21 * 24 * time.Hour),
+			want: "3w",
+		},
+		{
+			name: "one month",
+			t:    now.Add(-30 * 24 * time.Hour),
+			want: "1mo",
+		},
+		{
+			name: "three months",
+			t:    now.Add(-90 * 24 * time.Hour),
+			want: "3mo",
 		},
 	}
 

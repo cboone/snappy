@@ -30,8 +30,8 @@ func ParseDate(s string) (time.Time, error) {
 	return t, nil
 }
 
-// FormatRelativeTime returns a human-readable duration since t, such as
-// "3m ago", "2h ago", or "1d ago".
+// FormatRelativeTime returns a compact duration since t, such as
+// "3m", "2h", "5d", "2w", or "3mo".
 func FormatRelativeTime(t, now time.Time) string {
 	delta := now.Sub(t)
 	if delta < 0 {
@@ -41,12 +41,16 @@ func FormatRelativeTime(t, now time.Time) string {
 	seconds := int(delta.Seconds())
 	switch {
 	case seconds < 60:
-		return fmt.Sprintf("%ds ago", seconds)
+		return fmt.Sprintf("%ds", seconds)
 	case seconds < 3600:
-		return fmt.Sprintf("%dm ago", seconds/60)
+		return fmt.Sprintf("%dm", seconds/60)
 	case seconds < 86400:
-		return fmt.Sprintf("%dh ago", seconds/3600)
+		return fmt.Sprintf("%dh", seconds/3600)
+	case seconds < 7*86400:
+		return fmt.Sprintf("%dd", seconds/86400)
+	case seconds < 30*86400:
+		return fmt.Sprintf("%dw", seconds/(7*86400))
 	default:
-		return fmt.Sprintf("%dd ago", seconds/86400)
+		return fmt.Sprintf("%dmo", seconds/(30*86400))
 	}
 }
