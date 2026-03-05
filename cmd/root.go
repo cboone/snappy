@@ -122,6 +122,9 @@ func runTUI(_ *cobra.Command, _ []string) error {
 
 	log.Log(logger.Startup, fmt.Sprintf("snappy %s | volume=%s | refresh=%ds",
 		version, cfg.MountPoint, int(cfg.RefreshInterval.Seconds())))
+	if apfsVolume != "" {
+		log.Log(logger.Startup, fmt.Sprintf("apfs-volume=%s", apfsVolume))
+	}
 	log.Log(logger.Startup, fmt.Sprintf("auto-snapshot=%v | every %ds | thin >%ds to %ds",
 		cfg.AutoEnabled, int(cfg.AutoSnapshotInterval.Seconds()),
 		int(cfg.ThinAgeThreshold.Seconds()), int(cfg.ThinCadence.Seconds())))

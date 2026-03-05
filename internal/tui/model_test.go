@@ -368,9 +368,6 @@ func TestViewAPFSDetails(t *testing.T) {
 
 	v := viewContent(m)
 
-	if !strings.Contains(v, "APFS Volume: disk3s5") {
-		t.Error("view missing APFS volume")
-	}
 	if !strings.Contains(v, "ABC-123") {
 		t.Error("view missing UUID for first snapshot")
 	}

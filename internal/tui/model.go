@@ -81,12 +81,11 @@ type Model struct {
 	diffAdded     int
 	diffRemoved   int
 
-	tmStatus       string
-	apfsVolume     string
-	volumeName     string
-	otherSnapCount int
-	diskInfo       string
-	lastRefresh    time.Time
+	tmStatus    string
+	apfsVolume  string
+	volumeName  string
+	diskInfo    string
+	lastRefresh time.Time
 
 	width          int
 	height         int

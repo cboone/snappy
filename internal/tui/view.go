@@ -71,25 +71,17 @@ func (m Model) renderInfoPanel(width int) string {
 		lastRefresh = m.lastRefresh.Format("2006-01-02T15:04:05")
 	}
 
-	lines := []string{
-		fmt.Sprintf("Volume: %s    Refresh: %ds    Last: %s",
-			m.volumeName, int(m.cfg.RefreshInterval.Seconds()), lastRefresh),
-		fmt.Sprintf("Time Machine: %s", m.tmStatus),
-	}
-
-	if m.apfsVolume != "" {
-		lines = append(lines, fmt.Sprintf("APFS Volume: %s    Other snapshots: %d",
-			m.apfsVolume, m.otherSnapCount))
-	}
-
 	diskInfo := m.diskInfo
 	if diskInfo == "" {
 		diskInfo = "unavailable"
 	}
-	lines = append(lines,
-		fmt.Sprintf("Disk: %s", diskInfo),
+
+	lines := []string{
+		fmt.Sprintf("Volume: %s    Disk: %s", m.volumeName, diskInfo),
+		fmt.Sprintf("Time Machine: %s    Refresh: %ds    Last: %s",
+			m.tmStatus, int(m.cfg.RefreshInterval.Seconds()), lastRefresh),
 		m.formatAutoStatus(),
-	)
+	}
 
 	body := strings.Join(lines, "\n")
 	rendered := m.styles.section.Width(cw).Render(body)

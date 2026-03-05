@@ -211,7 +211,10 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 
 	if msg.APFSInfo.Volume != "" {
 		m.apfsVolume = msg.APFSInfo.Volume
-		m.otherSnapCount = msg.APFSInfo.OtherSnapCount
+		if msg.APFSInfo.OtherSnapCount > 0 {
+			m.log.Log(logger.Info, fmt.Sprintf("Non-TM snapshots on %s: %d",
+				msg.APFSInfo.Volume, msg.APFSInfo.OtherSnapCount))
+		}
 	}
 
 	if msg.DiskErr {
