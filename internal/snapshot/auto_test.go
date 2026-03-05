@@ -106,7 +106,7 @@ func TestComputeThinTargetsDisabled(t *testing.T) {
 		{Date: "2026-03-01-143100", Time: now.Add(-29 * time.Minute)},
 	}
 
-	targets := am.ComputeThinTargets(snapshots, now)
+	targets := am.ComputeThinTargets(snapshots, now, nil)
 	if targets != nil {
 		t.Errorf("ComputeThinTargets() = %v, want nil when disabled", targets)
 	}
@@ -171,7 +171,7 @@ func TestComputeThinTargets(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			targets := am.ComputeThinTargets(tt.snapshots, now)
+			targets := am.ComputeThinTargets(tt.snapshots, now, nil)
 			if len(targets) != tt.wantCount {
 				t.Errorf("ComputeThinTargets() = %d targets, want %d: %v", len(targets), tt.wantCount, targets)
 			}
@@ -181,5 +181,99 @@ func TestComputeThinTargets(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestComputeThinTargetsPinnedSnapshotNeverInTargets(t *testing.T) {
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	am := NewAutoManager(true, 60*time.Second, 600*time.Second, 300*time.Second, now)
+
+	snapshots := []Snapshot{
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
+		{Date: "2026-03-01-143100", Time: now.Add(-29 * time.Minute)},
+		{Date: "2026-03-01-143200", Time: now.Add(-28 * time.Minute)},
+		{Date: "2026-03-01-143500", Time: now.Add(-25 * time.Minute)},
+	}
+
+	pinned := map[string]struct{}{
+		"2026-03-01-143100": {},
+	}
+
+	targets := am.ComputeThinTargets(snapshots, now, pinned)
+	for _, d := range targets {
+		if d == "2026-03-01-143100" {
+			t.Error("pinned snapshot should never appear in targets")
+		}
+	}
+}
+
+func TestComputeThinTargetsPinnedResetsCadence(t *testing.T) {
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	// thinAge=10m, thinCadence=5m
+	am := NewAutoManager(true, 60*time.Second, 600*time.Second, 300*time.Second, now)
+
+	// Snapshots at :00, :01, :02, :05, :06, :07, :10
+	// All are >10min old so all eligible for thinning.
+	snapshots := []Snapshot{
+		{Date: "2026-03-01-140000", Time: now.Add(-60 * time.Minute)},
+		{Date: "2026-03-01-140100", Time: now.Add(-59 * time.Minute)},
+		{Date: "2026-03-01-140200", Time: now.Add(-58 * time.Minute)},
+		{Date: "2026-03-01-140500", Time: now.Add(-55 * time.Minute)},
+		{Date: "2026-03-01-140600", Time: now.Add(-54 * time.Minute)},
+		{Date: "2026-03-01-140700", Time: now.Add(-53 * time.Minute)},
+		{Date: "2026-03-01-141000", Time: now.Add(-50 * time.Minute)},
+	}
+
+	// Pin the :05 snapshot. Algorithm should:
+	// - Keep :00 (first old)
+	// - Delete :01 (1min gap < 5min cadence)
+	// - Delete :02 (2min gap < 5min cadence)
+	// - Skip :05 (pinned, update lastKeptTime to :05)
+	// - Delete :06 (1min from :05 < 5min cadence)
+	// - Delete :07 (2min from :05 < 5min cadence)
+	// - Keep :10 (5min from :05 >= 5min cadence)
+	pinned := map[string]struct{}{
+		"2026-03-01-140500": {},
+	}
+
+	targets := am.ComputeThinTargets(snapshots, now, pinned)
+	want := []string{
+		"2026-03-01-140100",
+		"2026-03-01-140200",
+		"2026-03-01-140600",
+		"2026-03-01-140700",
+	}
+
+	if len(targets) != len(want) {
+		t.Fatalf("got %d targets %v, want %d %v", len(targets), targets, len(want), want)
+	}
+	for i, d := range want {
+		if targets[i] != d {
+			t.Errorf("targets[%d] = %q, want %q", i, targets[i], d)
+		}
+	}
+}
+
+func TestComputeThinTargetsNilPinnedPreservesExistingBehavior(t *testing.T) {
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	am := NewAutoManager(true, 60*time.Second, 600*time.Second, 300*time.Second, now)
+
+	snapshots := []Snapshot{
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
+		{Date: "2026-03-01-143100", Time: now.Add(-29 * time.Minute)},
+		{Date: "2026-03-01-143200", Time: now.Add(-28 * time.Minute)},
+		{Date: "2026-03-01-143500", Time: now.Add(-25 * time.Minute)},
+	}
+
+	withNil := am.ComputeThinTargets(snapshots, now, nil)
+	withEmpty := am.ComputeThinTargets(snapshots, now, map[string]struct{}{})
+
+	if len(withNil) != len(withEmpty) {
+		t.Fatalf("nil pinned = %d targets, empty pinned = %d targets", len(withNil), len(withEmpty))
+	}
+	for i := range withNil {
+		if withNil[i] != withEmpty[i] {
+			t.Errorf("targets[%d] nil=%q empty=%q", i, withNil[i], withEmpty[i])
+		}
 	}
 }

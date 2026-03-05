@@ -27,6 +27,7 @@ type SnapshotCreatedMsg struct {
 
 // ThinResultMsg signals that a thinning operation completed.
 type ThinResultMsg struct {
-	Deleted int
-	Err     error
+	Deleted     int
+	FailedDates []string
+	Err         error
 }

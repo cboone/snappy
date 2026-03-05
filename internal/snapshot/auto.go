@@ -86,7 +86,12 @@ func (a *AutoManager) ThinCadence() time.Duration {
 // ComputeThinTargets walks snapshots oldest-first, applying the age
 // threshold and cadence to determine which dates should be deleted.
 // The input snapshots must be sorted ascending by date.
-func (a *AutoManager) ComputeThinTargets(snapshots []Snapshot, now time.Time) []string {
+//
+// Snapshots whose dates appear in pinned are treated as kept (their time
+// updates lastKeptTime) but are never added to the deletion targets. This
+// preserves even cadence spacing around snapshots the system refuses to
+// delete (e.g., ESTALE from a stale kernel handle).
+func (a *AutoManager) ComputeThinTargets(snapshots []Snapshot, now time.Time, pinned map[string]struct{}) []string {
 	if !a.enabled || len(snapshots) == 0 {
 		return nil
 	}
@@ -101,6 +106,12 @@ func (a *AutoManager) ComputeThinTargets(snapshots []Snapshot, now time.Time) []
 		}
 
 		if lastKeptTime.IsZero() {
+			lastKeptTime = snap.Time
+			continue
+		}
+
+		// Pinned snapshots act as cadence anchors but are never deleted.
+		if _, ok := pinned[snap.Date]; ok {
 			lastKeptTime = snap.Time
 			continue
 		}

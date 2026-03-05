@@ -94,6 +94,7 @@ type Model struct {
 	refreshPending bool
 	snapshotting   bool
 	thinning       bool
+	thinPinned     map[string]struct{}
 	version        string
 
 	keys      keyMap
@@ -138,6 +139,7 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 		apfsVolume: apfsVolume,
 		tmStatus:   tmStatus,
 		refreshing: true,
+		thinPinned: make(map[string]struct{}),
 		version:    version,
 		width:      80,
 		height:     24,

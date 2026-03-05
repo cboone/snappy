@@ -87,24 +87,26 @@ func doCreateSnapshot(runner platform.CommandRunner) tea.Cmd {
 func doThinSnapshots(runner platform.CommandRunner, targets []string) tea.Cmd {
 	return func() tea.Msg {
 		deleted := 0
-		var failed []string
+		var failedDates []string
+		var failedDetails []string
 		for _, date := range targets {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			err := platform.DeleteSnapshot(ctx, runner, date)
 			cancel()
 			if err != nil {
-				failed = append(failed, fmt.Sprintf("%s (%v)", date, err))
+				failedDates = append(failedDates, date)
+				failedDetails = append(failedDetails, fmt.Sprintf("%s (%v)", date, err))
 				continue
 			}
 			deleted++
 		}
 
 		var err error
-		if len(failed) > 0 {
-			err = fmt.Errorf("%d snapshot deletion(s) failed: %s", len(failed), strings.Join(failed, "; "))
+		if len(failedDetails) > 0 {
+			err = fmt.Errorf("%d snapshot deletion(s) failed: %s", len(failedDetails), strings.Join(failedDetails, "; "))
 		}
 
-		return ThinResultMsg{Deleted: deleted, Err: err}
+		return ThinResultMsg{Deleted: deleted, FailedDates: failedDates, Err: err}
 	}
 }
 
