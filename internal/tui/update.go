@@ -9,6 +9,7 @@ import (
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/table"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/cboone/snappy/internal/logger"
@@ -83,16 +84,16 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	// Fixed-height rows: info panel + snap/log borders + help bar.
 	// Info panel: 3 body lines + 2 borders = 5.
 	// Snap panel: 2 borders (table header is inside SetHeight).
-	// Log panel: 2 borders (title is embedded in the border).
+	// Log panel: 2 borders.
 	// Help bar: 1.
 	const (
-		infoHeight = 5
+		infoHeight  = 5
 		fixedHeight = infoHeight + 2 + 2 + 1 // 10
 	)
 	snapH, logH := flexPanelHeights(m.height, fixedHeight)
 
 	m.snapPanelY = infoHeight
-	m.logPanelY = infoHeight + 3 + snapH
+	m.logPanelY = infoHeight + 2 + snapH
 
 	m.snapTable.SetWidth(cw)
 	m.snapTable.SetHeight(snapH)
@@ -167,9 +168,13 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) handleMouseWheel(msg tea.MouseWheelMsg) (tea.Model, tea.Cmd) {
 	if msg.Y >= m.logPanelY {
-		var cmd tea.Cmd
-		m.logView, cmd = m.logView.Update(msg)
-		return m, cmd
+		switch msg.Button {
+		case tea.MouseWheelUp:
+			m.moveLogCursor(-1)
+		case tea.MouseWheelDown:
+			m.moveLogCursor(1)
+		}
+		return m, nil
 	}
 	if msg.Y >= m.snapPanelY {
 		// The table component does not handle mouse events, so
@@ -186,13 +191,33 @@ func (m Model) handleMouseWheel(msg tea.MouseWheelMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) handleScroll(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if m.focusLog {
-		var cmd tea.Cmd
-		m.logView, cmd = m.logView.Update(msg)
-		return m, cmd
+		if key.Matches(msg, m.keys.ScrollUp) {
+			m.moveLogCursor(-1)
+		} else {
+			m.moveLogCursor(1)
+		}
+		return m, nil
 	}
 	var cmd tea.Cmd
 	m.snapTable, cmd = m.snapTable.Update(msg)
 	return m, cmd
+}
+
+func (m *Model) moveLogCursor(delta int) {
+	if m.logCount == 0 {
+		return
+	}
+	m.logCursor = max(min(m.logCursor+delta, m.logCount-1), 0)
+	m.updateLogViewContent()
+
+	// Keep cursor visible in viewport.
+	h := m.logView.Height()
+	offset := m.logView.YOffset()
+	if m.logCursor < offset {
+		m.logView.SetYOffset(m.logCursor)
+	} else if m.logCursor >= offset+h {
+		m.logView.SetYOffset(m.logCursor - h + 1)
+	}
 }
 
 func (m Model) handleTick() (tea.Model, tea.Cmd) {
@@ -425,7 +450,7 @@ func (m *Model) snapTableColumns() []table.Column {
 	// Padding(0,1) which contributes 2 extra rendered chars per column
 	// (1 left + 1 right).
 	const (
-		colPad       = 3  // rendered padding per column (right only)
+		colPad       = 3 // rendered padding per column (right only)
 		ncols        = 5
 		dateWidth    = 19 // "2006-01-02 15:04:05"
 		ageWidth     = 5
@@ -450,23 +475,58 @@ func (m *Model) snapTableColumns() []table.Column {
 	}
 }
 
-// updateLogViewContent rebuilds and sets the log content on the viewport.
+// updateLogViewContent rebuilds the log viewport content.
 // Entries are shown newest first so both panels scroll the same direction.
+// The line at logCursor is rendered bold.
 func (m *Model) updateLogViewContent() {
 	entries := m.log.Entries()
-	if len(entries) == 0 {
+	m.logCount = len(entries)
+	if m.logCursor >= m.logCount {
+		m.logCursor = max(m.logCount-1, 0)
+	}
+
+	if m.logCount == 0 {
 		m.logView.SetContent(m.styles.textDim.Render("(no log entries yet)"))
 		return
 	}
 
 	w := m.logView.Width()
 	var b strings.Builder
+	displayIdx := 0
 	for i := len(entries) - 1; i >= 0; i-- {
-		if i < len(entries)-1 {
+		if displayIdx > 0 {
 			b.WriteByte('\n')
 		}
-		b.WriteString(ansi.Truncate(m.colorizeLogEntry(entries[i]), w, ""))
+		e := entries[i]
+		line := fmt.Sprintf("%-8s  %-7s  %s",
+			e.Timestamp.Format("15:04:05"),
+			string(e.Type),
+			e.Message,
+		)
+		style := logEntryStyle(m.styles, e.Type)
+		if displayIdx == m.logCursor {
+			style = style.Bold(true)
+		}
+		b.WriteString(ansi.Truncate(style.Render(line), w, ""))
+		displayIdx++
 	}
 	m.logView.SetContent(b.String())
-	m.logView.GotoTop()
+}
+
+// logEntryStyle returns the lipgloss style for the given log entry type.
+func logEntryStyle(s modelStyles, t logger.EventType) lipgloss.Style {
+	switch t {
+	case logger.Error:
+		return s.textRed
+	case logger.Created, logger.Added:
+		return s.textGreen
+	case logger.Removed, logger.Thinned:
+		return s.textYellow
+	case logger.Auto:
+		return s.textCyan
+	case logger.Startup:
+		return s.textMagenta
+	default:
+		return lipgloss.NewStyle()
+	}
 }

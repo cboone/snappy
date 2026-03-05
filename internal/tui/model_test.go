@@ -125,10 +125,10 @@ func TestViewAllSnapshotsInViewport(t *testing.T) {
 	for i := range 6 {
 		d := now.Add(-time.Duration(60-i*10) * time.Minute)
 		snaps = append(snaps, snapshot.Snapshot{
-			Date: d.Format("2006-01-02-150405"),
-			Time: d,
-			UUID: uuids[i],
-			XID:  1547200 + i*73,
+			Date:      d.Format("2006-01-02-150405"),
+			Time:      d,
+			UUID:      uuids[i],
+			XID:       1547200 + i*73,
 			Purgeable: true,
 		})
 	}
@@ -425,7 +425,6 @@ func TestExactlyFourSnapshots(t *testing.T) {
 	}
 }
 
-
 func TestSnapshotKeyIgnoredWhileSnapshotting(t *testing.T) {
 	m := testModel()
 	m.snapshotting = true
@@ -532,7 +531,7 @@ func TestViewFullHeight(t *testing.T) {
 	}
 }
 
-func TestLogViewportShowsNewestFirst(t *testing.T) {
+func TestLogViewShowsNewestFirst(t *testing.T) {
 	m := testModel()
 	m.logView.SetHeight(3)
 
@@ -541,11 +540,7 @@ func TestLogViewportShowsNewestFirst(t *testing.T) {
 	}
 	m.updateLogViewContent()
 
-	// Newest-first order: newest at top, viewport stays at top.
-	if m.logView.YOffset() != 0 {
-		t.Fatalf("log viewport y-offset = %d, expected 0 (top)", m.logView.YOffset())
-	}
-
+	// Newest entry should be at the top (cursor=0).
 	v := m.logView.View()
 	if !strings.Contains(v, "entry-7") {
 		t.Fatal("expected newest log entry to be visible at top")

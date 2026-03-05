@@ -100,6 +100,8 @@ type Model struct {
 	help      help.Model
 	snapTable table.Model
 	logView   viewport.Model
+	logCursor int
+	logCount  int
 	spinner   spinner.Model
 	styles    modelStyles
 	loading   bool

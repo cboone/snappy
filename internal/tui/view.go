@@ -7,8 +7,6 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
-
-	"github.com/cboone/snappy/internal/logger"
 )
 
 // View renders the full TUI screen as a tea.View.
@@ -170,21 +168,4 @@ func borderTitle(rendered, title string, borderFg lipgloss.Style) string {
 		borderFg.Render(" "+strings.Repeat(border.Top, rightFill)+border.TopRight)
 
 	return newTop + "\n" + lines[1]
-}
-
-func (m Model) colorizeLogEntry(entry logger.Entry) string {
-	switch entry.Type {
-	case logger.Error:
-		return m.styles.textRed.Render(entry.Formatted)
-	case logger.Created, logger.Added:
-		return m.styles.textGreen.Render(entry.Formatted)
-	case logger.Removed, logger.Thinned:
-		return m.styles.textYellow.Render(entry.Formatted)
-	case logger.Auto:
-		return m.styles.textCyan.Render(entry.Formatted)
-	case logger.Startup:
-		return m.styles.textMagenta.Render(entry.Formatted)
-	default:
-		return entry.Formatted
-	}
 }

@@ -40,7 +40,7 @@ The snapshot list currently uses a Bubbles viewport that displays pre-formatted 
 Base columns (always shown):
 
 | Column | Header | Approx width |
-|--------|--------|--------------|
+| ------ | ------ | ------------ |
 | #      | `#`    | 5            |
 | Date   | `DATE` | 21           |
 | Age    | `AGE`  | 14           |
@@ -48,7 +48,7 @@ Base columns (always shown):
 APFS columns (shown when `m.apfsVolume != ""`):
 
 | Column | Header   | Width        |
-|--------|----------|--------------|
+| ------ | -------- | ------------ |
 | UUID   | `UUID`   | flex (fills) |
 | Status | `STATUS` | 22           |
 
