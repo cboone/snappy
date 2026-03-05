@@ -73,7 +73,7 @@ func (m Model) renderInfoPanel(width int) string {
 
 	lines := []string{
 		fmt.Sprintf("Volume: %s    Refresh: %ds    Last: %s",
-			m.cfg.MountPoint, int(m.cfg.RefreshInterval.Seconds()), lastRefresh),
+			m.volumeName, int(m.cfg.RefreshInterval.Seconds()), lastRefresh),
 		fmt.Sprintf("Time Machine: %s", m.tmStatus),
 	}
 

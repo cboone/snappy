@@ -83,6 +83,7 @@ type Model struct {
 
 	tmStatus       string
 	apfsVolume     string
+	volumeName     string
 	otherSnapCount int
 	diskInfo       string
 	lastRefresh    time.Time
@@ -114,7 +115,7 @@ type Model struct {
 }
 
 // NewModel creates a Model with the given dependencies.
-func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Logger, apfsVolume, tmStatus, version string) Model {
+func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Logger, apfsVolume, tmStatus, volumeName, version string) Model {
 	now := time.Now()
 	hasDarkBG := true
 
@@ -141,6 +142,7 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 		auto:       snapshot.NewAutoManager(cfg.AutoEnabled, cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence, now),
 		apfsVolume: apfsVolume,
 		tmStatus:   tmStatus,
+		volumeName: volumeName,
 		refreshing: true,
 		thinPinned: make(map[string]struct{}),
 		version:    version,

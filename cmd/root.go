@@ -115,13 +115,18 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	}
 	tmStatus := platform.CheckStatus(startupCtx, runner)
 
+	volumeName, err := platform.GetVolumeName(startupCtx, runner, cfg.MountPoint)
+	if err != nil || volumeName == "" {
+		volumeName = cfg.MountPoint
+	}
+
 	log.Log(logger.Startup, fmt.Sprintf("snappy %s | volume=%s | refresh=%ds",
 		version, cfg.MountPoint, int(cfg.RefreshInterval.Seconds())))
 	log.Log(logger.Startup, fmt.Sprintf("auto-snapshot=%v | every %ds | thin >%ds to %ds",
 		cfg.AutoEnabled, int(cfg.AutoSnapshotInterval.Seconds()),
 		int(cfg.ThinAgeThreshold.Seconds()), int(cfg.ThinCadence.Seconds())))
 
-	model := tui.NewModel(cfg, runner, log, apfsVolume, tmStatus, version)
+	model := tui.NewModel(cfg, runner, log, apfsVolume, tmStatus, volumeName, version)
 	p := tea.NewProgram(model)
 
 	if _, err := p.Run(); err != nil {
