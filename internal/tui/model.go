@@ -87,12 +87,12 @@ type Model struct {
 	snapshots     []snapshot.Snapshot
 	prevSnapshots []snapshot.Snapshot
 
-	tmStatus    string
+	tmStatus           string
 	apfsVolume         string
 	volumeName         string
 	lastOtherSnapCount int
-	diskInfo    string
-	lastRefresh time.Time
+	diskInfo           string
+	lastRefresh        time.Time
 
 	width          int
 	height         int
@@ -104,19 +104,19 @@ type Model struct {
 	thinPinned     map[string]struct{}
 	version        string
 
-	keys       keyMap
-	help       help.Model
-	snapTable  table.Model
-	logView    viewport.Model
-	logCursor      int
-	logCount       int
-	logEntryY      []int
-	logTotalLines  int
-	spinner    spinner.Model
-	styles     modelStyles
-	loading    bool
-	focusPanel int
-	hasDarkBG  bool
+	keys          keyMap
+	help          help.Model
+	snapTable     table.Model
+	logView       viewport.Model
+	logCursor     int
+	logCount      int
+	logEntryY     []int
+	logTotalLines int
+	spinner       spinner.Model
+	styles        modelStyles
+	loading       bool
+	focusPanel    int
+	hasDarkBG     bool
 
 	snapPanelY int
 	logPanelY  int
