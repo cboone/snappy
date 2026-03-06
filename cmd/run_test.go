@@ -36,7 +36,9 @@ func TestRunIterationLogsAndContinues(t *testing.T) {
 	var buf bytes.Buffer
 
 	// runIteration should not panic or return an error; it logs and continues.
-	runIteration(context.Background(), &buf, log, runner, cfg)
+	if err := runIteration(context.Background(), &buf, log, runner, cfg); err != nil {
+		t.Fatalf("runIteration returned unexpected error: %v", err)
+	}
 
 	output := buf.String()
 	if !strings.Contains(output, "ERROR") {
@@ -73,7 +75,9 @@ func TestRunIterationSuccess(t *testing.T) {
 	defer log.Close()
 	var buf bytes.Buffer
 
-	runIteration(context.Background(), &buf, log, runner, cfg)
+	if err := runIteration(context.Background(), &buf, log, runner, cfg); err != nil {
+		t.Fatalf("runIteration returned unexpected error: %v", err)
+	}
 
 	output := buf.String()
 	if !strings.Contains(output, "CREATED") {
@@ -114,7 +118,9 @@ func TestRunIterationLogsPostThinCount(t *testing.T) {
 	defer log.Close()
 	var buf bytes.Buffer
 
-	runIteration(context.Background(), &buf, log, runner, cfg)
+	if err := runIteration(context.Background(), &buf, log, runner, cfg); err != nil {
+		t.Fatalf("runIteration returned unexpected error: %v", err)
+	}
 
 	output := buf.String()
 	if !strings.Contains(output, "THINNED") {
@@ -152,7 +158,9 @@ func TestRunIterationContextCancelled(t *testing.T) {
 	var buf bytes.Buffer
 
 	// Should not panic even with cancelled context.
-	runIteration(ctx, &buf, log, runner, cfg)
+	if err := runIteration(ctx, &buf, log, runner, cfg); err != nil {
+		t.Fatalf("runIteration returned unexpected error: %v", err)
+	}
 }
 
 func TestRunCommandStructure(t *testing.T) {
@@ -168,20 +176,31 @@ func TestRunCommandStructure(t *testing.T) {
 }
 
 func TestLogLine(t *testing.T) {
-	var buf bytes.Buffer
-	logLine(&buf, "TEST", "message %d", 42)
+	t.Run("success", func(t *testing.T) {
+		var buf bytes.Buffer
+		if err := logLine(&buf, "TEST", "message %d", 42); err != nil {
+			t.Fatalf("logLine returned unexpected error: %v", err)
+		}
 
-	output := buf.String()
-	if !strings.Contains(output, "TEST") {
-		t.Errorf("logLine output missing event, got: %s", output)
-	}
-	if !strings.Contains(output, "message 42") {
-		t.Errorf("logLine output missing message, got: %s", output)
-	}
-	// Verify timestamp format [YYYY-MM-DD HH:MM:SS].
-	if output[0] != '[' {
-		t.Errorf("logLine output should start with '[', got: %s", output)
-	}
+		output := buf.String()
+		if !strings.Contains(output, "TEST") {
+			t.Errorf("logLine output missing event, got: %s", output)
+		}
+		if !strings.Contains(output, "message 42") {
+			t.Errorf("logLine output missing message, got: %s", output)
+		}
+		// Verify timestamp format [YYYY-MM-DD HH:MM:SS].
+		if output[0] != '[' {
+			t.Errorf("logLine output should start with '[', got: %s", output)
+		}
+	})
+
+	t.Run("write error", func(t *testing.T) {
+		w := &errWriter{err: fmt.Errorf("broken pipe")}
+		if err := logLine(w, "TEST", "message"); err == nil {
+			t.Fatal("logLine should return error on write failure")
+		}
+	})
 }
 
 func TestDualLogWritesToBothDestinations(t *testing.T) {
@@ -189,7 +208,9 @@ func TestDualLogWritesToBothDestinations(t *testing.T) {
 	defer log.Close()
 	var buf bytes.Buffer
 
-	dualLog(&buf, log, logger.Info, "test message %d", 99)
+	if err := dualLog(&buf, log, logger.Info, "test message %d", 99); err != nil {
+		t.Fatalf("dualLog returned unexpected error: %v", err)
+	}
 
 	// Verify writer output.
 	output := buf.String()
@@ -212,4 +233,13 @@ func TestDualLogWritesToBothDestinations(t *testing.T) {
 	if !strings.Contains(last.Message, "test message 99") {
 		t.Errorf("logger entry message = %q, want to contain %q", last.Message, "test message 99")
 	}
+}
+
+// errWriter is an io.Writer that always returns an error.
+type errWriter struct {
+	err error
+}
+
+func (w *errWriter) Write(_ []byte) (int, error) {
+	return 0, w.err
 }

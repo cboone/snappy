@@ -14,6 +14,7 @@ const (
 
 // modelStyles holds all precomputed Lipgloss styles for the TUI.
 type modelStyles struct {
+	textDefault lipgloss.Style
 	textDim     lipgloss.Style
 	textGreen   lipgloss.Style
 	textYellow  lipgloss.Style
@@ -51,6 +52,7 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 	magenta := lipgloss.Magenta
 
 	return modelStyles{
+		textDefault: lipgloss.NewStyle(),
 		textDim:     lipgloss.NewStyle().Faint(true),
 		infoLabel:   lipgloss.NewStyle().Foreground(colorLabel),
 		textGreen:   lipgloss.NewStyle().Foreground(green),
@@ -93,15 +95,15 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 }
 
 // contentWidth returns the usable text width inside a bordered, padded
-// section. The floor (55) guarantees all five table columns fit at
-// minimum widths (DATE 19 + AGE 5 + XID 7 + UUID 9 + STATUS 0 + 15 pad).
-// Padding is 3 per column (right only), so 5 columns = 15.
+// section. The floor (65) guarantees all six table columns fit at
+// minimum widths (DATE 19 + AGE 5 + XID 7 + DELTA 7 + UUID 9 + STATUS 0
+// + 18 pad). Padding is 3 per column (right only), so 6 columns = 18.
 // Render functions derive section Width as cw + 4 so lipgloss wraps at
 // exactly this content width.
 func contentWidth(termWidth int) int {
 	w := termWidth - 4
-	if w < 55 {
-		return 55
+	if w < 65 {
+		return 65
 	}
 	return w
 }

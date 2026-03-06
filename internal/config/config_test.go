@@ -67,9 +67,6 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.RefreshInterval != 60*time.Second {
 		t.Errorf("RefreshInterval = %v, want %v", cfg.RefreshInterval, 60*time.Second)
 	}
-	if cfg.MountPoint != "/" {
-		t.Errorf("MountPoint = %q, want %q", cfg.MountPoint, "/")
-	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		t.Fatalf("os.UserHomeDir() error: %v", err)
@@ -106,13 +103,6 @@ func TestLoadEnvOverrides(t *testing.T) {
 		checkFn func(*Config) bool
 		desc    string
 	}{
-		{
-			name:    "mount override",
-			envVar:  "SNAPPY_MOUNT",
-			envVal:  "/Volumes/Backup",
-			checkFn: func(c *Config) bool { return c.MountPoint == "/Volumes/Backup" },
-			desc:    "MountPoint",
-		},
 		{
 			name:    "log_dir override",
 			envVar:  "SNAPPY_LOG_DIR",
@@ -290,7 +280,7 @@ func TestWriteDefaultConfig(t *testing.T) {
 	}
 
 	keys := []string{
-		"refresh:", "mount:", "log_dir:", "log_max_size:", "log_max_files:",
+		"refresh:", "log_dir:", "log_max_size:", "log_max_files:",
 		"auto_enabled:", "auto_snapshot_interval:", "thin_age_threshold:", "thin_cadence:",
 	}
 	for _, key := range keys {
@@ -303,7 +293,6 @@ func TestWriteDefaultConfig(t *testing.T) {
 func TestFormatConfig(t *testing.T) {
 	cfg := &Config{
 		RefreshInterval:      60 * time.Second,
-		MountPoint:           "/",
 		LogDir:               "",
 		LogMaxSize:           5 * 1024 * 1024,
 		LogMaxFiles:          3,
@@ -326,7 +315,6 @@ func TestFormatConfig(t *testing.T) {
 
 	expected := []string{
 		"refresh: 1m0s",
-		"mount: /",
 		"log_max_size: 5242880",
 		"log_max_files: 3",
 		"auto_enabled: true",
@@ -384,9 +372,6 @@ func TestLoadWithoutSetDefaults(t *testing.T) {
 	}
 	if cfg.LogMaxFiles != 0 {
 		t.Errorf("LogMaxFiles = %d, want 0", cfg.LogMaxFiles)
-	}
-	if cfg.MountPoint != "" {
-		t.Errorf("MountPoint = %q, want %q", cfg.MountPoint, "")
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {

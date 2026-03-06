@@ -33,8 +33,8 @@ var newRunner = func() platform.CommandRunner {
 // volume, and merges APFS details into each snapshot. Returns snapshots in
 // ascending order (oldest first), the APFS volume identifier, the count of
 // non-Time-Machine snapshots, and any error.
-func loadSnapshots(ctx context.Context, runner platform.CommandRunner, cfg *config.Config) (snapshots []snapshot.Snapshot, apfsVolume string, otherCount int, _ error) {
-	dates, err := platform.ListSnapshots(ctx, runner, cfg.MountPoint)
+func loadSnapshots(ctx context.Context, runner platform.CommandRunner) (snapshots []snapshot.Snapshot, apfsVolume string, otherCount int, _ error) {
+	dates, err := platform.ListSnapshots(ctx, runner, config.DefaultMount)
 	if err != nil {
 		return nil, "", 0, err
 	}
@@ -47,7 +47,7 @@ func loadSnapshots(ctx context.Context, runner platform.CommandRunner, cfg *conf
 		snapshots = append(snapshots, snapshot.Snapshot{Date: d, Time: t})
 	}
 
-	apfsVolume, findErr := platform.FindAPFSVolume(ctx, runner, cfg.MountPoint)
+	apfsVolume, findErr := platform.FindAPFSVolume(ctx, runner, config.DefaultMount)
 	if findErr != nil || apfsVolume == "" {
 		return snapshots, "", 0, nil //nolint:nilerr // graceful degradation
 	}
@@ -60,6 +60,7 @@ func loadSnapshots(ctx context.Context, runner platform.CommandRunner, cfg *conf
 	for i, s := range snapshots {
 		if d, ok := details[s.Date]; ok {
 			snapshots[i].UUID = d.UUID
+			snapshots[i].XID = d.XID
 			snapshots[i].Purgeable = d.Purgeable
 			snapshots[i].LimitsShrink = d.LimitsShrink
 		}

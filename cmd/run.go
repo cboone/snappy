@@ -59,14 +59,18 @@ func runDaemon(cmd *cobra.Command, _ []string) error {
 	runner := newRunner()
 	w := cmd.OutOrStdout()
 
-	dualLog(w, log, logger.Startup, "snappy run (interval=%s, thin >%s to %s)",
-		cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence)
+	if err := dualLog(w, log, logger.Startup, "snappy run (interval=%s, thin >%s to %s)",
+		cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence); err != nil {
+		return err
+	}
 
 	ctx, stop := signal.NotifyContext(cmd.Context(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	// Run first iteration immediately.
-	runIteration(ctx, w, log, runner, cfg)
+	if err := runIteration(ctx, w, log, runner, cfg); err != nil {
+		return err
+	}
 
 	ticker := time.NewTicker(cfg.AutoSnapshotInterval)
 	defer ticker.Stop()
@@ -74,15 +78,16 @@ func runDaemon(cmd *cobra.Command, _ []string) error {
 	for {
 		select {
 		case <-ctx.Done():
-			dualLog(w, log, logger.Info, "signal received, exiting")
-			return nil
+			return dualLog(w, log, logger.Info, "signal received, exiting")
 		case <-ticker.C:
-			runIteration(ctx, w, log, runner, cfg)
+			if err := runIteration(ctx, w, log, runner, cfg); err != nil {
+				return err
+			}
 		}
 	}
 }
 
-func runIteration(ctx context.Context, w io.Writer, log *logger.Logger, runner platform.CommandRunner, cfg *config.Config) {
+func runIteration(ctx context.Context, w io.Writer, log *logger.Logger, runner platform.CommandRunner, cfg *config.Config) error {
 	// Create snapshot.
 	createCtx, createCancel := context.WithTimeout(ctx, time.Minute)
 	date, err := platform.CreateSnapshot(createCtx, runner)
@@ -90,21 +95,26 @@ func runIteration(ctx context.Context, w io.Writer, log *logger.Logger, runner p
 
 	switch {
 	case err != nil:
-		dualLog(w, log, logger.Error, "create snapshot: %v", err)
+		if err := dualLog(w, log, logger.Error, "create snapshot: %v", err); err != nil {
+			return err
+		}
 	case date == "":
-		dualLog(w, log, logger.Created, "Created: <unknown date>")
+		if err := dualLog(w, log, logger.Created, "Created: <unknown date>"); err != nil {
+			return err
+		}
 	default:
-		dualLog(w, log, logger.Created, "Created: %s", date)
+		if err := dualLog(w, log, logger.Created, "Created: %s", date); err != nil {
+			return err
+		}
 	}
 
 	// Load snapshots for thinning and count.
 	loadCtx, loadCancel := context.WithTimeout(ctx, 30*time.Second)
-	snapshots, _, _, err := loadSnapshots(loadCtx, runner, cfg)
+	snapshots, _, _, err := loadSnapshots(loadCtx, runner)
 	loadCancel()
 
 	if err != nil {
-		dualLog(w, log, logger.Error, "list snapshots: %v", err)
-		return
+		return dualLog(w, log, logger.Error, "list snapshots: %v", err)
 	}
 
 	// Thin old snapshots.
@@ -116,29 +126,34 @@ func runIteration(ctx context.Context, w io.Writer, log *logger.Logger, runner p
 	if len(targets) > 0 {
 		deleted, deleteErr := deleteSnapshots(ctx, runner, targets)
 		if deleteErr != nil {
-			dualLog(w, log, logger.Error, "thin: %v", deleteErr)
+			if err := dualLog(w, log, logger.Error, "thin: %v", deleteErr); err != nil {
+				return err
+			}
 		}
 		currentCount -= deleted
 		if currentCount < 0 {
 			currentCount = 0
 		}
-		dualLog(w, log, logger.Thinned, "Thinned %d snapshot(s)", deleted)
+		if err := dualLog(w, log, logger.Thinned, "Thinned %d snapshot(s)", deleted); err != nil {
+			return err
+		}
 	}
 
-	dualLog(w, log, logger.Info, "%d snapshot(s)", currentCount)
+	return dualLog(w, log, logger.Info, "%d snapshot(s)", currentCount)
 }
 
 // dualLog writes a log entry to both stdout (for terminal/launchd capture)
 // and the shared logger (for the snappy.log file).
-func dualLog(w io.Writer, log *logger.Logger, eventType logger.EventType, format string, args ...any) {
+func dualLog(w io.Writer, log *logger.Logger, eventType logger.EventType, format string, args ...any) error {
 	msg := fmt.Sprintf(format, args...)
 	log.Log(eventType, msg)
-	logLine(w, string(eventType), "%s", msg)
+	return logLine(w, string(eventType), "%s", msg)
 }
 
 // logLine writes a timestamped log line to the given writer.
-func logLine(w io.Writer, event, format string, args ...any) {
+func logLine(w io.Writer, event, format string, args ...any) error {
 	ts := time.Now().Format("2006-01-02 15:04:05")
 	msg := fmt.Sprintf(format, args...)
-	_, _ = fmt.Fprintf(w, "[%s] %-8s %s\n", ts, event, msg)
+	_, err := fmt.Fprintf(w, "[%s] %-8s %s\n", ts, event, msg)
+	return err
 }

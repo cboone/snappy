@@ -15,6 +15,7 @@ import (
 
 	"github.com/cboone/snappy/internal/logger"
 	"github.com/cboone/snappy/internal/service"
+	"github.com/cboone/snappy/internal/platform"
 	"github.com/cboone/snappy/internal/snapshot"
 )
 
@@ -54,7 +55,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case UITickMsg:
 		m.updateSnapViewContent()
-		return m, uiTick()
+		if m.auto.Enabled() || m.loading {
+			return m, uiTick()
+		}
+		return m, nil
 
 	case RefreshTickMsg:
 		return m.handleTick()
@@ -144,7 +148,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 		m.refreshing = true
 		m.loading = true
-		return m, tea.Batch(doRefresh(m.runner, m.cfg, m.apfsVolume), m.spinner.Tick)
+		return m, tea.Batch(doRefresh(m.runner, m.apfsVolume, m.apfsContainer), m.spinner.Tick)
 
 	case key.Matches(msg, m.keys.AutoSnap):
 		if m.daemonActive {
@@ -162,9 +166,10 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 				int(m.auto.ThinAge().Seconds()),
 				int(m.auto.ThinCadence().Seconds()),
 			))
-		} else {
-			m.log.Log(logger.Info, "Auto-snapshots disabled")
+			m.updateLogViewContent()
+			return m, uiTick()
 		}
+		m.log.Log(logger.Info, "Auto-snapshots disabled")
 		m.updateLogViewContent()
 		return m, nil
 
@@ -308,7 +313,7 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 	// fetches the pre-snapshot list.
 	if !snapshotDue && !m.refreshing {
 		m.refreshing = true
-		cmds = append(cmds, doRefresh(m.runner, m.cfg, m.apfsVolume))
+		cmds = append(cmds, doRefresh(m.runner, m.apfsVolume, m.apfsContainer))
 	}
 	cmds = append(cmds, refreshTick(m.cfg.RefreshInterval))
 
@@ -349,6 +354,12 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 				msg.APFSInfo.Volume, msg.APFSInfo.OtherSnapCount))
 		}
 		m.lastOtherSnapCount = msg.APFSInfo.OtherSnapCount
+	}
+
+	if msg.Tidemark > 0 {
+		m.tidemark = platform.FormatBytes(msg.Tidemark)
+	} else {
+		m.tidemark = ""
 	}
 
 	if msg.DiskErr {
@@ -400,7 +411,7 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 	if m.refreshPending {
 		m.refreshPending = false
 		m.refreshing = true
-		cmds = append(cmds, doRefresh(m.runner, m.cfg, m.apfsVolume))
+		cmds = append(cmds, doRefresh(m.runner, m.apfsVolume, m.apfsContainer))
 	}
 
 	// Check thinning (skip if already in flight).
@@ -451,7 +462,7 @@ func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd
 		return m, nil
 	}
 	m.refreshing = true
-	return m, doRefresh(m.runner, m.cfg, m.apfsVolume)
+	return m, doRefresh(m.runner, m.apfsVolume, m.apfsContainer)
 }
 
 func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
@@ -494,7 +505,7 @@ func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	m.refreshing = true
-	return m, doRefresh(m.runner, m.cfg, m.apfsVolume)
+	return m, doRefresh(m.runner, m.apfsVolume, m.apfsContainer)
 }
 
 // updateSnapViewContent rebuilds columns and rows on the snapshot table.
@@ -518,15 +529,19 @@ func (m *Model) updateSnapViewContent() {
 		date := snap.Time.Format("2006-01-02 15:04:05")
 		age := snapshot.FormatRelativeTime(snap.Time, now)
 
-		var xid, uuid, status string
+		var xid, delta, uuid, status string
 		if snap.UUID != "" {
 			xid = fmt.Sprintf("%d", snap.XID)
 			uuid = snap.UUID
 			if snap.LimitsShrink {
 				status = indicatorWarning + " limits shrink"
 			}
+			// Compute XID delta from the predecessor in ascending order.
+			if i > 0 && m.snapshots[i-1].UUID != "" {
+				delta = fmt.Sprintf("%d", snap.XID-m.snapshots[i-1].XID)
+			}
 		}
-		rows = append(rows, table.Row{date, age, xid, uuid, status})
+		rows = append(rows, table.Row{date, age, xid, delta, uuid, status})
 	}
 	m.snapTable.SetRows(rows)
 }
@@ -540,17 +555,18 @@ func (m *Model) snapTableColumns() []table.Column {
 	// (right padding only).
 	const (
 		colPad       = 3 // rendered padding per column (right only)
-		ncols        = 5
+		ncols        = 6
 		dateWidth    = 19 // "2006-01-02 15:04:05"
-		ageWidth     = 5
+		ageWidth     = 6
 		xidWidth     = 7
+		deltaWidth   = 7
 		uuidMinWidth = 9  // first UUID segment + ellipsis
 		uuidMaxWidth = 36 // full UUID
 		statusMin    = 20
 	)
 
 	tw := m.snapTable.Width()
-	fixedWidth := dateWidth + ageWidth + xidWidth + ncols*colPad
+	fixedWidth := dateWidth + ageWidth + xidWidth + deltaWidth + ncols*colPad
 	remaining := tw - fixedWidth
 	uuidWidth := min(max(remaining-statusMin, uuidMinWidth), uuidMaxWidth)
 	statusWidth := max(remaining-uuidWidth, 0)
@@ -559,6 +575,7 @@ func (m *Model) snapTableColumns() []table.Column {
 		{Title: "DATE", Width: dateWidth},
 		{Title: "AGE", Width: ageWidth},
 		{Title: "XID", Width: xidWidth},
+		{Title: "DELTA", Width: deltaWidth},
 		{Title: "UUID", Width: uuidWidth},
 		{Title: "STATUS", Width: statusWidth},
 	}
@@ -659,6 +676,14 @@ func logEntryAtVisualLine(entryY []int, totalLines, line int) int {
 // snapRowAtVisualLine returns the snapshot row index shown at the given
 // viewport visual line, excluding the table header line. Returns -1 if
 // out of range or if the line doesn't map to a snapshot row.
+//
+// The rendered table view is parsed instead of tracking scroll offsets
+// directly because the Bubbles table component does not expose its
+// internal viewport scroll position. To identify which row was clicked,
+// the method strips ANSI sequences from the rendered line and matches
+// the leading 19-character DATE column ("2006-01-02 15:04:05") against
+// the table's row data. This couples the method to the DATE column
+// being first with a fixed width.
 func (m Model) snapRowAtVisualLine(line int) int {
 	if line < 0 {
 		return -1
@@ -700,6 +725,6 @@ func logEntryStyle(s modelStyles, t logger.EventType) lipgloss.Style {
 	case logger.Startup:
 		return s.textMagenta
 	default:
-		return lipgloss.NewStyle()
+		return s.textDefault
 	}
 }

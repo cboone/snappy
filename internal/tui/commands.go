@@ -13,15 +13,15 @@ import (
 	"github.com/cboone/snappy/internal/snapshot"
 )
 
-func doRefresh(runner platform.CommandRunner, cfg *config.Config, apfsVolume string) tea.Cmd {
+func doRefresh(runner platform.CommandRunner, apfsVolume, apfsContainer string) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		tmStatus := platform.CheckStatus(ctx, runner)
 
-		dates, err := platform.ListSnapshots(ctx, runner, cfg.MountPoint)
+		dates, err := platform.ListSnapshots(ctx, runner, config.DefaultMount)
 		if err != nil {
-			diskInfo, diskErr := platform.GetDiskInfo(ctx, runner, cfg.MountPoint)
+			diskInfo, diskErr := platform.GetDiskInfo(ctx, runner, config.DefaultMount)
 			return RefreshResultMsg{
 				TMStatus:    tmStatus,
 				DiskInfo:    diskInfo,
@@ -62,7 +62,15 @@ func doRefresh(runner platform.CommandRunner, cfg *config.Config, apfsVolume str
 			}
 		}
 
-		diskInfo, diskErr := platform.GetDiskInfo(ctx, runner, cfg.MountPoint)
+		diskInfo, diskErr := platform.GetDiskInfo(ctx, runner, config.DefaultMount)
+
+		var tidemark int64
+		if apfsContainer != "" {
+			tm, tmErr := platform.GetContainerTidemark(ctx, runner, apfsContainer)
+			if tmErr == nil {
+				tidemark = tm
+			}
+		}
 
 		return RefreshResultMsg{
 			Snapshots:   snapshots,
@@ -72,6 +80,7 @@ func doRefresh(runner platform.CommandRunner, cfg *config.Config, apfsVolume str
 			DiskErr:     diskErr != nil,
 			SnapshotErr: nil,
 			APFSErr:     apfsErr,
+			Tidemark:    tidemark,
 		}
 	}
 }

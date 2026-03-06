@@ -89,9 +89,11 @@ type Model struct {
 
 	tmStatus           string
 	apfsVolume         string
+	apfsContainer      string
 	volumeName         string
 	lastOtherSnapCount int
 	diskInfo           string
+	tidemark           string
 	lastRefresh        time.Time
 	daemonActive       bool
 
@@ -128,7 +130,7 @@ type Model struct {
 
 // NewModel creates a Model with the given dependencies. When daemonActive is
 // true, auto-snapshots are disabled because a background service holds the lock.
-func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Logger, apfsVolume, tmStatus, volumeName, version string, daemonActive bool) Model {
+func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Logger, apfsVolume, apfsContainer, tmStatus, volumeName, version string, daemonActive bool) Model {
 	now := time.Now()
 	hasDarkBG := true
 
@@ -167,6 +169,7 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 		tmStatus:     tmStatus,
 		volumeName:   volumeName,
 		daemonActive: daemonActive,
+		apfsContainer: apfsContainer,
 		refreshing:   true,
 		thinPinned:   make(map[string]struct{}),
 		version:      version,
@@ -190,12 +193,16 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 }
 
 // Init returns the initial commands: a refresh, a tick timer, and a
-// background color request.
+// background color request. The UI tick is only started when
+// auto-snapshot is enabled, since it drives the countdown timer.
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(
-		doRefresh(m.runner, m.cfg, m.apfsVolume),
+	cmds := []tea.Cmd{
+		doRefresh(m.runner, m.apfsVolume, m.apfsContainer),
 		refreshTick(m.cfg.RefreshInterval),
 		tea.RequestBackgroundColor,
-		uiTick(),
-	)
+	}
+	if m.auto.Enabled() {
+		cmds = append(cmds, uiTick())
+	}
+	return tea.Batch(cmds...)
 }

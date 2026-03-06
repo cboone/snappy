@@ -9,24 +9,6 @@ $ "${SNAPPY_BIN}" config
 Config file: none
 
 refresh: 1m0s
-mount: /
-log_dir: */.local/share/snappy (glob)
-log_max_size: 5242880
-log_max_files: 3
-auto_enabled: true
-auto_snapshot_interval: 1m0s
-thin_age_threshold: 10m0s
-thin_cadence: 5m0s
-```
-
-## Config show with env override
-
-```scrut
-$ SNAPPY_MOUNT="/Volumes/Test" "${SNAPPY_BIN}" config
-Config file: none
-
-refresh: 1m0s
-mount: /Volumes/Test
 log_dir: */.local/share/snappy (glob)
 log_max_size: 5242880
 log_max_files: 3
@@ -47,7 +29,7 @@ Config file created: /tmp/snappy-scrut-config-test.yaml
 
 ```scrut
 $ grep -c '^#' /tmp/snappy-scrut-config-test.yaml
-12
+11
 ```
 
 ## Config init fails when file exists
@@ -71,8 +53,7 @@ $ "${SNAPPY_BIN}" config --help
 Show or manage snappy configuration
 
 Usage:
-  snappy config [flags]
-  snappy config [command]
+  snappy config [command] [flags]
 
 Available Commands:
   init        Create a default config file

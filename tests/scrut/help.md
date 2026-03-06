@@ -9,8 +9,7 @@ $ "${SNAPPY_BIN}" --help
 Automatically increase your Time Machine snapshot frequency
 
 Usage:
-  snappy [flags]
-  snappy [command]
+  snappy [command] [flags]
 
 Available Commands:
   config      Show or manage snappy configuration
@@ -38,8 +37,7 @@ $ "${SNAPPY_BIN}" -h
 Automatically increase your Time Machine snapshot frequency
 
 Usage:
-  snappy [flags]
-  snappy [command]
+  snappy [command] [flags]
 
 Available Commands:
   config      Show or manage snappy configuration
@@ -69,8 +67,7 @@ $ "${SNAPPY_BIN}" help
 Automatically increase your Time Machine snapshot frequency
 
 Usage:
-  snappy [flags]
-  snappy [command]
+  snappy [command] [flags]
 
 Available Commands:
   config      Show or manage snappy configuration
