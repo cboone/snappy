@@ -23,6 +23,9 @@ internal/
     diff.go                      Snapshot list diffing
     auto.go                      Auto-snapshot timer and thinning logic
   logger/logger.go               Ring buffer + file logger
+  service/
+    lock.go                      flock-based single-instance locking
+    launchd.go                   launchd plist generation + lifecycle
   tui/
     model.go                     Bubbletea model + Init
     update.go                    Update (message dispatch)
