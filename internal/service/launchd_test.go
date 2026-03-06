@@ -110,6 +110,46 @@ func TestParsePIDFromPrint(t *testing.T) {
 	}
 }
 
+func TestParseRuntimeFromPrint(t *testing.T) {
+	tests := []struct {
+		name        string
+		output      string
+		wantRunning bool
+		wantPID     int
+	}{
+		{
+			name:        "running",
+			output:      "com.cboone.snappy = {\n\tpid = 12345\n\tstate = running\n}",
+			wantRunning: true,
+			wantPID:     12345,
+		},
+		{
+			name:        "loaded not running",
+			output:      "com.cboone.snappy = {\n\tpid = -\n\tstate = not running\n}",
+			wantRunning: false,
+			wantPID:     0,
+		},
+		{
+			name:        "missing pid",
+			output:      "com.cboone.snappy = {\n\tstate = waiting\n}",
+			wantRunning: false,
+			wantPID:     0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			running, pid := parseRuntimeFromPrint(tt.output)
+			if running != tt.wantRunning {
+				t.Errorf("parseRuntimeFromPrint() running = %v, want %v", running, tt.wantRunning)
+			}
+			if pid != tt.wantPID {
+				t.Errorf("parseRuntimeFromPrint() pid = %d, want %d", pid, tt.wantPID)
+			}
+		})
+	}
+}
+
 func TestIsNotLoadedError(t *testing.T) {
 	tests := []struct {
 		output string

@@ -235,8 +235,7 @@ func Status(label string) (*Info, error) {
 		return st, nil //nolint:nilerr // intentional: launchctl failure means not running
 	}
 
-	st.Running = true
-	st.PID = parsePIDFromPrint(string(out))
+	st.Running, st.PID = parseRuntimeFromPrint(string(out))
 
 	return st, nil
 }
@@ -295,6 +294,12 @@ func parsePIDFromPrint(output string) int {
 		}
 	}
 	return 0
+}
+
+// parseRuntimeFromPrint extracts runtime state from `launchctl print` output.
+func parseRuntimeFromPrint(output string) (running bool, pid int) {
+	pid = parsePIDFromPrint(output)
+	return pid > 0, pid
 }
 
 // readBinaryFromPlist reads the first ProgramArguments string from a plist
