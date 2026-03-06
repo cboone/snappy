@@ -186,12 +186,15 @@ func (m Model) handleMouseClick(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 		// Click is on the help bar; ignore.
 	case msg.Y >= m.logPanelY:
 		m.setFocusPanel(panelLog)
-		// Translate click Y to a visual line, then find the entry.
-		visualLine := msg.Y - m.logPanelY - 1 + m.logView.YOffset()
-		entry := logEntryAtVisualLine(m.logEntryY, m.logTotalLines, visualLine)
-		if entry >= 0 && entry < m.logCount {
-			m.logCursor = entry
-			m.updateLogViewContent()
+		// Only select entries for clicks inside the content area (not borders).
+		contentY := msg.Y - m.logPanelY - 1
+		if contentY >= 0 && contentY < m.logView.Height() {
+			visualLine := contentY + m.logView.YOffset()
+			entry := logEntryAtVisualLine(m.logEntryY, m.logTotalLines, visualLine)
+			if entry >= 0 && entry < m.logCount {
+				m.logCursor = entry
+				m.updateLogViewContent()
+			}
 		}
 	case msg.Y >= m.snapPanelY:
 		m.setFocusPanel(panelSnap)
