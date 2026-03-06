@@ -51,7 +51,7 @@ func testModel() Model {
 	cfg := testConfig()
 	log := logger.New(logger.Options{MaxEntries: 50})
 	runner := &mockRunner{responses: map[string]mockResponse{}}
-	m := NewModel(cfg, runner, log, "disk3s5", "Configured", "/", "dev")
+	m := NewModel(cfg, runner, log, "disk3s5", "Configured", "/", "dev", false)
 	m.width = 80
 	m.height = 40
 	return m
@@ -359,6 +359,51 @@ func TestViewAutoStatusOff(t *testing.T) {
 	v := viewContent(m)
 	if !strings.Contains(v, "off") {
 		t.Error("view should show auto-snapshot 'off'")
+	}
+}
+
+func TestViewAutoStatusDaemon(t *testing.T) {
+	cfg := testConfig()
+	log := logger.New(logger.Options{MaxEntries: 50})
+	runner := &mockRunner{responses: map[string]mockResponse{}}
+	m := NewModel(cfg, runner, log, "disk3s5", "Configured", "/", "dev", true)
+	m.width = 80
+	m.height = 40
+
+	v := viewContent(m)
+	if !strings.Contains(v, "daemon") {
+		t.Error("view should show 'daemon' when daemon is active")
+	}
+	if m.auto.Enabled() {
+		t.Error("auto-snapshots should be disabled when daemon is active")
+	}
+}
+
+func TestAutoToggleIgnoredWhenDaemonActive(t *testing.T) {
+	cfg := testConfig()
+	log := logger.New(logger.Options{MaxEntries: 50})
+	runner := &mockRunner{responses: map[string]mockResponse{}}
+	m := NewModel(cfg, runner, log, "disk3s5", "Configured", "/", "dev", true)
+	m.width = 80
+	m.height = 40
+
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model := updated.(Model)
+
+	if model.auto.Enabled() {
+		t.Error("auto-snapshots should remain disabled when daemon is active")
+	}
+
+	entries := model.log.Entries()
+	found := false
+	for _, e := range entries {
+		if strings.Contains(e.Message, "background service") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected log message about daemon managing auto-snapshots")
 	}
 }
 

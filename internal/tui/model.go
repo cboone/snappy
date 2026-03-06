@@ -93,6 +93,7 @@ type Model struct {
 	lastOtherSnapCount int
 	diskInfo           string
 	lastRefresh        time.Time
+	daemonActive       bool
 
 	width          int
 	height         int
@@ -125,10 +126,16 @@ type Model struct {
 	now func() time.Time
 }
 
-// NewModel creates a Model with the given dependencies.
-func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Logger, apfsVolume, tmStatus, volumeName, version string) Model {
+// NewModel creates a Model with the given dependencies. When daemonActive is
+// true, auto-snapshots are disabled because a background service holds the lock.
+func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Logger, apfsVolume, tmStatus, volumeName, version string, daemonActive bool) Model {
 	now := time.Now()
 	hasDarkBG := true
+
+	autoEnabled := cfg.AutoEnabled
+	if daemonActive {
+		autoEnabled = false
+	}
 
 	keys := defaultKeyMap()
 	styles := newModelStyles(hasDarkBG)
@@ -152,16 +159,17 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 	)
 
 	m := Model{
-		cfg:        cfg,
-		runner:     runner,
-		log:        log,
-		auto:       snapshot.NewAutoManager(cfg.AutoEnabled, cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence, now),
-		apfsVolume: apfsVolume,
-		tmStatus:   tmStatus,
-		volumeName: volumeName,
-		refreshing: true,
-		thinPinned: make(map[string]struct{}),
-		version:    version,
+		cfg:          cfg,
+		runner:       runner,
+		log:          log,
+		auto:         snapshot.NewAutoManager(autoEnabled, cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence, now),
+		apfsVolume:   apfsVolume,
+		tmStatus:     tmStatus,
+		volumeName:   volumeName,
+		daemonActive: daemonActive,
+		refreshing:   true,
+		thinPinned:   make(map[string]struct{}),
+		version:      version,
 		width:      80,
 		height:     24,
 		keys:       keys,

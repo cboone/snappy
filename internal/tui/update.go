@@ -145,6 +145,11 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(doRefresh(m.runner, m.cfg, m.apfsVolume), m.spinner.Tick)
 
 	case key.Matches(msg, m.keys.AutoSnap):
+		if m.daemonActive {
+			m.log.Log(logger.Info, "Auto-snapshots managed by background service (snappy service stop to take over)")
+			m.updateLogViewContent()
+			return m, nil
+		}
 		now := m.now()
 		enabled := m.auto.Toggle(now)
 		if enabled {

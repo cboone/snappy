@@ -144,6 +144,15 @@ func (m Model) renderHelpBar(_ int) string {
 
 func (m Model) formatAutoStatus() string {
 	label := m.styles.infoLabel.Render
+	if m.daemonActive {
+		return label("Auto-snapshot:") + " " + indicatorOn + " " +
+			m.styles.textCyan.Render("daemon") +
+			fmt.Sprintf("    %s %ds    %s >%dm to %ds",
+				label("every"), int(m.cfg.AutoSnapshotInterval.Seconds()),
+				label("thin"), int(m.cfg.ThinAgeThreshold.Minutes()),
+				int(m.cfg.ThinCadence.Seconds()),
+			)
+	}
 	if m.auto.Enabled() {
 		now := m.now()
 		nextIn := int(m.auto.NextIn(now).Seconds())
