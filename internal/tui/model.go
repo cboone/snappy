@@ -20,6 +20,7 @@ type keyMap struct {
 	Snapshot   key.Binding
 	Refresh    key.Binding
 	AutoSnap   key.Binding
+	OpenLog    key.Binding
 	Quit       key.Binding
 	ScrollUp   key.Binding
 	ScrollDown key.Binding
@@ -27,12 +28,12 @@ type keyMap struct {
 }
 
 func (k keyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Snapshot, k.Refresh, k.AutoSnap, k.Quit}
+	return []key.Binding{k.Snapshot, k.Refresh, k.AutoSnap, k.OpenLog, k.Quit}
 }
 
 func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Snapshot, k.Refresh, k.AutoSnap, k.Quit},
+		{k.Snapshot, k.Refresh, k.AutoSnap, k.OpenLog, k.Quit},
 		{k.ScrollUp, k.ScrollDown, k.Tab},
 	}
 }
@@ -50,6 +51,10 @@ func defaultKeyMap() keyMap {
 		AutoSnap: key.NewBinding(
 			key.WithKeys("a", "A"),
 			key.WithHelp("a", "auto-snap"),
+		),
+		OpenLog: key.NewBinding(
+			key.WithKeys("l", "L"),
+			key.WithHelp("l", "open log"),
 		),
 		Quit: key.NewBinding(
 			key.WithKeys("q", "Q", "ctrl+c"),

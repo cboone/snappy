@@ -1059,3 +1059,26 @@ func TestMixedEstaleAndRealErrorLogsAsError(t *testing.T) {
 		t.Errorf("ERROR THINNED entries = %d, want 1 for mixed failures", errorCount)
 	}
 }
+
+func TestOpenLogKeyBinding(t *testing.T) {
+	m := testModel()
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'l', Text: "l"})
+	model := updated.(Model)
+
+	if cmd == nil {
+		t.Error("expected command from 'l' key press")
+	}
+
+	entries := model.log.Entries()
+	var found bool
+	for _, e := range entries {
+		if e.Category == logger.CatOpen && strings.Contains(e.Message, "Opening log directory") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected OPEN log entry for 'l' key press")
+	}
+}

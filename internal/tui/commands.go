@@ -139,3 +139,12 @@ func uiTick() tea.Cmd {
 		return UITickMsg{}
 	})
 }
+
+func doOpenLogDir(dir string) tea.Cmd {
+	return func() tea.Msg {
+		if dir != "" {
+			_ = exec.Command("open", dir).Start()
+		}
+		return nil
+	}
+}

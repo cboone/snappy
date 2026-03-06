@@ -161,6 +161,11 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.updateLogViewContent()
 		return m, nil
 
+	case key.Matches(msg, m.keys.OpenLog):
+		m.log.Log(logger.LevelInfo, logger.CatOpen, "Opening log directory...")
+		m.updateLogViewContent()
+		return m, doOpenLogDir(m.cfg.LogDir)
+
 	case key.Matches(msg, m.keys.Quit):
 		m.log.Log(logger.LevelInfo, logger.CatShutdown, "Shutting down")
 		m.quitting = true
