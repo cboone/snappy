@@ -529,7 +529,7 @@ func (m *Model) snapTableColumns() []table.Column {
 		colPad       = 3 // rendered padding per column (right only)
 		ncols        = 6
 		dateWidth    = 19 // "2006-01-02 15:04:05"
-		ageWidth     = 5
+		ageWidth     = 6
 		xidWidth     = 7
 		deltaWidth   = 7
 		uuidMinWidth = 9  // first UUID segment + ellipsis
