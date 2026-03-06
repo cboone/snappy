@@ -38,7 +38,6 @@ func (m *mockRunner) Run(_ context.Context, name string, args ...string) ([]byte
 func testConfig() *config.Config {
 	return &config.Config{
 		RefreshInterval:      60 * time.Second,
-		MountPoint:           "/",
 		LogDir:               "",
 		AutoEnabled:          true,
 		AutoSnapshotInterval: 60 * time.Second,
@@ -587,6 +586,59 @@ func TestMouseClickSnapshotSelectsTopVisibleRowWhenTableIsOffset(t *testing.T) {
 	}
 }
 
+func TestSnapRowAtVisualLineMatchesRenderedRows(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	for i := range 10 {
+		d := now.Add(-time.Duration(10-i) * time.Minute)
+		m.snapshots = append(m.snapshots, snapshot.Snapshot{
+			Date:      d.Format("2006-01-02-150405"),
+			Time:      d,
+			UUID:      fmt.Sprintf("00000000-0000-0000-0000-%012d", i+1),
+			XID:       1547200 + i,
+			Purgeable: true,
+		})
+	}
+	m.updateSnapViewContent()
+
+	// Size the terminal so the table shows ~8 data rows, forcing a scroll
+	// when the cursor moves past the viewport.
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 30})
+	model := updated.(Model)
+
+	// Scroll down a few rows so the table viewport is offset.
+	for range 4 {
+		updated, _ = model.Update(tea.KeyPressMsg{Code: 'j', Text: "j"})
+		model = updated.(Model)
+	}
+
+	// Each visible line should map to a row whose DATE column matches.
+	rows := model.snapTable.Rows()
+	visibleRows := model.snapTable.Height() - 1 // subtract header line
+	for line := range visibleRows {
+		row := model.snapRowAtVisualLine(line)
+		if row < 0 || row >= len(rows) {
+			t.Errorf("line %d: snapRowAtVisualLine returned %d, want valid row index", line, row)
+			continue
+		}
+		// The row's date should be a valid formatted timestamp.
+		date := rows[row][0]
+		if len(date) != len("2006-01-02 15:04:05") {
+			t.Errorf("line %d -> row %d: date = %q, want 19-char timestamp", line, row, date)
+		}
+	}
+
+	// Out-of-range lines should return -1.
+	if row := model.snapRowAtVisualLine(-1); row != -1 {
+		t.Errorf("line -1: snapRowAtVisualLine = %d, want -1", row)
+	}
+	if row := model.snapRowAtVisualLine(999); row != -1 {
+		t.Errorf("line 999: snapRowAtVisualLine = %d, want -1", row)
+	}
+}
+
 func TestSnapshotPanelKeepsViewportHeightWhenEmpty(t *testing.T) {
 	m := testModel()
 	updated, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 40})
@@ -765,6 +817,50 @@ func TestAutoToggleOnClearsThinPinned(t *testing.T) {
 
 	if len(model.thinPinned) != 0 {
 		t.Errorf("thinPinned = %v, want empty after toggling auto on", model.thinPinned)
+	}
+}
+
+func TestUITickStopsWhenAutoDisabledAndIdle(t *testing.T) {
+	m := testModel()
+	// Toggle auto off (starts enabled).
+	m.auto.Toggle(m.now())
+	m.loading = false
+
+	updated, cmd := m.Update(UITickMsg{})
+	_ = updated.(Model)
+	if cmd != nil {
+		t.Error("expected nil cmd when auto is disabled and not loading")
+	}
+}
+
+func TestUITickContinuesWhenAutoEnabled(t *testing.T) {
+	m := testModel()
+	// Auto is enabled by default in testConfig.
+
+	updated, cmd := m.Update(UITickMsg{})
+	_ = updated.(Model)
+	if cmd == nil {
+		t.Error("expected non-nil cmd when auto is enabled")
+	}
+}
+
+func TestAutoToggleOnRestartsUITick(t *testing.T) {
+	m := testModel()
+	// Toggle off first.
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model := updated.(Model)
+	if model.auto.Enabled() {
+		t.Fatal("expected auto disabled after first toggle")
+	}
+
+	// Toggle back on: should return uiTick command.
+	updated, cmd := model.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model = updated.(Model)
+	if !model.auto.Enabled() {
+		t.Fatal("expected auto enabled after second toggle")
+	}
+	if cmd == nil {
+		t.Error("expected non-nil cmd (uiTick) when toggling auto on")
 	}
 }
 
