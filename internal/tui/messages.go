@@ -33,5 +33,6 @@ type ThinResultMsg struct {
 	Deleted      int
 	ThinnedDates []string
 	FailedDates  []string
+	EstaleCount  int
 	Err          error
 }

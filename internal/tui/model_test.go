@@ -1001,3 +1001,61 @@ func TestDoThinSnapshotsReturnsThinnedDates(t *testing.T) {
 		t.Fatalf("ThinnedDates = %v, want [2026-03-01-140000]", result.ThinnedDates)
 	}
 }
+
+func TestAllEstaleFailuresLogAsWarn(t *testing.T) {
+	m := testModel()
+	m.thinning = true
+	m.loading = true
+	m.refreshing = false
+
+	updated, _ := m.Update(ThinResultMsg{
+		Deleted:     0,
+		FailedDates: []string{"2026-03-01-140100"},
+		EstaleCount: 1,
+		Err:         fmt.Errorf("1 snapshot deletion(s) failed: 2026-03-01-140100 (stale handle, skipped)"),
+	})
+	model := updated.(Model)
+
+	entries := model.log.Entries()
+	var warnCount, errorCount int
+	for _, e := range entries {
+		if e.Category == logger.CatThinned && e.Level == logger.LevelWarn {
+			warnCount++
+		}
+		if e.Category == logger.CatThinned && e.Level == logger.LevelError {
+			errorCount++
+		}
+	}
+	if warnCount != 1 {
+		t.Errorf("WARN THINNED entries = %d, want 1", warnCount)
+	}
+	if errorCount != 0 {
+		t.Errorf("ERROR THINNED entries = %d, want 0 for all-ESTALE failures", errorCount)
+	}
+}
+
+func TestMixedEstaleAndRealErrorLogsAsError(t *testing.T) {
+	m := testModel()
+	m.thinning = true
+	m.loading = true
+	m.refreshing = false
+
+	updated, _ := m.Update(ThinResultMsg{
+		Deleted:     0,
+		FailedDates: []string{"2026-03-01-140100", "2026-03-01-140200"},
+		EstaleCount: 1,
+		Err:         fmt.Errorf("2 snapshot deletion(s) failed"),
+	})
+	model := updated.(Model)
+
+	entries := model.log.Entries()
+	var errorCount int
+	for _, e := range entries {
+		if e.Category == logger.CatThinned && e.Level == logger.LevelError {
+			errorCount++
+		}
+	}
+	if errorCount != 1 {
+		t.Errorf("ERROR THINNED entries = %d, want 1 for mixed failures", errorCount)
+	}
+}

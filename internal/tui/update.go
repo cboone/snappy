@@ -462,7 +462,12 @@ func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
 		for _, d := range msg.FailedDates {
 			m.thinPinned[d] = struct{}{}
 		}
-		m.log.Log(logger.LevelError, logger.CatThinned, fmt.Sprintf("Thinning error: %v", msg.Err))
+		// ESTALE (stale handle) is a warning, not an error.
+		level := logger.LevelError
+		if msg.EstaleCount == len(msg.FailedDates) {
+			level = logger.LevelWarn
+		}
+		m.log.Log(level, logger.CatThinned, fmt.Sprintf("Thinning: %v", msg.Err))
 	} else {
 		// Full success: conditions may have changed, clear pinned set.
 		clear(m.thinPinned)
