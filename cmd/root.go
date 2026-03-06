@@ -32,9 +32,12 @@ var (
 	}
 )
 
-// usageTemplate is a copy of cobra's default usage template with one change:
-// the Usage section prints a single combined line instead of separate lines
-// for [flags] and [command] when a command is both runnable and has subcommands.
+// usageTemplate is based on Cobra's default usage template (v1.10.2) with two
+// changes to the Usage section:
+//  1. Commands that are both runnable and have subcommands print a single
+//     combined line instead of separate lines for [flags] and [command].
+//  2. .CommandPath is used instead of .UseLine, so arg placeholders from the
+//     Use field are not shown (none of our commands use them).
 const usageTemplate = `Usage:{{if or .Runnable .HasAvailableSubCommands}}
   {{.CommandPath}}{{if .HasAvailableSubCommands}} [command]{{end}}{{if .HasAvailableFlags}} [flags]{{end}}{{end}}{{if gt (len .Aliases) 0}}
 
