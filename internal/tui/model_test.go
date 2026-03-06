@@ -51,7 +51,7 @@ func testModel() Model {
 	cfg := testConfig()
 	log := logger.New(logger.Options{MaxEntries: 50})
 	runner := &mockRunner{responses: map[string]mockResponse{}}
-	m := NewModel(cfg, runner, log, "", "Configured", "dev")
+	m := NewModel(cfg, runner, log, "disk3s5", "Configured", "/", "dev")
 	m.width = 80
 	m.height = 40
 	return m
@@ -66,10 +66,10 @@ func TestViewEmpty(t *testing.T) {
 	m := testModel()
 	v := viewContent(m)
 
-	if !strings.Contains(v, "SNAPPY") {
-		t.Error("view missing SNAPPY title")
+	if !strings.Contains(v, "snappy") {
+		t.Error("view missing snappy title")
 	}
-	if !strings.Contains(v, "LOCAL SNAPSHOTS (0)") {
+	if !strings.Contains(v, "local snapshots (0)") {
 		t.Error("view missing snapshot count")
 	}
 	if !strings.Contains(v, "press 's'") {
@@ -85,21 +85,25 @@ func TestViewWithSnapshots(t *testing.T) {
 	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
 	m.now = func() time.Time { return now }
 	m.snapshots = []snapshot.Snapshot{
-		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
-		{Date: "2026-03-01-144000", Time: now.Add(-20 * time.Minute)},
-		{Date: "2026-03-01-145000", Time: now.Add(-10 * time.Minute)},
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute), UUID: "E3F52B7A-8C19-4D6E-A031-7F5B2E9D14C8", XID: 1547201, Purgeable: true},
+		{Date: "2026-03-01-144000", Time: now.Add(-20 * time.Minute), UUID: "9A1D4F83-2E7B-4C05-B8F6-3D6A9E2C71F5", XID: 1547289, Purgeable: true},
+		{Date: "2026-03-01-145000", Time: now.Add(-10 * time.Minute), UUID: "B7C83E91-4A5D-4F12-9E68-1D3F7A2B8C04", XID: 1547356, Purgeable: true},
 	}
+	m.log.Log(logger.Startup, "version=dev apfs-volume=disk3s5")
+	m.log.Log(logger.Info, "3 snapshots, 0 other APFS snapshots")
+	m.log.Log(logger.Info, "disk: 460Gi total, 215Gi used (48%)")
 	m.updateSnapViewContent()
+	m.updateLogViewContent()
 
 	v := viewContent(m)
 
-	if !strings.Contains(v, "LOCAL SNAPSHOTS (3)") {
+	if !strings.Contains(v, "local snapshots (3)") {
 		t.Error("view missing correct snapshot count")
 	}
-	if !strings.Contains(v, "2026-03-01-145000") {
+	if !strings.Contains(v, "2026-03-01 14:50:00") {
 		t.Error("view missing newest snapshot")
 	}
-	if !strings.Contains(v, "2026-03-01-143000") {
+	if !strings.Contains(v, "2026-03-01 14:30:00") {
 		t.Error("view missing oldest snapshot")
 	}
 }
@@ -109,12 +113,23 @@ func TestViewAllSnapshotsInViewport(t *testing.T) {
 	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
 	m.now = func() time.Time { return now }
 
+	uuids := []string{
+		"E3F52B7A-8C19-4D6E-A031-7F5B2E9D14C8",
+		"9A1D4F83-2E7B-4C05-B8F6-3D6A9E2C71F5",
+		"B7C83E91-4A5D-4F12-9E68-1D3F7A2B8C04",
+		"4F6D1A2E-7C8B-4935-BE12-9A3D5F7E6C81",
+		"D2A8F3C7-1E4B-4D69-8F05-6B3C9A7E2D14",
+		"71E5B9A3-3F82-4C17-A6D4-8E2F1B5C93A0",
+	}
 	var snaps []snapshot.Snapshot
 	for i := range 6 {
 		d := now.Add(-time.Duration(60-i*10) * time.Minute)
 		snaps = append(snaps, snapshot.Snapshot{
-			Date: d.Format("2006-01-02-150405"),
-			Time: d,
+			Date:      d.Format("2006-01-02-150405"),
+			Time:      d,
+			UUID:      uuids[i],
+			XID:       1547200 + i*73,
+			Purgeable: true,
 		})
 	}
 	m.snapshots = snaps
@@ -122,13 +137,14 @@ func TestViewAllSnapshotsInViewport(t *testing.T) {
 
 	v := viewContent(m)
 
-	if !strings.Contains(v, "LOCAL SNAPSHOTS (6)") {
+	if !strings.Contains(v, "local snapshots (6)") {
 		t.Error("view missing correct snapshot count")
 	}
-	// All 6 snapshots should be in the viewport content (no bookend/ellipsis)
+	// All 6 snapshots should be in the viewport content (no bookend/ellipsis).
 	for i, snap := range snaps {
-		if !strings.Contains(v, snap.Date) {
-			t.Errorf("snapshot %d (%s) missing from viewport", i, snap.Date)
+		formatted := snap.Time.Format("2006-01-02 15:04:05")
+		if !strings.Contains(v, formatted) {
+			t.Errorf("snapshot %d (%s) missing from viewport", i, formatted)
 		}
 	}
 }
@@ -137,8 +153,11 @@ func TestViewQuitting(t *testing.T) {
 	m := testModel()
 	m.quitting = true
 	v := m.View()
-	if v.Content != "" {
-		t.Errorf("View() when quitting = %q, want empty", v.Content)
+	if v.AltScreen {
+		t.Error("View() when quitting should not use alt screen")
+	}
+	if v.Content == "" {
+		t.Error("View() when quitting should render final frame")
 	}
 }
 
@@ -187,8 +206,8 @@ func TestRefreshResultMsg(t *testing.T) {
 	m.now = func() time.Time { return now }
 
 	snaps := []snapshot.Snapshot{
-		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
-		{Date: "2026-03-01-145000", Time: now.Add(-10 * time.Minute)},
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute), UUID: "E3F52B7A-8C19-4D6E-A031-7F5B2E9D14C8", XID: 1547201, Purgeable: true},
+		{Date: "2026-03-01-145000", Time: now.Add(-10 * time.Minute), UUID: "B7C83E91-4A5D-4F12-9E68-1D3F7A2B8C04", XID: 1547356, Purgeable: true},
 	}
 
 	msg := RefreshResultMsg{
@@ -216,7 +235,7 @@ func TestRefreshResultMsgSnapshotErrorKeepsExistingSnapshots(t *testing.T) {
 	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
 	m.now = func() time.Time { return now }
 	m.snapshots = []snapshot.Snapshot{
-		{Date: "2026-03-01-145000", Time: now.Add(-10 * time.Minute)},
+		{Date: "2026-03-01-145000", Time: now.Add(-10 * time.Minute), UUID: "B7C83E91-4A5D-4F12-9E68-1D3F7A2B8C04", XID: 1547356, Purgeable: true},
 	}
 
 	updated, _ := m.Update(RefreshResultMsg{SnapshotErr: fmt.Errorf("tmutil failed")})
@@ -347,20 +366,21 @@ func TestViewAPFSDetails(t *testing.T) {
 	m := testModel()
 	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
 	m.now = func() time.Time { return now }
-	m.apfsVolume = "disk3s5"
 	m.snapshots = []snapshot.Snapshot{
 		{
 			Date:         "2026-03-01-145000",
 			Time:         now.Add(-10 * time.Minute),
-			UUID:         "ABC-123",
+			UUID:         "B7C83E91-4A5D-4F12-9E68-1D3F7A2B8C04",
+			XID:          1547356,
 			Purgeable:    true,
 			LimitsShrink: false,
 		},
 		{
 			Date:         "2026-03-01-144000",
 			Time:         now.Add(-20 * time.Minute),
-			UUID:         "DEF-456",
-			Purgeable:    false,
+			UUID:         "9A1D4F83-2E7B-4C05-B8F6-3D6A9E2C71F5",
+			XID:          1547289,
+			Purgeable:    true,
 			LimitsShrink: true,
 		},
 	}
@@ -368,14 +388,11 @@ func TestViewAPFSDetails(t *testing.T) {
 
 	v := viewContent(m)
 
-	if !strings.Contains(v, "APFS Volume: disk3s5") {
-		t.Error("view missing APFS volume")
-	}
-	if !strings.Contains(v, "ABC-123") {
+	if !strings.Contains(v, "B7C83E91") {
 		t.Error("view missing UUID for first snapshot")
 	}
-	if !strings.Contains(v, "purgeable") {
-		t.Error("view missing purgeable flag")
+	if !strings.Contains(v, "limits shrink") {
+		t.Error("view missing limits-shrink flag for second snapshot")
 	}
 }
 
@@ -384,11 +401,20 @@ func TestExactlyFourSnapshots(t *testing.T) {
 	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
 	m.now = func() time.Time { return now }
 
+	uuids := []string{
+		"E3F52B7A-8C19-4D6E-A031-7F5B2E9D14C8",
+		"9A1D4F83-2E7B-4C05-B8F6-3D6A9E2C71F5",
+		"B7C83E91-4A5D-4F12-9E68-1D3F7A2B8C04",
+		"4F6D1A2E-7C8B-4935-BE12-9A3D5F7E6C81",
+	}
 	for i := range 4 {
 		d := now.Add(-time.Duration(40-i*10) * time.Minute)
 		m.snapshots = append(m.snapshots, snapshot.Snapshot{
-			Date: d.Format("2006-01-02-150405"),
-			Time: d,
+			Date:      d.Format("2006-01-02-150405"),
+			Time:      d,
+			UUID:      uuids[i],
+			XID:       1547200 + i*73,
+			Purgeable: true,
 		})
 	}
 	m.updateSnapViewContent()
@@ -396,19 +422,6 @@ func TestExactlyFourSnapshots(t *testing.T) {
 	v := viewContent(m)
 	if strings.Contains(v, "... and") {
 		t.Error("exactly 4 snapshots should not show ellipsis")
-	}
-}
-
-func TestDiffDisplay(t *testing.T) {
-	m := testModel()
-	m.diffAdded = 2
-	m.diffRemoved = 1
-	v := viewContent(m)
-	if !strings.Contains(v, "+2 added") {
-		t.Error("view missing diff added count")
-	}
-	if !strings.Contains(v, "1 removed") {
-		t.Error("view missing diff removed count")
 	}
 }
 
@@ -483,19 +496,21 @@ func TestDoThinSnapshotsReportsDeleteFailures(t *testing.T) {
 func TestViewSpinnerDuringLoading(t *testing.T) {
 	m := testModel()
 
-	// Without loading, the title bar should not contain a spinner frame.
+	// Without loading, the border title should not contain an operation label.
 	noLoading := viewContent(m)
+	if strings.Contains(noLoading, "Refreshing") {
+		t.Error("expected no Refreshing label when not loading")
+	}
 
 	m.loading = true
 	withLoading := viewContent(m)
 
-	if !strings.Contains(withLoading, "SNAPPY") {
-		t.Error("view missing SNAPPY title during loading")
+	if !strings.Contains(withLoading, "snappy") {
+		t.Error("view missing snappy title during loading")
 	}
-	// The spinner adds at least one extra character (the dot frame) to the
-	// title bar when loading is true.
-	if len(withLoading) <= len(noLoading) {
-		t.Error("expected spinner to add content to the title bar when loading")
+	// The border title should include the operation label when loading.
+	if !strings.Contains(withLoading, "Refreshing") {
+		t.Error("expected Refreshing label in border title when loading")
 	}
 }
 
@@ -516,7 +531,7 @@ func TestViewFullHeight(t *testing.T) {
 	}
 }
 
-func TestLogViewportAutoScrollsToNewest(t *testing.T) {
+func TestLogViewShowsNewestFirst(t *testing.T) {
 	m := testModel()
 	m.logView.SetHeight(3)
 
@@ -525,15 +540,50 @@ func TestLogViewportAutoScrollsToNewest(t *testing.T) {
 	}
 	m.updateLogViewContent()
 
-	// Chronological order: oldest at top, newest at bottom.
-	// GotoBottom should scroll so the newest entry is visible.
-	if m.logView.YOffset() == 0 {
-		t.Fatal("log viewport y-offset = 0, expected scrolled to bottom for newest entries")
-	}
-
+	// Newest entry should be at the top (cursor=0).
 	v := m.logView.View()
 	if !strings.Contains(v, "entry-7") {
-		t.Fatal("expected newest log entry to be visible")
+		t.Fatal("expected newest log entry to be visible at top")
+	}
+}
+
+func TestMouseClickSnapshotSelectsTopVisibleRowWhenTableIsOffset(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	for i := range 8 {
+		d := now.Add(-time.Duration(8-i) * time.Minute)
+		m.snapshots = append(m.snapshots, snapshot.Snapshot{
+			Date:      d.Format("2006-01-02-150405"),
+			Time:      d,
+			UUID:      fmt.Sprintf("00000000-0000-0000-0000-%012d", i+1),
+			XID:       1547200 + i,
+			Purgeable: true,
+		})
+	}
+	m.updateSnapViewContent()
+
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 16})
+	model := updated.(Model)
+
+	for range 2 {
+		updated, _ = model.Update(tea.KeyPressMsg{Code: 'j', Text: "j"})
+		model = updated.(Model)
+	}
+
+	if got := model.snapTable.Cursor(); got != 2 {
+		t.Fatalf("cursor before click = %d, want 2", got)
+	}
+
+	updated, _ = model.Update(tea.MouseClickMsg{
+		Button: tea.MouseLeft,
+		Y:      model.snapPanelY + 2,
+	})
+	model = updated.(Model)
+
+	if got := model.snapTable.Cursor(); got != 1 {
+		t.Fatalf("cursor after click = %d, want 1 (top visible row)", got)
 	}
 }
 
@@ -546,7 +596,10 @@ func TestSnapshotPanelKeepsViewportHeightWhenEmpty(t *testing.T) {
 
 	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
 	model.now = func() time.Time { return now }
-	model.snapshots = []snapshot.Snapshot{{Date: "2026-03-01-145000", Time: now.Add(-10 * time.Minute)}}
+	model.snapshots = []snapshot.Snapshot{{
+		Date: "2026-03-01-145000", Time: now.Add(-10 * time.Minute),
+		UUID: "B7C83E91-4A5D-4F12-9E68-1D3F7A2B8C04", XID: 1547356, Purgeable: true,
+	}}
 	model.updateSnapViewContent()
 
 	nonEmptyLines := strings.Count(model.renderSnapshotPanel(model.width), "\n")
@@ -562,8 +615,8 @@ func TestRefreshResultStartsSpinnerWhenThinning(t *testing.T) {
 
 	m.snapshots = nil
 	snaps := []snapshot.Snapshot{
-		{Date: "2026-03-01-130000", Time: now.Add(-2 * time.Hour)},
-		{Date: "2026-03-01-130100", Time: now.Add(-119 * time.Minute)},
+		{Date: "2026-03-01-130000", Time: now.Add(-2 * time.Hour), UUID: "E3F52B7A-8C19-4D6E-A031-7F5B2E9D14C8", XID: 1547201, Purgeable: true},
+		{Date: "2026-03-01-130100", Time: now.Add(-119 * time.Minute), UUID: "9A1D4F83-2E7B-4C05-B8F6-3D6A9E2C71F5", XID: 1547289, Purgeable: true},
 	}
 
 	updated, cmd := m.Update(RefreshResultMsg{
@@ -641,8 +694,8 @@ func TestThinPinnedDatesFilteredFromTargets(t *testing.T) {
 	m.thinPinned["2026-03-01-130100"] = struct{}{}
 
 	snaps := []snapshot.Snapshot{
-		{Date: "2026-03-01-130000", Time: now.Add(-2 * time.Hour)},
-		{Date: "2026-03-01-130100", Time: now.Add(-119 * time.Minute)},
+		{Date: "2026-03-01-130000", Time: now.Add(-2 * time.Hour), UUID: "E3F52B7A-8C19-4D6E-A031-7F5B2E9D14C8", XID: 1547201, Purgeable: true},
+		{Date: "2026-03-01-130100", Time: now.Add(-119 * time.Minute), UUID: "9A1D4F83-2E7B-4C05-B8F6-3D6A9E2C71F5", XID: 1547289, Purgeable: true},
 	}
 
 	updated, cmd := m.Update(RefreshResultMsg{

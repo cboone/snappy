@@ -6,6 +6,7 @@ import (
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/spinner"
+	"charm.land/bubbles/v2/table"
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 
@@ -69,6 +70,13 @@ func defaultKeyMap() keyMap {
 	}
 }
 
+// Panel focus constants.
+const (
+	panelInfo = iota
+	panelSnap
+	panelLog
+)
+
 // Model is the Bubbletea model for the Snappy TUI.
 type Model struct {
 	cfg    *config.Config
@@ -78,14 +86,13 @@ type Model struct {
 
 	snapshots     []snapshot.Snapshot
 	prevSnapshots []snapshot.Snapshot
-	diffAdded     int
-	diffRemoved   int
 
-	tmStatus       string
-	apfsVolume     string
-	otherSnapCount int
-	diskInfo       string
-	lastRefresh    time.Time
+	tmStatus           string
+	apfsVolume         string
+	volumeName         string
+	lastOtherSnapCount int
+	diskInfo           string
+	lastRefresh        time.Time
 
 	width          int
 	height         int
@@ -97,34 +104,47 @@ type Model struct {
 	thinPinned     map[string]struct{}
 	version        string
 
-	keys      keyMap
-	help      help.Model
-	snapView  viewport.Model
-	logView   viewport.Model
-	spinner   spinner.Model
-	styles    modelStyles
-	loading   bool
-	focusLog  bool
-	hasDarkBG bool
+	keys          keyMap
+	help          help.Model
+	snapTable     table.Model
+	logView       viewport.Model
+	logCursor     int
+	logCount      int
+	logEntryY     []int
+	logTotalLines int
+	spinner       spinner.Model
+	styles        modelStyles
+	loading       bool
+	focusPanel    int
+	hasDarkBG     bool
+
+	snapPanelY int
+	logPanelY  int
+	helpBarY   int
 
 	now func() time.Time
 }
 
 // NewModel creates a Model with the given dependencies.
-func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Logger, apfsVolume, tmStatus, version string) Model {
+func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Logger, apfsVolume, tmStatus, volumeName, version string) Model {
 	now := time.Now()
 	hasDarkBG := true
 
 	keys := defaultKeyMap()
+	styles := newModelStyles(hasDarkBG)
 
 	h := help.New()
 	h.SetWidth(80)
-	h.Styles = help.DefaultDarkStyles()
+	h.Styles = helpStyles(styles)
 
-	sv := viewport.New(viewport.WithWidth(76), viewport.WithHeight(10))
+	st := table.New(
+		table.WithWidth(76),
+		table.WithHeight(10),
+		table.WithFocused(true),
+		table.WithStyles(styles.tableStyles),
+	)
+
 	lv := viewport.New(viewport.WithWidth(76), viewport.WithHeight(10))
-
-	styles := newModelStyles(hasDarkBG)
 
 	s := spinner.New(
 		spinner.WithSpinner(spinner.Dot),
@@ -138,6 +158,7 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 		auto:       snapshot.NewAutoManager(cfg.AutoEnabled, cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence, now),
 		apfsVolume: apfsVolume,
 		tmStatus:   tmStatus,
+		volumeName: volumeName,
 		refreshing: true,
 		thinPinned: make(map[string]struct{}),
 		version:    version,
@@ -145,10 +166,11 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 		height:     24,
 		keys:       keys,
 		help:       h,
-		snapView:   sv,
+		snapTable:  st,
 		logView:    lv,
 		spinner:    s,
 		styles:     styles,
+		focusPanel: panelSnap,
 		hasDarkBG:  hasDarkBG,
 		now:        time.Now,
 	}
@@ -166,5 +188,6 @@ func (m Model) Init() tea.Cmd {
 		doRefresh(m.runner, m.cfg, m.apfsVolume),
 		refreshTick(m.cfg.RefreshInterval),
 		tea.RequestBackgroundColor,
+		uiTick(),
 	)
 }

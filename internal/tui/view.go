@@ -6,30 +6,22 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-
-	"github.com/cboone/snappy/internal/logger"
-	"github.com/cboone/snappy/internal/snapshot"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // View renders the full TUI screen as a tea.View.
 func (m Model) View() tea.View {
-	if m.quitting {
-		return tea.NewView("")
-	}
-
 	w := m.width
 	if w == 0 {
 		w = 80
 	}
 
-	titleBar := m.renderTitleBar(w)
 	infoPanel := m.renderInfoPanel(w)
 	snapPanel := m.renderSnapshotPanel(w)
 	logPanel := m.renderLogPanel(w)
 	helpBar := m.renderHelpBar(w)
 
 	content := lipgloss.JoinVertical(lipgloss.Left,
-		titleBar,
 		infoPanel,
 		snapPanel,
 		logPanel,
@@ -37,81 +29,113 @@ func (m Model) View() tea.View {
 	)
 
 	v := tea.NewView(content)
-	v.AltScreen = true
-	return v
-}
-
-func (m Model) renderTitleBar(width int) string {
-	title := fmt.Sprintf("%s SNAPPY v%s  Time Machine Local Snapshot Manager", indicatorOn, m.version)
-	if m.loading {
-		title += "  " + m.spinner.View()
+	if !m.quitting {
+		v.AltScreen = true
+		v.MouseMode = tea.MouseModeCellMotion
 	}
-	return m.styles.titleBar.Width(width).Render(title)
+	return v
 }
 
 func (m Model) renderInfoPanel(width int) string {
 	cw := contentWidth(width)
 
+	// Build the title string for embedding in the border.
+	dot := indicatorOff
+	if m.auto.Enabled() {
+		dot = indicatorOn
+	}
+	if m.loading {
+		dot = m.styles.textYellow.Render(dot)
+	} else {
+		dot = m.styles.textGreen.Render(dot)
+	}
+
+	titleStyle := m.styles.sectionTitle
+	if m.focusPanel != panelInfo {
+		titleStyle = m.styles.sectionTitleDim
+	}
+	title := dot + " " + titleStyle.Render("snappy")
+
+	switch {
+	case m.snapshotting:
+		title += "  Snapshotting " + m.spinner.View()
+	case m.thinning:
+		title += "  Thinning " + m.spinner.View()
+	case m.loading:
+		title += "  Refreshing " + m.spinner.View()
+	}
+
+	// Build the info panel body.
 	lastRefresh := "never"
 	if !m.lastRefresh.IsZero() {
 		lastRefresh = m.lastRefresh.Format("2006-01-02T15:04:05")
-	}
-
-	lines := []string{
-		fmt.Sprintf("Volume: %s    Refresh: %ds    Last: %s",
-			m.cfg.MountPoint, int(m.cfg.RefreshInterval.Seconds()), lastRefresh),
-		fmt.Sprintf("Time Machine: %s", m.tmStatus),
-	}
-
-	if m.apfsVolume != "" {
-		lines = append(lines, fmt.Sprintf("APFS Volume: %s    Other snapshots: %d",
-			m.apfsVolume, m.otherSnapCount))
 	}
 
 	diskInfo := m.diskInfo
 	if diskInfo == "" {
 		diskInfo = "unavailable"
 	}
-	lines = append(lines,
-		fmt.Sprintf("Disk: %s", diskInfo),
+
+	label := m.styles.infoLabel.Render
+	lines := []string{
+		label("Volume:") + " " + m.volumeName + "    " + label("Disk:") + " " + diskInfo,
+		label("Time Machine:") + " " + m.tmStatus + "    " +
+			label("Refresh:") + fmt.Sprintf(" %ds    ", int(m.cfg.RefreshInterval.Seconds())) +
+			label("Last:") + " " + lastRefresh,
 		m.formatAutoStatus(),
-	)
+	}
+	for i, line := range lines {
+		lines[i] = ansi.Truncate(line, cw, "")
+	}
+
+	style := m.styles.section
+	if m.focusPanel == panelInfo {
+		style = m.styles.sectionFocus
+	}
 
 	body := strings.Join(lines, "\n")
-	return m.styles.section.Width(cw).Render(body)
+	rendered := style.Width(cw + 4).Render(body)
+
+	borderFg := lipgloss.NewStyle().Foreground(style.GetBorderTopForeground())
+	return borderTitle(rendered, title, borderFg)
 }
 
 func (m Model) renderSnapshotPanel(width int) string {
-	cw := contentWidth(width)
+	sw := contentWidth(width) + 4
 	count := len(m.snapshots)
 
-	diffSummary := ""
-	if m.diffAdded > 0 || m.diffRemoved > 0 {
-		diffSummary = fmt.Sprintf("  [+%d added, %d removed]", m.diffAdded, m.diffRemoved)
+	titleStyle := m.styles.sectionTitle
+	if m.focusPanel != panelSnap {
+		titleStyle = m.styles.sectionTitleDim
 	}
-
-	title := m.styles.sectionTitle.Render(fmt.Sprintf("LOCAL SNAPSHOTS (%d)", count)) + diffSummary
-
-	body := title + "\n" + m.snapView.View()
+	title := titleStyle.Render(fmt.Sprintf("local snapshots (%d)", count))
 
 	style := m.styles.section
-	if !m.focusLog {
+	if m.focusPanel == panelSnap {
 		style = m.styles.sectionFocus
 	}
-	return style.Width(cw).Render(body)
+
+	rendered := style.Width(sw).Render(m.snapTable.View())
+	borderFg := lipgloss.NewStyle().Foreground(style.GetBorderTopForeground())
+	return borderTitle(rendered, title, borderFg)
 }
 
 func (m Model) renderLogPanel(width int) string {
-	cw := contentWidth(width)
-
-	title := m.styles.sectionTitle.Render("RECENT LOG")
-	body := title + "\n" + m.logView.View()
+	sw := contentWidth(width) + 4
+	titleStyle := m.styles.sectionTitle
+	if m.focusPanel != panelLog {
+		titleStyle = m.styles.sectionTitleDim
+	}
+	title := titleStyle.Render("recent log")
 
 	style := m.styles.section
-	if m.focusLog {
+	if m.focusPanel == panelLog {
 		style = m.styles.sectionFocus
 	}
-	return style.Width(cw).Render(body)
+
+	rendered := style.Width(sw).Render(m.logView.View())
+	borderFg := lipgloss.NewStyle().Foreground(style.GetBorderTopForeground())
+	return borderTitle(rendered, title, borderFg)
 }
 
 func (m Model) renderHelpBar(_ int) string {
@@ -119,60 +143,52 @@ func (m Model) renderHelpBar(_ int) string {
 }
 
 func (m Model) formatAutoStatus() string {
+	label := m.styles.infoLabel.Render
 	if m.auto.Enabled() {
 		now := m.now()
 		nextIn := int(m.auto.NextIn(now).Seconds())
-		return fmt.Sprintf("Auto-snapshot: %s %s    every %ds    next in %ds    thin >%dm to %ds",
-			indicatorOn,
-			m.styles.statusOn.Render("on"),
-			int(m.auto.Interval().Seconds()),
-			nextIn,
-			int(m.auto.ThinAge().Minutes()),
-			int(m.auto.ThinCadence().Seconds()),
-		)
+		return label("Auto-snapshot:") + " " + indicatorOn + " " +
+			m.styles.statusOn.Render("on") +
+			fmt.Sprintf("    %s %ds    %s %ds    %s >%dm to %ds",
+				label("every"), int(m.auto.Interval().Seconds()),
+				label("next in"), nextIn,
+				label("thin"), int(m.auto.ThinAge().Minutes()),
+				int(m.auto.ThinCadence().Seconds()),
+			)
 	}
-	return fmt.Sprintf("Auto-snapshot: %s %s",
-		indicatorOff,
-		m.styles.statusOff.Render("off"),
-	)
+	return label("Auto-snapshot:") + " " + indicatorOff + " " +
+		m.styles.statusOff.Render("off")
 }
 
-func (m Model) formatSnapshotLine(i, count int) string {
-	snap := m.snapshots[i]
-	now := m.now()
-	relative := snapshot.FormatRelativeTime(snap.Time, now)
-
-	number := m.styles.snapNumber.Render(fmt.Sprintf("%2d.", count-i))
-	timeStr := m.styles.textDim.Render(fmt.Sprintf("(%s)", relative))
-
-	details := ""
-	if m.apfsVolume != "" && snap.UUID != "" {
-		flags := indicatorPurge + " purgeable"
-		if !snap.Purgeable {
-			flags = m.styles.textYellow.Render(indicatorPinned + " pinned")
-		}
-		if snap.LimitsShrink {
-			flags += "  " + m.styles.textRed.Render(indicatorWarning+" limits shrink")
-		}
-		details = fmt.Sprintf("   %s   %s", snap.UUID, flags)
+// borderTitle replaces the top border of a lipgloss-rendered bordered box
+// with a new top line that embeds the given title, centered:
+//
+//	╭──────── title ────────╮
+func borderTitle(rendered, title string, borderFg lipgloss.Style) string {
+	lines := strings.SplitN(rendered, "\n", 2)
+	if len(lines) < 2 {
+		return rendered
 	}
 
-	return fmt.Sprintf("%s  %s   %s%s", number, snap.Date, timeStr, details)
-}
+	topWidth := lipgloss.Width(lines[0])
 
-func (m Model) colorizeLogEntry(entry logger.Entry) string {
-	switch entry.Type {
-	case logger.Error:
-		return m.styles.textRed.Render(entry.Formatted)
-	case logger.Created, logger.Added:
-		return m.styles.textGreen.Render(entry.Formatted)
-	case logger.Removed, logger.Thinned:
-		return m.styles.textYellow.Render(entry.Formatted)
-	case logger.Auto:
-		return m.styles.textCyan.Render(entry.Formatted)
-	case logger.Startup:
-		return m.styles.textMagenta.Render(entry.Formatted)
-	default:
-		return entry.Formatted
+	// Truncate the title if it would exceed the available border width.
+	// Available space = topWidth - 4 (TopLeft + space + space + TopRight).
+	if maxTitle := topWidth - 4; maxTitle > 0 {
+		title = ansi.Truncate(title, maxTitle, "")
 	}
+	titleWidth := lipgloss.Width(title)
+
+	border := lipgloss.RoundedBorder()
+
+	// TopLeft(1) + leftFill + space(1) + title + space(1) + rightFill + TopRight(1)
+	totalFill := max(topWidth-titleWidth-4, 0)
+	leftFill := totalFill / 2
+	rightFill := totalFill - leftFill
+
+	newTop := borderFg.Render(border.TopLeft+strings.Repeat(border.Top, leftFill)+" ") +
+		title +
+		borderFg.Render(" "+strings.Repeat(border.Top, rightFill)+border.TopRight)
+
+	return newTop + "\n" + lines[1]
 }

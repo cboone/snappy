@@ -54,6 +54,7 @@ func doRefresh(runner platform.CommandRunner, cfg *config.Config, apfsVolume str
 				for i, s := range snapshots {
 					if d, ok := details[s.Date]; ok {
 						snapshots[i].UUID = d.UUID
+						snapshots[i].XID = d.XID
 						snapshots[i].Purgeable = d.Purgeable
 						snapshots[i].LimitsShrink = d.LimitsShrink
 					}
@@ -113,5 +114,11 @@ func doThinSnapshots(runner platform.CommandRunner, targets []string) tea.Cmd {
 func refreshTick(interval time.Duration) tea.Cmd {
 	return tea.Tick(interval, func(_ time.Time) tea.Msg {
 		return RefreshTickMsg{}
+	})
+}
+
+func uiTick() tea.Cmd {
+	return tea.Tick(time.Second, func(_ time.Time) tea.Msg {
+		return UITickMsg{}
 	})
 }

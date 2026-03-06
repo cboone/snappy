@@ -3,8 +3,6 @@
 # Author: Christopher Boone
 # Date: 2026-03-01
 
-set -euo pipefail
-
 readonly REPO="cboone/snappy"
 readonly BINARY="snappy"
 readonly INSTALL_DIR="${INSTALL_DIR:-${HOME}/.local/bin}"
@@ -176,7 +174,7 @@ function main() {
   local tarball="${BINARY}_${version_bare}_darwin_${arch}.tar.gz"
   local url="https://github.com/${REPO}/releases/download/${VERSION}/${tarball}"
 
-  local tmp_dir
+  # Not local: the EXIT trap references tmp_dir after main() returns.
   tmp_dir="$(mktemp -d)"
   trap 'rm -rf "${tmp_dir}"' EXIT
 
@@ -226,4 +224,9 @@ function main() {
   esac
 }
 
-main "${@}"
+# Guard lets callers source this file and test individual functions
+# without triggering the full install flow.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  set -euo pipefail
+  main "${@}"
+fi

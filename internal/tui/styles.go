@@ -2,22 +2,15 @@
 package tui
 
 import (
-	"image/color"
-
+	"charm.land/bubbles/v2/table"
 	"charm.land/lipgloss/v2"
 )
 
 const (
 	indicatorOn      = "●"
 	indicatorOff     = "○"
-	indicatorPurge   = "◇"
-	indicatorPinned  = "◆"
 	indicatorWarning = "⚠"
 )
-
-func adaptiveColor(hasDarkBG bool, light, dark string) color.Color {
-	return lipgloss.LightDark(hasDarkBG)(lipgloss.Color(light), lipgloss.Color(dark))
-}
 
 // modelStyles holds all precomputed Lipgloss styles for the TUI.
 type modelStyles struct {
@@ -28,44 +21,43 @@ type modelStyles struct {
 	textCyan    lipgloss.Style
 	textMagenta lipgloss.Style
 
-	titleBar     lipgloss.Style
-	section      lipgloss.Style
-	sectionFocus lipgloss.Style
-	sectionTitle lipgloss.Style
-	helpBar      lipgloss.Style
-	statusOn     lipgloss.Style
-	statusOff    lipgloss.Style
-	snapNumber   lipgloss.Style
-	spinnerStyle lipgloss.Style
+	infoLabel lipgloss.Style
+
+	section         lipgloss.Style
+	sectionFocus    lipgloss.Style
+	sectionTitle    lipgloss.Style
+	sectionTitleDim lipgloss.Style
+	helpBar         lipgloss.Style
+	statusOn        lipgloss.Style
+	statusOff       lipgloss.Style
+	spinnerStyle    lipgloss.Style
+	tableStyles     table.Styles
 }
 
 func newModelStyles(hasDarkBG bool) modelStyles {
-	colorBorder := adaptiveColor(hasDarkBG, "#888888", "#555555")
-	colorHighlight := adaptiveColor(hasDarkBG, "#0066cc", "#88c0d0")
-	colorSubtle := adaptiveColor(hasDarkBG, "#666666", "#777777")
-	colorTitleBg := adaptiveColor(hasDarkBG, "#0066cc", "#2e3440")
-	colorTitleFg := adaptiveColor(hasDarkBG, "#ffffff", "#eceff4")
+	lightDark := lipgloss.LightDark(hasDarkBG)
 
-	green := lipgloss.Color("2")
-	yellow := lipgloss.Color("3")
-	red := lipgloss.Color("1")
-	cyan := lipgloss.Color("6")
-	magenta := lipgloss.Color("5")
+	colorBorder := lightDark(lipgloss.Color("250"), lipgloss.Color("235"))
+	colorFocus := lightDark(lipgloss.Black, lipgloss.White)
+	colorHighlight := lightDark(lipgloss.Color("26"), lipgloss.Color("110"))
+	colorTitleDim := lightDark(lipgloss.Color("247"), lipgloss.Color("240"))
+	colorSubtle := lightDark(lipgloss.Color("243"), lipgloss.Color("241"))
+	colorLabel := lightDark(lipgloss.Color("240"), lipgloss.Color("248"))
+	colorHeading := lightDark(lipgloss.Color("245"), lipgloss.Color("243"))
+	green := lipgloss.Green
+	yellow := lipgloss.Yellow
+	red := lipgloss.Red
+	cyan := lipgloss.Cyan
+	magenta := lipgloss.Magenta
 
 	return modelStyles{
 		textDim:     lipgloss.NewStyle().Faint(true),
+		infoLabel:   lipgloss.NewStyle().Foreground(colorLabel),
 		textGreen:   lipgloss.NewStyle().Foreground(green),
 		textYellow:  lipgloss.NewStyle().Foreground(yellow),
 		textRed:     lipgloss.NewStyle().Foreground(red),
 		textCyan:    lipgloss.NewStyle().Foreground(cyan),
 		textMagenta: lipgloss.NewStyle().Foreground(magenta),
-
-		titleBar: lipgloss.NewStyle().
-			Bold(true).
-			Foreground(colorTitleFg).
-			Background(colorTitleBg).
-			Padding(0, 1).
-			AlignHorizontal(lipgloss.Center),
 
 		section: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
@@ -74,12 +66,15 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 
 		sectionFocus: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(colorHighlight).
+			BorderForeground(colorFocus).
 			Padding(0, 1),
 
 		sectionTitle: lipgloss.NewStyle().
+			Bold(true),
+
+		sectionTitleDim: lipgloss.NewStyle().
 			Bold(true).
-			Foreground(colorHighlight),
+			Foreground(colorTitleDim),
 
 		helpBar: lipgloss.NewStyle().
 			Foreground(colorSubtle).
@@ -88,17 +83,25 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 		statusOn:  lipgloss.NewStyle().Bold(true).Foreground(green),
 		statusOff: lipgloss.NewStyle().Bold(true).Foreground(red),
 
-		snapNumber:   lipgloss.NewStyle().Bold(true).Foreground(green),
 		spinnerStyle: lipgloss.NewStyle().Foreground(colorHighlight),
+		tableStyles: table.Styles{
+			Header:   lipgloss.NewStyle().Bold(true).Foreground(colorHeading).Padding(0, 3, 0, 0),
+			Cell:     lipgloss.NewStyle().Padding(0, 3, 0, 0),
+			Selected: lipgloss.NewStyle().Bold(true).Foreground(colorHighlight).Padding(0, 3, 0, 0),
+		},
 	}
 }
 
-// contentWidth returns the usable width inside a bordered section.
-// Accounts for border (2) + padding (2) = 4 characters.
+// contentWidth returns the usable text width inside a bordered, padded
+// section. The floor (55) guarantees all five table columns fit at
+// minimum widths (DATE 19 + AGE 5 + XID 7 + UUID 9 + STATUS 0 + 15 pad).
+// Padding is 3 per column (right only), so 5 columns = 15.
+// Render functions derive section Width as cw + 4 so lipgloss wraps at
+// exactly this content width.
 func contentWidth(termWidth int) int {
 	w := termWidth - 4
-	if w < 40 {
-		return 40
+	if w < 55 {
+		return 55
 	}
 	return w
 }

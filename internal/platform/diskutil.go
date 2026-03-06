@@ -13,6 +13,7 @@ import (
 type SnapshotDetail struct {
 	Date         string
 	UUID         string
+	XID          int
 	Purgeable    bool
 	LimitsShrink bool
 }
@@ -27,12 +28,14 @@ type APFSInfo struct {
 // diskutilInfoPlist is the subset of diskutil info -plist we need.
 type diskutilInfoPlist struct {
 	DeviceIdentifier string `plist:"DeviceIdentifier"`
+	VolumeName       string `plist:"VolumeName"`
 }
 
 // apfsSnapshotEntry represents a single snapshot in the APFS plist.
 type apfsSnapshotEntry struct {
 	SnapshotName            string      `plist:"SnapshotName"`
 	SnapshotUUID            string      `plist:"SnapshotUUID"`
+	SnapshotXID             int         `plist:"SnapshotXID"`
 	Purgeable               interface{} `plist:"Purgeable"`
 	LimitingContainerShrink interface{} `plist:"LimitingContainerShrink"`
 }
@@ -99,12 +102,29 @@ func GetSnapshotDetails(ctx context.Context, r CommandRunner, volume string) (de
 		details[date] = SnapshotDetail{
 			Date:         date,
 			UUID:         snap.SnapshotUUID,
+			XID:          snap.SnapshotXID,
 			Purgeable:    parseBoolish(snap.Purgeable),
 			LimitsShrink: parseBoolish(snap.LimitingContainerShrink),
 		}
 	}
 
 	return details, otherCount, nil
+}
+
+// GetVolumeName returns the human-friendly volume name for the given mount
+// point by parsing the VolumeName field from diskutil info -plist.
+func GetVolumeName(ctx context.Context, r CommandRunner, mount string) (string, error) {
+	out, err := r.Run(ctx, "diskutil", "info", "-plist", mount)
+	if err != nil {
+		return "", fmt.Errorf("getting volume name for %s: %w", mount, err)
+	}
+
+	var info diskutilInfoPlist
+	if _, err := plist.Unmarshal(out, &info); err != nil {
+		return "", fmt.Errorf("parsing diskutil plist for %s: %w", mount, err)
+	}
+
+	return info.VolumeName, nil
 }
 
 func getDeviceIdentifier(ctx context.Context, r CommandRunner, mount string) (string, error) {
