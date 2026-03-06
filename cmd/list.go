@@ -61,9 +61,10 @@ func writeListJSON(cmd *cobra.Command, cfg *config.Config, snapshots []snapshot.
 
 	items := make([]jsonSnapshot, len(snapshots))
 	for i, s := range snapshots {
+		relative := formatRelativeAgo(s.Time, now)
 		item := jsonSnapshot{
 			Date:     s.Date,
-			Relative: snapshot.FormatRelativeTime(s.Time, now) + " ago",
+			Relative: relative,
 			UUID:     s.UUID,
 		}
 		if s.UUID != "" {
@@ -108,7 +109,7 @@ func writeListHuman(cmd *cobra.Command, cfg *config.Config, snapshots []snapshot
 	// Display newest first (reverse of ascending loadSnapshots order).
 	for i := count - 1; i >= 0; i-- {
 		s := snapshots[i]
-		relative := snapshot.FormatRelativeTime(s.Time, now) + " ago"
+		relative := formatRelativeAgo(s.Time, now)
 		num := count - i
 
 		line := fmt.Sprintf("  %2d. %s   (%s)", num, s.Date, relative)
@@ -135,4 +136,12 @@ func writeListHuman(cmd *cobra.Command, cfg *config.Config, snapshots []snapshot
 	}
 
 	return nil
+}
+
+func formatRelativeAgo(t, now time.Time) string {
+	relative := snapshot.FormatRelativeTime(t, now)
+	if relative == "future" {
+		return relative
+	}
+	return relative + " ago"
 }
