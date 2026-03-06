@@ -71,8 +71,7 @@ $ "${SNAPPY_BIN}" config --help
 Show or manage snappy configuration
 
 Usage:
-  snappy config [flags]
-  snappy config [command]
+  snappy config [command] [flags]
 
 Available Commands:
   init        Create a default config file
