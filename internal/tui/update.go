@@ -542,7 +542,14 @@ func (m *Model) snapTableColumns() []table.Column {
 // message column, with continuation lines indented to align.
 func (m *Model) updateLogViewContent() {
 	entries := m.log.Entries()
-	m.logCount = len(entries)
+	newCount := len(entries)
+	// When new entries arrive, existing entries shift down in the
+	// newest-first display. Adjust cursor so it tracks the same entry.
+	// If the cursor is at 0 (following newest), keep it there.
+	if m.logCursor > 0 && newCount > m.logCount {
+		m.logCursor += newCount - m.logCount
+	}
+	m.logCount = newCount
 	if m.logCursor >= m.logCount {
 		m.logCursor = max(m.logCount-1, 0)
 	}
