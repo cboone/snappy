@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/cboone/snappy/internal/config"
+	"github.com/cboone/snappy/internal/logger"
 )
 
 func TestRunIterationLogsAndContinues(t *testing.T) {
@@ -30,10 +31,12 @@ func TestRunIterationLogsAndContinues(t *testing.T) {
 	}}
 
 	cfg := config.Load()
+	log := logger.New(logger.Options{})
+	defer log.Close()
 	var buf bytes.Buffer
 
 	// runIteration should not panic or return an error; it logs and continues.
-	runIteration(context.Background(), &buf, runner, cfg)
+	runIteration(context.Background(), &buf, log, runner, cfg)
 
 	output := buf.String()
 	if !strings.Contains(output, "ERROR") {
@@ -42,8 +45,8 @@ func TestRunIterationLogsAndContinues(t *testing.T) {
 	if !strings.Contains(output, "permission denied") {
 		t.Errorf("output missing error details, got:\n%s", output)
 	}
-	if !strings.Contains(output, "LIST") {
-		t.Errorf("output missing LIST log line (should continue after error), got:\n%s", output)
+	if !strings.Contains(output, "INFO") {
+		t.Errorf("output missing INFO log line (should continue after error), got:\n%s", output)
 	}
 }
 
@@ -66,16 +69,18 @@ func TestRunIterationSuccess(t *testing.T) {
 	}}
 
 	cfg := config.Load()
+	log := logger.New(logger.Options{})
+	defer log.Close()
 	var buf bytes.Buffer
 
-	runIteration(context.Background(), &buf, runner, cfg)
+	runIteration(context.Background(), &buf, log, runner, cfg)
 
 	output := buf.String()
-	if !strings.Contains(output, "SNAPSHOT") {
+	if !strings.Contains(output, "CREATED") {
 		t.Errorf("output missing SNAPSHOT log line, got:\n%s", output)
 	}
-	if !strings.Contains(output, "LIST") {
-		t.Errorf("output missing LIST log line, got:\n%s", output)
+	if !strings.Contains(output, "INFO") {
+		t.Errorf("output missing INFO log line, got:\n%s", output)
 	}
 	if strings.Contains(output, "ERROR") {
 		t.Errorf("unexpected ERROR in output:\n%s", output)
@@ -105,18 +110,20 @@ func TestRunIterationLogsPostThinCount(t *testing.T) {
 	}}
 
 	cfg := config.Load()
+	log := logger.New(logger.Options{})
+	defer log.Close()
 	var buf bytes.Buffer
 
-	runIteration(context.Background(), &buf, runner, cfg)
+	runIteration(context.Background(), &buf, log, runner, cfg)
 
 	output := buf.String()
-	if !strings.Contains(output, "THIN") {
+	if !strings.Contains(output, "THINNED") {
 		t.Fatalf("output missing THIN log line, got:\n%s", output)
 	}
 	if !strings.Contains(output, "Thinned 1 snapshot(s)") {
 		t.Fatalf("output missing thin count, got:\n%s", output)
 	}
-	if !strings.Contains(output, "LIST") || !strings.Contains(output, "1 snapshot(s)") {
+	if !strings.Contains(output, "INFO") || !strings.Contains(output, "1 snapshot(s)") {
 		t.Fatalf("output missing post-thin list count, got:\n%s", output)
 	}
 }
@@ -140,10 +147,12 @@ func TestRunIterationContextCancelled(t *testing.T) {
 	}}
 
 	cfg := config.Load()
+	log := logger.New(logger.Options{})
+	defer log.Close()
 	var buf bytes.Buffer
 
 	// Should not panic even with cancelled context.
-	runIteration(ctx, &buf, runner, cfg)
+	runIteration(ctx, &buf, log, runner, cfg)
 }
 
 func TestRunCommandStructure(t *testing.T) {
