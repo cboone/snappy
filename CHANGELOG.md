@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-03-06
+
+### Added
+
+- Non-interactive CLI commands: `create`, `list`, `status`, `thin`, and `run`
+- Bubbles table component for snapshot list with clickable line selection
+- Clickable panel focus and mouse wheel scrolling for TUI panels
+- Live-updating snapshot ages and auto-snap countdown timer (1-second tick)
+- Long log message wrapping within the message column
+- Human-friendly volume name display in info panel
+- Dynamic status dot and operation labels in TUI header
+- XID field in snapshot details
+- Embedded border titles for snapshot, log, and info panels
+
+### Changed
+
+- Showed newest snapshots first in both panels for consistent scrolling
+- Used ANSI color constants instead of hex strings for TUI styles
+- Compacted relative time format for snapshot ages
+- Moved APFS details from info panel to log
+- Tuned panel and help bar colors for focus contrast
+- Restyled panel titles and table headers with uniform column spacing
+- Unified batch-delete and surfaced snapshot errors in status
+- Optimized GitHub Actions runner usage
+
+### Fixed
+
+- Stabilized log cursor and prevented strict-mode leak when sourced
+- Restored "ago" suffix in CLI list output
+- Corrected column sizing math and border title overflow
+- Aligned snapshot click selection with visible rows
+- Bounded mouse hit-testing to panel regions
+- Computed fixed layout height dynamically for proper terminal filling
+- Preserved TUI output on exit instead of clearing screen
+- Prevented panel content wrapping and handled narrow terminals
+- Removed double `v` prefix from startup log
+- Skipped pinned snapshot failures and prevented retry loops in thinning
+- Handled ESTALE deletes as pinned skips in snappy-ez
+- Used `cmd.Context()` for cancellation propagation
+- Serialized release workflow runs across all tags
+- Corrected install script `tmp_dir` scope and added source guard
+- Used string instead of list for cask post-install hook
+
 ## [0.5.0] - 2026-03-02
 
 ### Added
@@ -134,7 +177,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add shellcheckrc with all checks enabled
 
-[unreleased]: https://github.com/cboone/snappy/compare/v0.5.0...HEAD
+[unreleased]: https://github.com/cboone/snappy/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/cboone/snappy/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/cboone/snappy/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/cboone/snappy/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/cboone/snappy/compare/v0.3.1...v0.4.0
