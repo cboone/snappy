@@ -173,6 +173,8 @@ func GetContainerTidemark(ctx context.Context, r CommandRunner, container string
 	return limits.MinimumSizeNoGuard, nil
 }
 
+// getDiskutilInfo runs "diskutil info -plist" for the given mount point and
+// returns the parsed result.
 func getDiskutilInfo(ctx context.Context, r CommandRunner, mount string) (diskutilInfoPlist, error) {
 	out, err := r.Run(ctx, "diskutil", "info", "-plist", mount)
 	if err != nil {

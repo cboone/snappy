@@ -1,38 +1,39 @@
 # Snappy
 
-![Snappy the Swamp Protector vs The Rusty Clanker](./docs/images/scary-snappy-4x1.jpg)
+[![Snappy the Swamp Protector vs The Rusty Clanker](./docs/images/scary-snappy-4x1.jpg)](https://snappy.sh)
 
-[![GitHub branch check runs](https://img.shields.io/github/check-runs/cboone/snappy/main?style=for-the-badge&label=tests&labelColor=f3eecd&color=81834a)](https://github.com/cboone/snappy/actions) [![Go Report Card](https://img.shields.io/badge/go%20report%20card-A+-important?style=for-the-badge&labelColor=f3eecd&color=81834a)](https://goreportcard.com/report/github.com/cboone/snappy) ![macOS 11+](https://img.shields.io/badge/macOS-11+-critical?style=for-the-badge&labelColor=f3eecd&color=b18655) [![MIT License](https://img.shields.io/github/license/cboone/snappy?style=for-the-badge&labelColor=f3eecd&color=b18655)](./LICENSE)
+[![GitHub branch check runs](https://img.shields.io/github/check-runs/cboone/snappy/main?style=for-the-badge&label=tests&labelColor=f3eecd&color=81834a)](https://github.com/cboone/snappy/actions) [![Go Report Card](https://img.shields.io/badge/go%20report%20card-A+-important?style=for-the-badge&labelColor=f3eecd&color=81834a)](https://goreportcard.com/report/github.com/cboone/snappy) ![macOS 11+](https://img.shields.io/badge/macOS-11+-critical?style=for-the-badge&labelColor=f3eecd&color=b18655) [![MIT License](https://img.shields.io/github/license/cboone/snappy?style=for-the-badge&labelColor=f3eecd&color=b18655&)](./LICENSE)
 
-[**Quick Start**](#quick-start) | [**Why Use Snappy?**](#why-use-snappy) | [**Usage**](#commands-and-options) | [**Restoring Files and Snapshots**](#restoring-files-and-snapshots) | [**Limitations**](#limitations) | [**Other Tools**](#comparison)
+[**Quick Start**](#quick-start) ・ [**Why Use Snappy?**](#why-use-snappy) ・ [**Usage**](#commands-and-options) ・ [**Restoring Files and Snapshots**](#restoring-files-and-snapshots) ・ [**Limitations**](#limitations) ・ [**Other Tools**](#comparison)
 
-**Frequent, automatic, super fast, lightweight snapshot backups of your entire drive.** Snappy uses the macOS built-in snapshotting system to allow easy access and rollbacks to individual files, directories, or the entire disk.
+**Frequent, automatic, super fast, lightweight snapshot backups of your entire drive.** Snappy uses the macOS built-in snapshotting system to allow easy access to and rollbacks of individual files, directories, or the entire disk.
 
 `brew install cboone/tap/snappy` and it's automatically installed and running. Run `snappy` on its own to see the status of your snapshots, view your config, and mount your snapshot backups to restore files.
 
-Snappy only runs on macOS. It relies on [`tmutil`](https://ss64.com/mac/tmutil.html) and [APFS snapshots](https://eclecticlight.co/2026/01/31/explainer-snapshots-2/). If you're on Linux, [`zsh-auto-snapshot`](https://manpages.debian.org/trixie/zfs-auto-snapshot/zfs-auto-snapshot.8.en.html) is a good option (and is what inspired Snappy in the first place). AFAICT, it should work on pretty much any macOS version since 11 (macOS Big Sur), when [Time Machine](<https://en.wikipedia.org/wiki/Time_Machine_(macOS)>) began to use APFS snapshotting.
+**Snappy only runs on macOS.** It relies on [`tmutil`](https://man.freebsd.org/cgi/man.cgi?query=tmutil&manpath=macOS+26.3) and [APFS snapshots](https://eclecticlight.co/2026/01/31/explainer-snapshots-2/). If you're on Linux, [`zsh-auto-snapshot`](https://manpages.debian.org/trixie/zfs-auto-snapshot/zfs-auto-snapshot.8.en.html) is a good option (and is what inspired Snappy in the first place). AFAICT, it should work on pretty much any macOS version since 11 (macOS Big Sur), when [Time Machine](https://en.wikipedia.org/wiki/Time_Machine_%28macOS%29) began to use APFS snapshotting.
 
-**You don't need to use Time Machine for Snappy to work.** You can use Time Machine's fancy UI to view your backups and restore files if you want, or you can use Snappy's snapshot mounting to browse and restore your files via the Finder. None of the functionality requires Time Machine to be enabled, even using the Time Machine UI to view backups.
+> [!TIP]
+> **You don't need to use Time Machine for Snappy to work.** You can use [Time Machine's fancy UI](#using-time-machine-to-scrub-through-history) to view your backups and restore files if you want, or you can use [Snappy's snapshot mounting](#mounting-snapshots) to browse and restore your files via the Finder. None of the functionality requires Time Machine to be enabled, even using the Time Machine UI to view backups. You do get [a longer snapshot history](#configuring-time-machine) if you enable Time Machine local snapshots, but that's optional.
+>
+> You barely even need Snappy, for that matter. It provides easy setup, handy config options (with good defaults), a TUI to view and manage your snapshots, commands to mount your snapshots, and a few other niceties. But at its core, Snappy's a glorified Bash script cron job. So much so that I've included a super simple Bash script you could use instead, if you want frequent snapshots without installing a binary and are happy using `tmutil`, `diskutil`, and `asr` to manage the rest: [`snappy-ez`](./bin/snappy-ez). More details on [how to use it](#snappy-ez) below.
 
-You barely even need Snappy, for that matter. It provides easy setup, handy config options (with good defaults), a TUI to view and manage your snapshots, commands to mount your snapshots, and a few other niceties. But at its core, Snappy's a glorified Bash script cron job. So much so that I've included a super simple Bash script you could use instead, if you want frequent snapshots without installing a binary: [`snappy-ez`](./bin/snappy-ez). More details on [how to use it](#snappy-ez) below.
-
-**AI usage:** Snappy is a 3 out of 5 on [my personal vibes scale](#vibes), meaning that the code and tests were written by LLMs micro-managed by me. Robot code; human architecture, design (in all senses), code review, and manual testing. I wrote this README; other docs are a mix. Read more about my use of LLMs and my workflow in [my AI transparency statement](#transparency).
+**AI usage:** Snappy is a 3 out of 5 on [my personal vibes scale](#vibes), meaning that the code and tests were written by LLMs micro-managed by me. Robot code; human architecture, design (in all senses), code review, and manual testing. I wrote this README; other docs are a mix. Read more about my use of LLMs and my workflow in [my AI transparency statement](#transparency). Also see my note about [LLMs and copyright and licensing](#license).
 
 ## Why Use Snappy?
 
-To add to your local hard drive's safety net. By default, Snappy tells macOS to take a complete snapshot of your drive every minute, then thins those snapshots down to 5 minute increments at 10 minutes back. macOS thins backups older than 1 hour to hourly, then reduces the frequency to daily after 1 day, and weekly after 1 week.
+To add to your local hard drive's safety net. By default, Snappy tells macOS to take a complete snapshot of your drive every minute, then thins those snapshots down to 5 minute increments after 10 minutes. Then macOS thins backups older than 1 hour to hourly, then reduces the frequency to daily after 1 day, and weekly after 1 week.[<sup>✻</sup>](#how-time-machine-works)
 
 ```text
 now            -10 min          -1 hour          -1 day           -1 week
- ├────────────────┼────────────────┼────────────────┼────────────────┼────╶╶╶╶╶
+ ├────────────────┼────────────────┼────────────────┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╶╶╶
  │||||||||||||||||│ |  |  |  |  |  |   |   |    |   │        |       │
  │  every minute  │  every 5 min   │     hourly     │      daily     │  weekly
- ╰──────────── Snappy ─────────────┴───────────── macOS ─────────────┴────╶╶╶╶╶
+ ╰──────────── Snappy ─────────────┴────  macOS ────┴╌╌╌╌╌╌╌╌╌ Time Machine ╶╶╶
 ```
 
 These snapshots are complete clones of your hard drive, stored exactly as it was at the moment the snapshot was taken. Because of the copy-on-write cloning technique they use, minimal storage is needed for each one. Megabytes or gigabytes per clone on a many-terabyte file system, typically. This is what allows you to save so many copies of everything on your drive.
 
-Hopefully you'll install Snappy and let it run and rarely think about it. But if something goes wrong, like an LLM agent deleting what it shouldn't, a ransomware attack encrypting your sensitive data, an installation gone bad, or just a simple mistake, you can easily restore your files or even your entire drive.
+Hopefully you'll install Snappy and let it run and rarely think about it. But if something goes wrong, like an LLM agent deleting what it shouldn't, a ransomware attack encrypting your sensitive data, an installation gone bad, or just a simple mistake, you can easily restore your files, your directories, or even your entire drive.
 
 See below for more on [How Snappy Works](#how-snappy-works), [How to Configure Snapshot Frequency](#configuration), and [How to Restore Files and Snapshots](#restoring-files-and-snapshots).
 
@@ -48,11 +49,39 @@ That installs the `snappy` command, along with shell completions and a man page,
 
 To open Snappy's TUI, just run `snappy`. You'll see what snapshots have been taken and information about them, logs of all Snappy's and macOS's snapshot management activities. You can delete or thin snapshots to clear up space. Most importantly, you can mount snapshots as read-only local drives to browse and restore files.
 
-All of this can be done non-interactively via various [commands and options](#commands-and-options). Read more below, or run `snappy help` or `man snappy`. Also, see below for more on [How Snappy Works](#how-snappy-works), [How to Configure Snapshot Frequency](#configuration), and [How to Restore Files and Snapshots](#restoring-files-and-snapshots).
+All of this can be done non-interactively as well via various [commands and options](#commands-and-options). Read more below, or run `snappy help` or `man snappy`. Also, see below for more on [How Snappy Works](#how-snappy-works), [How to Configure Snapshot Frequency](#configuration), and [How to Restore Files and Snapshots](#restoring-files-and-snapshots).
 
 ## Restoring Files and Snapshots
 
-TODO: Write.
+Using the Time Machine local snapshots gives you choices on how to undo errors and restore data. Again, none of these options requires that you [turn on Time Machine backups](#configuring-time-machine), though that does give you a longer snapshot history.
+
+TODO: Create screen recordings.
+
+### Using Time Machine to scrub through history
+
+This is the fastest way to restore small numbers of files or directories.
+
+Open the directory you want to restore in the Finder, then open [the Time Machine app](https://support.apple.com/guide/mac-help/restore-files-mh11422/mac). (Via Spotlight is probably the easiest way.) Time Machine's fancy history browser will take over and you can move forward and back through the history of your file system. Select as much or as little as you'd like to restore (from one file to a whole disk) and click the `Restore` button.
+
+You can't open the files from within Time Machine, but you can use Quick Look on them to preview the contents. Double click, press space bar, or right click and choose `Quick Look`.
+
+### Mounting snapshots
+
+TODO: Finalize in-Snappy commands and document.
+
+You can also use Disk Utility<sup>✻</sup> to view and manage snapshots. Select `Show APFS Snapshots` from the `View` menu to see the current list. Double click a snapshot and it will mount and open in the Finder. You can also rename and delete snapshots this way. Read more at [the Eclectic Light Company blog](https://eclecticlight.co/2021/11/09/disk-utility-now-has-full-features-for-managing-snapshots/).
+
+✻ `/Applications/Utilities/Disk Utility.app`
+
+TODO: Document using `diskutil`.
+
+### Opening previous file revisions within apps
+
+If you just need to restore an earlier version of a single file and that file is open in a native macOS app, then [the fastest way to roll it back](https://support.apple.com/guide/mac-help/view-and-restore-past-versions-of-documents-mh40710/26/mac/26) is to select `Revert To > Browse All Versions` from the `File` menu. You'll find yourself in a version of the Time Machine history scrubber, but just for that file. Click `Restore` to get that version back, or press `option`and click `Restore a Copy`to open that version in a new file.
+
+### Restoring your entire drive
+
+TODO: Document GUI and `asr` procedures.
 
 ## Commands and Options
 
@@ -60,7 +89,15 @@ TODO: Write.
 
 ## Installation
 
-TODO: Update.
+### Homebrew (recommended)
+
+The simplest method is via [Homebrew](https://brew.sh):
+
+```sh
+brew install cboone/tap/snappy
+```
+
+That installs the `snappy` binary and shell completions, and configures it to run on startup.
 
 ### Shell script
 
@@ -74,13 +111,70 @@ To install a specific version:
 curl -fsSL https://raw.githubusercontent.com/cboone/snappy/main/install.sh | bash -s -- --version v1.0.0
 ```
 
-### From release
+### GH Release
+
+TODO: Document.
 
 ```sh
-git clone https://github.com/cboone/snappy.git
-cd snappy
-make build
-./bin/snappy
+gh release ...
+```
+
+## Configuration
+
+### Configuring Snappy
+
+TODO: Update.
+
+Snappy reads configuration from `~/.config/snappy/config.yaml` or environment
+variables prefixed with `SNAPPY_`. Pass `--config <path>` to use a custom file.
+
+#### Generate a config file
+
+Create a default config file with all settings and comments:
+
+```sh
+snappy config init
+```
+
+This writes to `~/.config/snappy/config.yaml` (or the path given by
+`--config`). The command will not overwrite an existing file.
+
+#### View configuration
+
+Show the active configuration, including values from the config file,
+environment variables, and defaults:
+
+```sh
+snappy config
+```
+
+#### Settings
+
+| Setting                  | Env var                         | Default   | Description                        |
+| ------------------------ | ------------------------------- | --------- | ---------------------------------- |
+| `auto_enabled`           | `SNAPPY_AUTO_ENABLED`           | `true`    | Enable auto-snapshots at startup   |
+| `auto_snapshot_interval` | `SNAPPY_AUTO_SNAPSHOT_INTERVAL` | `60s`     | Interval between auto-snapshots    |
+| `log_dir`                | `SNAPPY_LOG_DIR`                | (auto)    | Log directory path                 |
+| `log_max_files`          | `SNAPPY_LOG_MAX_FILES`          | `3`       | Number of rotated backup files     |
+| `log_max_size`           | `SNAPPY_LOG_MAX_SIZE`           | `5242880` | Max log file size in bytes (5 MB)  |
+| `refresh`                | `SNAPPY_REFRESH`                | `60s`     | How often to refresh snapshot list |
+| `thin_age_threshold`     | `SNAPPY_THIN_AGE_THRESHOLD`     | `600s`    | Age before snapshots are thinned   |
+| `thin_cadence`           | `SNAPPY_THIN_CADENCE`           | `300s`    | Minimum gap kept when thinning     |
+
+### Configuring Time Machine
+
+## How Snappy Works
+
+TODO: Write.
+
+### How Time Machine Works
+
+```text
+now            -1 hour          -1 day           -1 week
+ ├────────────────┼────────────────┼────────────────┼────╶╶╶╶╶╶
+ │                |   |   |    |   │        |       │
+ │                │     hourly     │      daily     │  weekly
+ ╰────────────────┴────────── Time Machine ─────────┴────╶╶╶╶╶╶
 ```
 
 ## snappy-ez
@@ -124,61 +218,6 @@ Edit the constants at the top of the script:
 | `THIN_AGE_THRESHOLD` | `600`   | Snapshots younger than this are never thinned |
 | `THIN_CADENCE`       | `300`   | Minimum gap between kept old snapshots        |
 
-## Configuration
-
-TODO: Update.
-
-Snappy reads configuration from `~/.config/snappy/config.yaml` or environment
-variables prefixed with `SNAPPY_`. Pass `--config <path>` to use a custom file.
-
-### Generate a config file
-
-Create a default config file with all settings and comments:
-
-```sh
-snappy config init
-```
-
-This writes to `~/.config/snappy/config.yaml` (or the path given by
-`--config`). The command will not overwrite an existing file.
-
-#### View effective configuration
-
-Show the active configuration, including values from the config file,
-environment variables, and defaults:
-
-```sh
-snappy config
-```
-
-#### Settings
-
-| Setting                  | Env var                         | Default   | Description                        |
-| ------------------------ | ------------------------------- | --------- | ---------------------------------- |
-| `auto_enabled`           | `SNAPPY_AUTO_ENABLED`           | `true`    | Enable auto-snapshots at startup   |
-| `auto_snapshot_interval` | `SNAPPY_AUTO_SNAPSHOT_INTERVAL` | `60s`     | Interval between auto-snapshots    |
-| `log_dir`                | `SNAPPY_LOG_DIR`                | (auto)    | Log directory path                 |
-| `log_max_files`          | `SNAPPY_LOG_MAX_FILES`          | `3`       | Number of rotated backup files     |
-| `log_max_size`           | `SNAPPY_LOG_MAX_SIZE`           | `5242880` | Max log file size in bytes (5 MB)  |
-| `mount`                  | `SNAPPY_MOUNT`                  | `/`       | Mount point to monitor             |
-| `refresh`                | `SNAPPY_REFRESH`                | `60s`     | How often to refresh snapshot list |
-| `thin_age_threshold`     | `SNAPPY_THIN_AGE_THRESHOLD`     | `600s`    | Age before snapshots are thinned   |
-| `thin_cadence`           | `SNAPPY_THIN_CADENCE`           | `300s`    | Minimum gap kept when thinning     |
-
-## How Snappy Works
-
-TODO: Write.
-
-### Time Machine's Default Behavior
-
-```text
-now            -1 hour          -1 day           -1 week
- ├────────────────┼────────────────┼────────────────┼────╶╶╶╶╶╶
- │                |   |   |    |   │        |       │
- │                │     hourly     │      daily     │  weekly
- ╰────────────────┴───────────── macOS ─────────────┴────╶╶╶╶╶╶
-```
-
 ## Background
 
 TODO: Write.
@@ -209,9 +248,18 @@ Details I haven't yet resolved with my own experimentation and haven't found def
 - [ ] It appears that without TM local backups enabled, macOS prevents snapshots from being kept longer than 24 hours. Is this still true with TM local backups only enabled? With remote backups only enabled?
 - [ ] How long does TM keep the weekly snapshots?
 
+## To Document
+
+- [ ] Using `asr`, `diskutil`, `tmutil`
+- [ ] Shell completions
+
 ## Vibes
 
+TODO: Write.
+
 ## Transparency
+
+TODO: Write.
 
 ## License
 

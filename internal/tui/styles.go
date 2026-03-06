@@ -14,6 +14,7 @@ const (
 
 // modelStyles holds all precomputed Lipgloss styles for the TUI.
 type modelStyles struct {
+	textDefault lipgloss.Style
 	textDim     lipgloss.Style
 	textGreen   lipgloss.Style
 	textYellow  lipgloss.Style
@@ -51,6 +52,7 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 	magenta := lipgloss.Magenta
 
 	return modelStyles{
+		textDefault: lipgloss.NewStyle(),
 		textDim:     lipgloss.NewStyle().Faint(true),
 		infoLabel:   lipgloss.NewStyle().Foreground(colorLabel),
 		textGreen:   lipgloss.NewStyle().Foreground(green),

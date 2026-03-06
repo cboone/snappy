@@ -185,12 +185,17 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 }
 
 // Init returns the initial commands: a refresh, a tick timer, and a
-// background color request.
+// background color request. The UI tick is only started when
+// auto-snapshot is enabled, since it drives the countdown timer.
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(
-		doRefresh(m.runner, m.cfg, m.apfsVolume, m.apfsContainer),
+	cmds := []tea.Cmd{
+		
+		doRefresh(m.runner, m.apfsVolume, m.apfsContainer),
 		refreshTick(m.cfg.RefreshInterval),
 		tea.RequestBackgroundColor,
-		uiTick(),
-	)
+	}
+	if m.auto.Enabled() {
+		cmds = append(cmds, uiTick())
+	}
+	return tea.Batch(cmds...)
 }

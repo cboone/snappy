@@ -3,8 +3,6 @@
 # Author: Christopher Boone
 # Date: 2026-03-01
 
-set -euo pipefail
-
 readonly REPO="cboone/snappy"
 readonly BINARY="snappy"
 readonly INSTALL_DIR="${INSTALL_DIR:-${HOME}/.local/bin}"
@@ -229,5 +227,6 @@ function main() {
 # Guard lets callers source this file and test individual functions
 # without triggering the full install flow.
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  set -euo pipefail
   main "${@}"
 fi

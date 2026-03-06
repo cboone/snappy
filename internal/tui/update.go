@@ -53,7 +53,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case UITickMsg:
 		m.updateSnapViewContent()
-		return m, uiTick()
+		if m.auto.Enabled() || m.loading {
+			return m, uiTick()
+		}
+		return m, nil
 
 	case RefreshTickMsg:
 		return m.handleTick()
@@ -143,7 +146,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 		m.refreshing = true
 		m.loading = true
-		return m, tea.Batch(doRefresh(m.runner, m.cfg, m.apfsVolume, m.apfsContainer), m.spinner.Tick)
+		return m, tea.Batch(doRefresh(m.runner, m.apfsVolume, m.apfsContainer), m.spinner.Tick)
 
 	case key.Matches(msg, m.keys.AutoSnap):
 		now := m.now()
@@ -156,9 +159,10 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 				int(m.auto.ThinAge().Seconds()),
 				int(m.auto.ThinCadence().Seconds()),
 			))
-		} else {
-			m.log.Log(logger.Info, "Auto-snapshots disabled")
+			m.updateLogViewContent()
+			return m, uiTick()
 		}
+		m.log.Log(logger.Info, "Auto-snapshots disabled")
 		m.updateLogViewContent()
 		return m, nil
 
@@ -301,7 +305,7 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 	// fetches the pre-snapshot list.
 	if !snapshotDue && !m.refreshing {
 		m.refreshing = true
-		cmds = append(cmds, doRefresh(m.runner, m.cfg, m.apfsVolume, m.apfsContainer))
+		cmds = append(cmds, doRefresh(m.runner, m.apfsVolume, m.apfsContainer))
 	}
 	cmds = append(cmds, refreshTick(m.cfg.RefreshInterval))
 
@@ -379,7 +383,7 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 	if m.refreshPending {
 		m.refreshPending = false
 		m.refreshing = true
-		cmds = append(cmds, doRefresh(m.runner, m.cfg, m.apfsVolume, m.apfsContainer))
+		cmds = append(cmds, doRefresh(m.runner, m.apfsVolume, m.apfsContainer))
 	}
 
 	// Check thinning (skip if already in flight).
@@ -430,7 +434,7 @@ func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd
 		return m, nil
 	}
 	m.refreshing = true
-	return m, doRefresh(m.runner, m.cfg, m.apfsVolume, m.apfsContainer)
+	return m, doRefresh(m.runner, m.apfsVolume, m.apfsContainer)
 }
 
 func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
@@ -473,7 +477,7 @@ func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	m.refreshing = true
-	return m, doRefresh(m.runner, m.cfg, m.apfsVolume, m.apfsContainer)
+	return m, doRefresh(m.runner, m.apfsVolume, m.apfsContainer)
 }
 
 // updateSnapViewContent rebuilds columns and rows on the snapshot table.
@@ -555,7 +559,14 @@ func (m *Model) snapTableColumns() []table.Column {
 // message column, with continuation lines indented to align.
 func (m *Model) updateLogViewContent() {
 	entries := m.log.Entries()
-	m.logCount = len(entries)
+	newCount := len(entries)
+	// When new entries arrive, existing entries shift down in the
+	// newest-first display. Adjust cursor so it tracks the same entry.
+	// If the cursor is at 0 (following newest), keep it there.
+	if m.logCursor > 0 && newCount > m.logCount {
+		m.logCursor += newCount - m.logCount
+	}
+	m.logCount = newCount
 	if m.logCursor >= m.logCount {
 		m.logCursor = max(m.logCount-1, 0)
 	}
@@ -637,6 +648,14 @@ func logEntryAtVisualLine(entryY []int, totalLines, line int) int {
 // snapRowAtVisualLine returns the snapshot row index shown at the given
 // viewport visual line, excluding the table header line. Returns -1 if
 // out of range or if the line doesn't map to a snapshot row.
+//
+// The rendered table view is parsed instead of tracking scroll offsets
+// directly because the Bubbles table component does not expose its
+// internal viewport scroll position. To identify which row was clicked,
+// the method strips ANSI sequences from the rendered line and matches
+// the leading 19-character DATE column ("2006-01-02 15:04:05") against
+// the table's row data. This couples the method to the DATE column
+// being first with a fixed width.
 func (m Model) snapRowAtVisualLine(line int) int {
 	if line < 0 {
 		return -1
@@ -678,6 +697,6 @@ func logEntryStyle(s modelStyles, t logger.EventType) lipgloss.Style {
 	case logger.Startup:
 		return s.textMagenta
 	default:
-		return lipgloss.NewStyle()
+		return s.textDefault
 	}
 }
