@@ -47,10 +47,12 @@ Error: running TUI: * (glob)
 [1]
 ```
 
-## Help flag
+## Help flag with env var set
+
+Environment variables should not interfere with help output.
 
 ```scrut
-$ "${SNAPPY_BIN}" --help
+$ SNAPPY_REFRESH=30 "${SNAPPY_BIN}" --help
 Automatically increase your Time Machine snapshot frequency
 
 Usage:
@@ -75,9 +77,11 @@ Flags:
 Use "snappy [command] --help" for more information about a command.
 ```
 
-## Version flag
+## Version flag with env var set
+
+Environment variables should not interfere with version output.
 
 ```scrut
-$ "${SNAPPY_BIN}" --version
+$ SNAPPY_REFRESH=30 "${SNAPPY_BIN}" --version
 snappy version * (glob)
 ```
