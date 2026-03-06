@@ -189,7 +189,6 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 // auto-snapshot is enabled, since it drives the countdown timer.
 func (m Model) Init() tea.Cmd {
 	cmds := []tea.Cmd{
-		
 		doRefresh(m.runner, m.apfsVolume, m.apfsContainer),
 		refreshTick(m.cfg.RefreshInterval),
 		tea.RequestBackgroundColor,

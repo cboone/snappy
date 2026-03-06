@@ -20,7 +20,7 @@ func (d DiskInfo) String() string {
 }
 
 // FormatBytes formats a byte count as a human-readable string using binary
-// units (1024-based) to match df -h output (e.g. 2153406005248 -> "2.0 TB").
+// units (1024-based) with conventional labels (e.g. 2153406005248 -> "2.0 TB").
 func FormatBytes(b int64) string {
 	if b == 0 {
 		return "0 B"
