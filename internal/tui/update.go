@@ -33,29 +33,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleWindowSize(msg)
 
 	case tea.BackgroundColorMsg:
-		m.hasDarkBG = msg.IsDark()
-		m.styles = newModelStyles(m.hasDarkBG)
-		m.help.Styles = helpStyles(m.styles)
-		m.spinner.Style = m.styles.spinnerStyle
-		m.snapTable.SetStyles(m.styles.tableStyles)
-		m.updateSnapViewContent()
-		m.updateLogViewContent()
-		return m, nil
+		return m.handleBackgroundColor(msg)
 
 	case spinner.TickMsg:
-		if m.loading {
-			var cmd tea.Cmd
-			m.spinner, cmd = m.spinner.Update(msg)
-			return m, cmd
-		}
-		return m, nil
+		return m.handleSpinnerTick(msg)
 
 	case UITickMsg:
-		m.updateSnapViewContent()
-		if m.auto.Enabled() || m.loading {
-			return m, uiTick()
-		}
-		return m, nil
+		return m.handleUITick()
 
 	case RefreshTickMsg:
 		return m.handleTick()
@@ -77,6 +61,34 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	return m, nil
+}
+
+func (m Model) handleBackgroundColor(msg tea.BackgroundColorMsg) (tea.Model, tea.Cmd) {
+	m.hasDarkBG = msg.IsDark()
+	m.styles = newModelStyles(m.hasDarkBG)
+	m.help.Styles = helpStyles(m.styles)
+	m.spinner.Style = m.styles.spinnerStyle
+	m.snapTable.SetStyles(m.styles.tableStyles)
+	m.updateSnapViewContent()
+	m.updateLogViewContent()
+	return m, nil
+}
+
+func (m Model) handleSpinnerTick(msg spinner.TickMsg) (tea.Model, tea.Cmd) {
+	if m.loading {
+		var cmd tea.Cmd
+		m.spinner, cmd = m.spinner.Update(msg)
+		return m, cmd
+	}
+	return m, nil
+}
+
+func (m Model) handleUITick() (tea.Model, tea.Cmd) {
+	m.updateSnapViewContent()
+	if m.auto.Enabled() || m.loading {
+		return m, uiTick()
+	}
 	return m, nil
 }
 
