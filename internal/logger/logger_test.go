@@ -298,6 +298,100 @@ func TestLoadTailNoFileIsNoop(t *testing.T) {
 	}
 }
 
+func TestLoadTailParsesOldFormatInfoAndError(t *testing.T) {
+	dir := t.TempDir()
+
+	// Write old-format lines where INFO and ERROR were EventType values,
+	// not the new Level+Category format. The second token is NOT a known
+	// Category, so parseLogLine must treat the whole rest as the message.
+	logFile := filepath.Join(dir, "snappy.log")
+	oldLines := "[14:30:25] INFO     Refresh: 5 snapshots, disk 45%\n" +
+		"[14:30:26] ERROR    Failed to list snapshots: permission denied\n" +
+		"[14:30:27] STARTUP  snappy v1.0\n"
+	if err := os.WriteFile(logFile, []byte(oldLines), 0o644); err != nil {
+		t.Fatalf("writing old-format log: %v", err)
+	}
+
+	l := New(Options{LogDir: dir, MaxEntries: 50})
+	defer l.Close()
+	l.LoadTail()
+
+	entries := l.Entries()
+	if len(entries) != 3 {
+		t.Fatalf("Entries() len = %d, want 3", len(entries))
+	}
+
+	// Old INFO line: level=INFO, no category, full message preserved.
+	if entries[0].Level != LevelInfo {
+		t.Errorf("entries[0].Level = %q, want %q", entries[0].Level, LevelInfo)
+	}
+	if entries[0].Category != "" {
+		t.Errorf("entries[0].Category = %q, want empty", entries[0].Category)
+	}
+	if entries[0].Message != "Refresh: 5 snapshots, disk 45%" {
+		t.Errorf("entries[0].Message = %q, want %q", entries[0].Message, "Refresh: 5 snapshots, disk 45%")
+	}
+
+	// Old ERROR line: level=ERROR, no category, full message preserved.
+	if entries[1].Level != LevelError {
+		t.Errorf("entries[1].Level = %q, want %q", entries[1].Level, LevelError)
+	}
+	if entries[1].Category != "" {
+		t.Errorf("entries[1].Category = %q, want empty", entries[1].Category)
+	}
+	if entries[1].Message != "Failed to list snapshots: permission denied" {
+		t.Errorf("entries[1].Message = %q, want %q", entries[1].Message, "Failed to list snapshots: permission denied")
+	}
+
+	// Old STARTUP line: not a level, so parsed as old-format category.
+	if entries[2].Level != LevelInfo {
+		t.Errorf("entries[2].Level = %q, want %q", entries[2].Level, LevelInfo)
+	}
+	if entries[2].Category != CatStartup {
+		t.Errorf("entries[2].Category = %q, want %q", entries[2].Category, CatStartup)
+	}
+	if entries[2].Message != "snappy v1.0" {
+		t.Errorf("entries[2].Message = %q, want %q", entries[2].Message, "snappy v1.0")
+	}
+}
+
+func TestLoadTailParsesNewFormatCorrectly(t *testing.T) {
+	dir := t.TempDir()
+
+	// New format lines with Level + known Category.
+	logFile := filepath.Join(dir, "snappy.log")
+	newLines := "[14:30:25] INFO  REFRESH  Refresh: 5 snapshots, disk 45%\n" +
+		"[14:30:26] ERROR SNAPSHOT Failed to create snapshot\n" +
+		"[14:30:27] WARN  THINNED  Thinning took too long\n"
+	if err := os.WriteFile(logFile, []byte(newLines), 0o644); err != nil {
+		t.Fatalf("writing new-format log: %v", err)
+	}
+
+	l := New(Options{LogDir: dir, MaxEntries: 50})
+	defer l.Close()
+	l.LoadTail()
+
+	entries := l.Entries()
+	if len(entries) != 3 {
+		t.Fatalf("Entries() len = %d, want 3", len(entries))
+	}
+
+	if entries[0].Level != LevelInfo || entries[0].Category != CatRefresh {
+		t.Errorf("entries[0] Level=%q Cat=%q, want INFO REFRESH", entries[0].Level, entries[0].Category)
+	}
+	if entries[0].Message != "Refresh: 5 snapshots, disk 45%" {
+		t.Errorf("entries[0].Message = %q, want %q", entries[0].Message, "Refresh: 5 snapshots, disk 45%")
+	}
+
+	if entries[1].Level != LevelError || entries[1].Category != CatSnapshot {
+		t.Errorf("entries[1] Level=%q Cat=%q, want ERROR SNAPSHOT", entries[1].Level, entries[1].Category)
+	}
+
+	if entries[2].Level != LevelWarn || entries[2].Category != CatThinned {
+		t.Errorf("entries[2] Level=%q Cat=%q, want WARN THINNED", entries[2].Level, entries[2].Category)
+	}
+}
+
 func TestLoadTailTruncatesToMaxEntries(t *testing.T) {
 	dir := t.TempDir()
 	l := New(Options{LogDir: dir, MaxEntries: 100})

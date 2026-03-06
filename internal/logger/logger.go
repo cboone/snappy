@@ -39,6 +39,28 @@ const (
 	CatOpen     Category = "OPEN"
 )
 
+// knownCategories is the set of recognised Category values, used by
+// parseLogLine to disambiguate old and new log formats.
+var knownCategories = map[Category]bool{
+	CatStartup:  true,
+	CatRefresh:  true,
+	CatSnapshot: true,
+	CatCreated:  true,
+	CatAdded:    true,
+	CatRemoved:  true,
+	CatAuto:     true,
+	CatThinned:  true,
+	CatFound:    true,
+	CatShutdown: true,
+	CatOpen:     true,
+}
+
+// isKnownCategory reports whether s (case-insensitive) matches a defined
+// Category constant.
+func isKnownCategory(s string) bool {
+	return knownCategories[Category(strings.ToUpper(s))]
+}
+
 // Entry is a single log entry with timestamp, level, category, and message.
 type Entry struct {
 	Timestamp time.Time
@@ -256,16 +278,28 @@ func parseLogLine(line string, refTime time.Time) (Entry, bool) {
 
 	// Detect whether the first token is a known level (new format) or a
 	// category (old format where level is implicit).
+	//
+	// Ambiguity: the old format used INFO and ERROR as EventType values,
+	// which overlap with the new Level constants. To disambiguate, we check
+	// whether the second token is a known Category. If it is, this is the
+	// new "LEVEL CATEGORY message" format; otherwise, the first token was
+	// an old EventType and the rest is the message.
 	switch Level(strings.ToUpper(fields[0])) {
 	case LevelInfo, LevelWarn, LevelError:
-		level = Level(strings.ToUpper(fields[0]))
-		cat = Category(fields[1])
-		if len(fields) > 2 {
-			message = strings.Join(fields[2:], " ")
+		if isKnownCategory(fields[1]) {
+			level = Level(strings.ToUpper(fields[0]))
+			cat = Category(strings.ToUpper(fields[1]))
+			if len(fields) > 2 {
+				message = strings.Join(fields[2:], " ")
+			}
+		} else {
+			// Old format: INFO/ERROR was an EventType, not a level+category.
+			level = Level(strings.ToUpper(fields[0]))
+			message = strings.Join(fields[1:], " ")
 		}
 	default:
 		level = LevelInfo
-		cat = Category(fields[0])
+		cat = Category(strings.ToUpper(fields[0]))
 		if len(fields) > 1 {
 			message = strings.Join(fields[1:], " ")
 		}

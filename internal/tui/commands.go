@@ -155,7 +155,7 @@ func doOpenLogDir(dir string) tea.Cmd {
 			return OpenLogDirResultMsg{Err: fmt.Errorf("log directory path is empty")}
 		}
 
-		if err := exec.Command("open", dir).Start(); err != nil {
+		if err := exec.Command("open", dir).Run(); err != nil {
 			return OpenLogDirResultMsg{Err: err}
 		}
 
