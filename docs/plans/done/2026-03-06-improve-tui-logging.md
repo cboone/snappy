@@ -122,7 +122,7 @@ Every existing `log.Log()` call remapped to Level + Category:
   - `LevelError` -> `s.textRed`
   - `LevelWarn` -> `s.textYellow`
   - `LevelInfo` -> check Category for secondary hints (CatAuto -> `s.textCyan`, CatStartup -> `s.textMagenta`, CatFound -> dim/subtle, others -> default)
-- Update `updateLogViewContent()` prefix width from 21 to 27
+- Update `updateLogViewContent()` prefix width from 21 to 26
 
 **`cmd/root.go`**:
 
