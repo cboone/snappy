@@ -183,3 +183,33 @@ func TestLogLine(t *testing.T) {
 		t.Errorf("logLine output should start with '[', got: %s", output)
 	}
 }
+
+func TestDualLogWritesToBothDestinations(t *testing.T) {
+	log := logger.New(logger.Options{MaxEntries: 50})
+	defer log.Close()
+	var buf bytes.Buffer
+
+	dualLog(&buf, log, logger.Info, "test message %d", 99)
+
+	// Verify writer output.
+	output := buf.String()
+	if !strings.Contains(output, "INFO") {
+		t.Errorf("writer output missing event type, got: %s", output)
+	}
+	if !strings.Contains(output, "test message 99") {
+		t.Errorf("writer output missing message, got: %s", output)
+	}
+
+	// Verify logger received the entry.
+	entries := log.Entries()
+	if len(entries) == 0 {
+		t.Fatal("logger has no entries after dualLog")
+	}
+	last := entries[len(entries)-1]
+	if last.Type != logger.Info {
+		t.Errorf("logger entry type = %q, want %q", last.Type, logger.Info)
+	}
+	if !strings.Contains(last.Message, "test message 99") {
+		t.Errorf("logger entry message = %q, want to contain %q", last.Message, "test message 99")
+	}
+}

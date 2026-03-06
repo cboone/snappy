@@ -133,12 +133,10 @@ func runIteration(ctx context.Context, w io.Writer, log *logger.Logger, runner p
 func dualLog(w io.Writer, log *logger.Logger, eventType logger.EventType, format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	log.Log(eventType, msg)
-	ts := time.Now().Format("2006-01-02 15:04:05")
-	_, _ = fmt.Fprintf(w, "[%s] %-8s %s\n", ts, eventType, msg)
+	logLine(w, string(eventType), "%s", msg)
 }
 
-// logLine writes a timestamped log line to the given writer. It is used by
-// commands that don't have a shared logger (e.g., tests).
+// logLine writes a timestamped log line to the given writer.
 func logLine(w io.Writer, event, format string, args ...any) {
 	ts := time.Now().Format("2006-01-02 15:04:05")
 	msg := fmt.Sprintf(format, args...)
