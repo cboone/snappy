@@ -130,7 +130,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 		m.snapshotting = true
 		m.loading = true
-		m.log.Log(logger.Info, "Creating snapshot...")
+		m.log.Log(logger.LevelInfo, logger.CatSnapshot, "Creating snapshot...")
 		m.updateLogViewContent()
 		return m, tea.Batch(doCreateSnapshot(m.runner), m.spinner.Tick)
 
@@ -149,20 +149,20 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		enabled := m.auto.Toggle(now)
 		if enabled {
 			clear(m.thinPinned)
-			m.log.Log(logger.Info, fmt.Sprintf(
+			m.log.Log(logger.LevelInfo, logger.CatAuto, fmt.Sprintf(
 				"Auto-snapshots enabled (every %ds, thin >%ds to %ds)",
 				int(m.auto.Interval().Seconds()),
 				int(m.auto.ThinAge().Seconds()),
 				int(m.auto.ThinCadence().Seconds()),
 			))
 		} else {
-			m.log.Log(logger.Info, "Auto-snapshots disabled")
+			m.log.Log(logger.LevelInfo, logger.CatAuto, "Auto-snapshots disabled")
 		}
 		m.updateLogViewContent()
 		return m, nil
 
 	case key.Matches(msg, m.keys.Quit):
-		m.log.Log(logger.Info, "Shutting down")
+		m.log.Log(logger.LevelInfo, logger.CatShutdown, "Shutting down")
 		m.quitting = true
 		return m, tea.Quit
 
@@ -287,7 +287,7 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 		m.snapshotting = true
 		m.loading = true
 		m.auto.RecordSnapshot(now)
-		m.log.Log(logger.Auto, "Creating auto-snapshot...")
+		m.log.Log(logger.LevelInfo, logger.CatAuto, "Creating auto-snapshot...")
 		m.updateLogViewContent()
 		cmds = append(cmds, doCreateSnapshot(m.runner), m.spinner.Tick)
 	}
@@ -314,7 +314,7 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 	if msg.APFSInfo.Volume != "" {
 		m.apfsVolume = msg.APFSInfo.Volume
 		if msg.APFSInfo.OtherSnapCount > 0 && msg.APFSInfo.OtherSnapCount != m.lastOtherSnapCount {
-			m.log.Log(logger.Info, fmt.Sprintf("Non-TM snapshots on %s: %d",
+			m.log.Log(logger.LevelInfo, logger.CatRefresh, fmt.Sprintf("Non-TM snapshots on %s: %d",
 				msg.APFSInfo.Volume, msg.APFSInfo.OtherSnapCount))
 		}
 		m.lastOtherSnapCount = msg.APFSInfo.OtherSnapCount
@@ -327,11 +327,11 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if msg.APFSErr != nil {
-		m.log.Log(logger.Error, fmt.Sprintf("APFS details unavailable: %v", msg.APFSErr))
+		m.log.Log(logger.LevelError, logger.CatRefresh, fmt.Sprintf("APFS details unavailable: %v", msg.APFSErr))
 	}
 
 	if msg.SnapshotErr != nil {
-		m.log.Log(logger.Error, fmt.Sprintf("Failed to list snapshots: %v", msg.SnapshotErr))
+		m.log.Log(logger.LevelError, logger.CatRefresh, fmt.Sprintf("Failed to list snapshots: %v", msg.SnapshotErr))
 		m.refreshPending = false
 		m.updateLogViewContent()
 		return m, nil
@@ -348,14 +348,14 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 		diff := snapshot.ComputeDiff(prev, msg.Snapshots)
 
 		for _, s := range diff.Added {
-			m.log.Log(logger.Added, "Snapshot appeared: "+s.Date)
+			m.log.Log(logger.LevelInfo, logger.CatAdded, "Snapshot appeared: "+s.Date)
 		}
 		for _, s := range diff.Removed {
-			m.log.Log(logger.Removed, "Snapshot disappeared: "+s.Date)
+			m.log.Log(logger.LevelInfo, logger.CatRemoved, "Snapshot disappeared: "+s.Date)
 		}
 	}
 
-	m.log.Log(logger.Info, fmt.Sprintf(
+	m.log.Log(logger.LevelInfo, logger.CatRefresh, fmt.Sprintf(
 		"Refresh: %d snapshots, disk %s",
 		len(m.snapshots), m.diskInfo,
 	))
@@ -406,11 +406,11 @@ func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd
 	}
 	switch {
 	case msg.Err != nil:
-		m.log.Log(logger.Error, fmt.Sprintf("Failed to create snapshot: %v", msg.Err))
+		m.log.Log(logger.LevelError, logger.CatSnapshot, fmt.Sprintf("Failed to create snapshot: %v", msg.Err))
 	case msg.Date != "":
-		m.log.Log(logger.Created, "Snapshot created: "+msg.Date)
+		m.log.Log(logger.LevelInfo, logger.CatCreated, "Snapshot created: "+msg.Date)
 	default:
-		m.log.Log(logger.Created, "Snapshot created")
+		m.log.Log(logger.LevelInfo, logger.CatCreated, "Snapshot created")
 	}
 
 	m.updateLogViewContent()
@@ -429,7 +429,7 @@ func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
 		m.loading = false
 	}
 	if msg.Deleted > 0 {
-		m.log.Log(logger.Thinned, fmt.Sprintf(
+		m.log.Log(logger.LevelInfo, logger.CatThinned, fmt.Sprintf(
 			"Thinned %d snapshot(s) older than %dm to %ds cadence",
 			msg.Deleted,
 			int(m.auto.ThinAge().Minutes()),
@@ -442,7 +442,7 @@ func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
 		for _, d := range msg.FailedDates {
 			m.thinPinned[d] = struct{}{}
 		}
-		m.log.Log(logger.Error, fmt.Sprintf("Thinning error: %v", msg.Err))
+		m.log.Log(logger.LevelError, logger.CatThinned, fmt.Sprintf("Thinning error: %v", msg.Err))
 	} else {
 		// Full success: conditions may have changed, clear pinned set.
 		clear(m.thinPinned)
@@ -550,8 +550,8 @@ func (m *Model) updateLogViewContent() {
 		return
 	}
 
-	// Prefix: "15:04:05   TYPE     " = 8 + 3 + 7 + 3 = 21 chars.
-	const prefixW = 21
+	// Prefix: "15:04:05   LEVEL CATEGORY  " = 8 + 3 + 5 + 1 + 8 + 2 = 27 chars.
+	const prefixW = 27
 	w := m.logView.Width()
 	msgW := max(w-prefixW, 10)
 	indent := strings.Repeat(" ", prefixW)
@@ -566,12 +566,13 @@ func (m *Model) updateLogViewContent() {
 		}
 		m.logEntryY[displayIdx] = visualLine
 		e := entries[i]
-		prefix := fmt.Sprintf("%-8s   %-7s   ",
+		prefix := fmt.Sprintf("%-8s   %-5s %-8s ",
 			e.Timestamp.Format("15:04:05"),
-			string(e.Type),
+			string(e.Level),
+			string(e.Category),
 		)
 
-		style := logEntryStyle(m.styles, e.Type)
+		style := logEntryStyle(m.styles, e.Level, e.Category)
 		if displayIdx == m.logCursor {
 			style = style.Bold(true)
 		}
@@ -648,20 +649,24 @@ func (m Model) snapRowAtVisualLine(line int) int {
 	return -1
 }
 
-// logEntryStyle returns the lipgloss style for the given log entry type.
-func logEntryStyle(s modelStyles, t logger.EventType) lipgloss.Style {
-	switch t {
-	case logger.Error:
+// logEntryStyle returns the lipgloss style for a log entry.
+// Level drives the primary color; category provides secondary hints for INFO.
+func logEntryStyle(s modelStyles, level logger.Level, cat logger.Category) lipgloss.Style {
+	switch level {
+	case logger.LevelError:
 		return s.textRed
-	case logger.Created, logger.Added:
-		return s.textGreen
-	case logger.Removed, logger.Thinned:
+	case logger.LevelWarn:
 		return s.textYellow
-	case logger.Auto:
-		return s.textCyan
-	case logger.Startup:
-		return s.textMagenta
 	default:
-		return lipgloss.NewStyle()
+		switch cat {
+		case logger.CatAuto:
+			return s.textCyan
+		case logger.CatStartup:
+			return s.textMagenta
+		case logger.CatCreated, logger.CatAdded:
+			return s.textGreen
+		default:
+			return lipgloss.NewStyle()
+		}
 	}
 }

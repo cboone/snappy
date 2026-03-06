@@ -111,7 +111,7 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	// One-time startup: discover APFS volume and check TM status
 	apfsVolume, err := platform.FindAPFSVolume(startupCtx, runner, cfg.MountPoint)
 	if err != nil {
-		log.Log(logger.Startup, fmt.Sprintf("Warning: failed to discover APFS volume for %s: %v", cfg.MountPoint, err))
+		log.Log(logger.LevelWarn, logger.CatStartup, fmt.Sprintf("Failed to discover APFS volume for %s: %v", cfg.MountPoint, err))
 	}
 	tmStatus := platform.CheckStatus(startupCtx, runner)
 
@@ -120,12 +120,12 @@ func runTUI(_ *cobra.Command, _ []string) error {
 		volumeName = cfg.MountPoint
 	}
 
-	log.Log(logger.Startup, fmt.Sprintf("snappy %s | volume=%s | refresh=%ds",
+	log.Log(logger.LevelInfo, logger.CatStartup, fmt.Sprintf("snappy %s | volume=%s | refresh=%ds",
 		version, cfg.MountPoint, int(cfg.RefreshInterval.Seconds())))
 	if apfsVolume != "" {
-		log.Log(logger.Startup, fmt.Sprintf("apfs-volume=%s", apfsVolume))
+		log.Log(logger.LevelInfo, logger.CatStartup, fmt.Sprintf("apfs-volume=%s", apfsVolume))
 	}
-	log.Log(logger.Startup, fmt.Sprintf("auto-snapshot=%v | every %ds | thin >%ds to %ds",
+	log.Log(logger.LevelInfo, logger.CatStartup, fmt.Sprintf("auto-snapshot=%v | every %ds | thin >%ds to %ds",
 		cfg.AutoEnabled, int(cfg.AutoSnapshotInterval.Seconds()),
 		int(cfg.ThinAgeThreshold.Seconds()), int(cfg.ThinCadence.Seconds())))
 

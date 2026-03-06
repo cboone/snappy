@@ -9,25 +9,39 @@ import (
 	"time"
 )
 
-// EventType identifies the kind of log event.
-type EventType string
+// Level is the severity of a log entry.
+type Level string
 
-// Event types for log categorization.
+// Log levels.
 const (
-	Startup EventType = "STARTUP"
-	Info    EventType = "INFO"
-	Created EventType = "CREATED"
-	Added   EventType = "ADDED"
-	Removed EventType = "REMOVED"
-	Auto    EventType = "AUTO"
-	Error   EventType = "ERROR"
-	Thinned EventType = "THINNED"
+	LevelInfo  Level = "INFO"
+	LevelWarn  Level = "WARN"
+	LevelError Level = "ERROR"
 )
 
-// Entry is a single log entry with timestamp, type, and message.
+// Category identifies what kind of event occurred.
+type Category string
+
+// Event categories.
+const (
+	CatStartup  Category = "STARTUP"
+	CatRefresh  Category = "REFRESH"
+	CatSnapshot Category = "SNAPSHOT"
+	CatCreated  Category = "CREATED"
+	CatAdded    Category = "ADDED"
+	CatRemoved  Category = "REMOVED"
+	CatAuto     Category = "AUTO"
+	CatThinned  Category = "THINNED"
+	CatFound    Category = "FOUND"
+	CatShutdown Category = "SHUTDOWN"
+	CatOpen     Category = "OPEN"
+)
+
+// Entry is a single log entry with timestamp, level, category, and message.
 type Entry struct {
 	Timestamp time.Time
-	Type      EventType
+	Level     Level
+	Category  Category
 	Message   string
 	Formatted string
 }
@@ -94,16 +108,17 @@ func New(opts Options) *Logger {
 }
 
 // Log records an event in the ring buffer and writes to the log file.
-func (l *Logger) Log(eventType EventType, message string) {
+func (l *Logger) Log(level Level, cat Category, message string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	now := l.now()
-	formatted := fmt.Sprintf("[%s] %-8s %s", now.Format("15:04:05"), eventType, message)
+	formatted := fmt.Sprintf("[%s] %-5s %-8s %s", now.Format("15:04:05"), level, cat, message)
 
 	entry := Entry{
 		Timestamp: now,
-		Type:      eventType,
+		Level:     level,
+		Category:  cat,
 		Message:   message,
 		Formatted: formatted,
 	}

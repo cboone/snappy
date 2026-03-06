@@ -89,9 +89,9 @@ func TestViewWithSnapshots(t *testing.T) {
 		{Date: "2026-03-01-144000", Time: now.Add(-20 * time.Minute), UUID: "9A1D4F83-2E7B-4C05-B8F6-3D6A9E2C71F5", XID: 1547289, Purgeable: true},
 		{Date: "2026-03-01-145000", Time: now.Add(-10 * time.Minute), UUID: "B7C83E91-4A5D-4F12-9E68-1D3F7A2B8C04", XID: 1547356, Purgeable: true},
 	}
-	m.log.Log(logger.Startup, "version=dev apfs-volume=disk3s5")
-	m.log.Log(logger.Info, "3 snapshots, 0 other APFS snapshots")
-	m.log.Log(logger.Info, "disk: 460Gi total, 215Gi used (48%)")
+	m.log.Log(logger.LevelInfo, logger.CatStartup, "version=dev apfs-volume=disk3s5")
+	m.log.Log(logger.LevelInfo, logger.CatRefresh, "3 snapshots, 0 other APFS snapshots")
+	m.log.Log(logger.LevelInfo, logger.CatRefresh, "disk: 460Gi total, 215Gi used (48%)")
 	m.updateSnapViewContent()
 	m.updateLogViewContent()
 
@@ -249,10 +249,10 @@ func TestRefreshResultMsgSnapshotErrorKeepsExistingSnapshots(t *testing.T) {
 	var removedCount int
 	var sawError bool
 	for _, e := range entries {
-		if e.Type == logger.Removed {
+		if e.Category == logger.CatRemoved {
 			removedCount++
 		}
-		if e.Type == logger.Error && strings.Contains(e.Message, "Failed to list snapshots") {
+		if e.Level == logger.LevelError && strings.Contains(e.Message, "Failed to list snapshots") {
 			sawError = true
 		}
 	}
@@ -335,7 +335,7 @@ func TestSnapshotCreatedMsgError(t *testing.T) {
 	entries := m.log.Entries()
 	found := false
 	for _, e := range entries {
-		if e.Type == logger.Error {
+		if e.Level == logger.LevelError {
 			found = true
 			break
 		}
@@ -536,7 +536,7 @@ func TestLogViewShowsNewestFirst(t *testing.T) {
 	m.logView.SetHeight(3)
 
 	for i := range 8 {
-		m.log.Log(logger.Info, fmt.Sprintf("entry-%d", i))
+		m.log.Log(logger.LevelInfo, logger.CatRefresh, fmt.Sprintf("entry-%d", i))
 	}
 	m.updateLogViewContent()
 
