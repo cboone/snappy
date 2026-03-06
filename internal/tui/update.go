@@ -71,9 +71,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func helpStyles(s modelStyles) help.Styles {
-	keyStyle := s.helpBar.Bold(true)
-	descStyle := s.helpBar
-	sepStyle := s.helpBar.Faint(true)
+	// Derive segment styles from a no-padding base so that padding is only
+	// applied by the outer help bar renderer in renderHelpBar.
+	base := lipgloss.NewStyle().
+		Foreground(s.helpBar.GetForeground())
+	keyStyle := base.Bold(true)
+	descStyle := base
+	sepStyle := base.Faint(true)
 	return help.Styles{
 		ShortKey:       keyStyle,
 		ShortDesc:      descStyle,
