@@ -540,7 +540,7 @@ func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	m.refreshing = true
-	return m, doRefresh(m.runner, m.cfg, m.apfsVolume)
+	return m, doRefresh(m.runner, m.apfsVolume)
 }
 
 // updateSnapViewContent rebuilds columns and rows on the snapshot table.
