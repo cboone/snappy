@@ -77,8 +77,12 @@ func (m Model) renderInfoPanel(width int) string {
 	}
 
 	label := m.styles.infoLabel.Render
+	line1 := label("Volume:") + " " + m.volumeName + "    " + label("Disk:") + " " + diskInfo
+	if m.tidemark != "" {
+		line1 += "    " + label("Tidemark:") + " " + m.tidemark
+	}
 	lines := []string{
-		label("Volume:") + " " + m.volumeName + "    " + label("Disk:") + " " + diskInfo,
+		line1,
 		label("Time Machine:") + " " + m.tmStatus + "    " +
 			label("Refresh:") + fmt.Sprintf(" %ds    ", int(m.cfg.RefreshInterval.Seconds())) +
 			label("Last:") + " " + lastRefresh,

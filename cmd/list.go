@@ -53,20 +53,26 @@ func writeListJSON(cmd *cobra.Command, snapshots []snapshot.Snapshot) error {
 		Date         string `json:"date"`
 		Relative     string `json:"relative"`
 		UUID         string `json:"uuid,omitempty"`
+		XIDDelta     *int   `json:"xid_delta,omitempty"`
 		Purgeable    *bool  `json:"purgeable,omitempty"`
 		LimitsShrink *bool  `json:"limits_shrink,omitempty"`
 	}
 
 	items := make([]jsonSnapshot, len(snapshots))
 	for i, s := range snapshots {
+		relative := formatRelativeAgo(s.Time, now)
 		item := jsonSnapshot{
 			Date:     s.Date,
-			Relative: snapshot.FormatRelativeTime(s.Time, now) + " ago",
+			Relative: relative,
 			UUID:     s.UUID,
 		}
 		if s.UUID != "" {
 			item.Purgeable = &s.Purgeable
 			item.LimitsShrink = &s.LimitsShrink
+			if i > 0 && snapshots[i-1].UUID != "" {
+				delta := s.XID - snapshots[i-1].XID
+				item.XIDDelta = &delta
+			}
 		}
 		items[i] = item
 	}
@@ -102,12 +108,17 @@ func writeListHuman(cmd *cobra.Command, snapshots []snapshot.Snapshot) error {
 	// Display newest first (reverse of ascending loadSnapshots order).
 	for i := count - 1; i >= 0; i-- {
 		s := snapshots[i]
-		relative := snapshot.FormatRelativeTime(s.Time, now) + " ago"
+		relative := formatRelativeAgo(s.Time, now)
 		num := count - i
 
 		line := fmt.Sprintf("  %2d. %s   (%s)", num, s.Date, relative)
 
 		if s.UUID != "" {
+			var delta string
+			if i > 0 && snapshots[i-1].UUID != "" {
+				delta = fmt.Sprintf("   delta:%d", s.XID-snapshots[i-1].XID)
+			}
+
 			flags := "purgeable"
 			if !s.Purgeable {
 				flags = "pinned"
@@ -115,7 +126,7 @@ func writeListHuman(cmd *cobra.Command, snapshots []snapshot.Snapshot) error {
 			if s.LimitsShrink {
 				flags += "   limits shrink"
 			}
-			line += fmt.Sprintf("   %s   %s", s.UUID, flags)
+			line += fmt.Sprintf("   %s%s   %s", s.UUID, delta, flags)
 		}
 
 		if _, err := fmt.Fprintln(w, line); err != nil {
@@ -124,4 +135,12 @@ func writeListHuman(cmd *cobra.Command, snapshots []snapshot.Snapshot) error {
 	}
 
 	return nil
+}
+
+func formatRelativeAgo(t, now time.Time) string {
+	relative := snapshot.FormatRelativeTime(t, now)
+	if relative == "future" {
+		return relative
+	}
+	return relative + " ago"
 }

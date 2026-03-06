@@ -60,6 +60,7 @@ func loadSnapshots(ctx context.Context, runner platform.CommandRunner) (snapshot
 	for i, s := range snapshots {
 		if d, ok := details[s.Date]; ok {
 			snapshots[i].UUID = d.UUID
+			snapshots[i].XID = d.XID
 			snapshots[i].Purgeable = d.Purgeable
 			snapshots[i].LimitsShrink = d.LimitsShrink
 		}

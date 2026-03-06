@@ -13,7 +13,7 @@ import (
 	"github.com/cboone/snappy/internal/snapshot"
 )
 
-func doRefresh(runner platform.CommandRunner, apfsVolume string) tea.Cmd {
+func doRefresh(runner platform.CommandRunner, apfsVolume, apfsContainer string) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
@@ -64,6 +64,14 @@ func doRefresh(runner platform.CommandRunner, apfsVolume string) tea.Cmd {
 
 		diskInfo, diskErr := platform.GetDiskInfo(ctx, runner, config.DefaultMount)
 
+		var tidemark int64
+		if apfsContainer != "" {
+			tm, tmErr := platform.GetContainerTidemark(ctx, runner, apfsContainer)
+			if tmErr == nil {
+				tidemark = tm
+			}
+		}
+
 		return RefreshResultMsg{
 			Snapshots:   snapshots,
 			TMStatus:    tmStatus,
@@ -72,6 +80,7 @@ func doRefresh(runner platform.CommandRunner, apfsVolume string) tea.Cmd {
 			DiskErr:     diskErr != nil,
 			SnapshotErr: nil,
 			APFSErr:     apfsErr,
+			Tidemark:    tidemark,
 		}
 	}
 }

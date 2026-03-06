@@ -164,20 +164,27 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	}
 	tmStatus := platform.CheckStatus(startupCtx, runner)
 
-	volumeName, err := platform.GetVolumeName(startupCtx, runner, config.DefaultMount)
-	if err != nil || volumeName == "" {
-		volumeName = config.DefaultMount
+	volumeName := config.DefaultMount
+	var apfsContainer string
+	if mountInfo, mountErr := platform.GetMountInfo(startupCtx, runner, config.DefaultMount); mountErr == nil {
+		if mountInfo.VolumeName != "" {
+			volumeName = mountInfo.VolumeName
+		}
+		apfsContainer = mountInfo.APFSContainerReference
 	}
 
 	log.Log(logger.Startup, startupSummary(version, volumeName, cfg.RefreshInterval))
 	if apfsVolume != "" {
 		log.Log(logger.Startup, fmt.Sprintf("apfs-volume=%s", apfsVolume))
 	}
+	if apfsContainer != "" {
+		log.Log(logger.Startup, fmt.Sprintf("apfs-container=%s", apfsContainer))
+	}
 	log.Log(logger.Startup, fmt.Sprintf("auto-snapshot=%v | every %ds | thin >%ds to %ds",
 		cfg.AutoEnabled, int(cfg.AutoSnapshotInterval.Seconds()),
 		int(cfg.ThinAgeThreshold.Seconds()), int(cfg.ThinCadence.Seconds())))
 
-	model := tui.NewModel(cfg, runner, log, apfsVolume, tmStatus, volumeName, version)
+	model := tui.NewModel(cfg, runner, log, apfsVolume, apfsContainer, tmStatus, volumeName, version)
 	p := tea.NewProgram(model)
 
 	if _, err := p.Run(); err != nil {
