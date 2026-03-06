@@ -115,6 +115,220 @@ func TestRunServiceStatusWarnsOnBinaryMismatch(t *testing.T) {
 	}
 }
 
+func TestRunServiceStatusNotInstalled(t *testing.T) {
+	origServiceStatus := serviceStatus
+	t.Cleanup(func() { serviceStatus = origServiceStatus })
+
+	serviceStatus = func(string) (*service.Info, error) {
+		return &service.Info{
+			Label: service.DefaultLabel,
+		}, nil
+	}
+
+	cmd := &cobra.Command{}
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+
+	if err := runServiceStatus(cmd, nil); err != nil {
+		t.Fatalf("runServiceStatus() error = %v", err)
+	}
+
+	got := out.String()
+	if !strings.Contains(got, "not installed") {
+		t.Errorf("output missing 'not installed', got:\n%s", got)
+	}
+	if !strings.Contains(got, "snappy service install") {
+		t.Errorf("output missing install guidance, got:\n%s", got)
+	}
+}
+
+func TestRunServiceStatusStopped(t *testing.T) {
+	origServiceStatus := serviceStatus
+	origResolveBinaryPath := resolveServiceBinaryPath
+	t.Cleanup(func() {
+		serviceStatus = origServiceStatus
+		resolveServiceBinaryPath = origResolveBinaryPath
+	})
+
+	serviceStatus = func(string) (*service.Info, error) {
+		return &service.Info{
+			Installed:  true,
+			Running:    false,
+			BinaryPath: "/usr/local/bin/snappy",
+			PlistPath:  "/tmp/com.cboone.snappy.plist",
+			Label:      service.DefaultLabel,
+		}, nil
+	}
+	resolveServiceBinaryPath = func() (string, error) {
+		return "/usr/local/bin/snappy", nil
+	}
+
+	cmd := &cobra.Command{}
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+
+	if err := runServiceStatus(cmd, nil); err != nil {
+		t.Fatalf("runServiceStatus() error = %v", err)
+	}
+
+	got := out.String()
+	if !strings.Contains(got, "stopped") {
+		t.Errorf("output missing 'stopped', got:\n%s", got)
+	}
+}
+
+func TestRunServiceStatusRunningWithPID(t *testing.T) {
+	origServiceStatus := serviceStatus
+	origResolveBinaryPath := resolveServiceBinaryPath
+	t.Cleanup(func() {
+		serviceStatus = origServiceStatus
+		resolveServiceBinaryPath = origResolveBinaryPath
+	})
+
+	serviceStatus = func(string) (*service.Info, error) {
+		return &service.Info{
+			Installed:  true,
+			Running:    true,
+			PID:        42,
+			BinaryPath: "/usr/local/bin/snappy",
+			PlistPath:  "/tmp/com.cboone.snappy.plist",
+			Label:      service.DefaultLabel,
+		}, nil
+	}
+	resolveServiceBinaryPath = func() (string, error) {
+		return "/usr/local/bin/snappy", nil
+	}
+
+	cmd := &cobra.Command{}
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+
+	if err := runServiceStatus(cmd, nil); err != nil {
+		t.Fatalf("runServiceStatus() error = %v", err)
+	}
+
+	got := out.String()
+	if !strings.Contains(got, "running (PID 42)") {
+		t.Errorf("output missing 'running (PID 42)', got:\n%s", got)
+	}
+}
+
+func TestRunServiceUninstallNotInstalled(t *testing.T) {
+	origServiceStatus := serviceStatus
+	t.Cleanup(func() { serviceStatus = origServiceStatus })
+
+	serviceStatus = func(string) (*service.Info, error) {
+		return &service.Info{Label: service.DefaultLabel}, nil
+	}
+
+	cmd := &cobra.Command{}
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+
+	if err := runServiceUninstall(cmd, nil); err != nil {
+		t.Fatalf("runServiceUninstall() error = %v", err)
+	}
+
+	got := out.String()
+	if !strings.Contains(got, "not installed") {
+		t.Errorf("output missing 'not installed', got:\n%s", got)
+	}
+}
+
+func TestRunServiceStartNotInstalled(t *testing.T) {
+	origServiceStatus := serviceStatus
+	t.Cleanup(func() { serviceStatus = origServiceStatus })
+
+	serviceStatus = func(string) (*service.Info, error) {
+		return &service.Info{Label: service.DefaultLabel}, nil
+	}
+
+	cmd := &cobra.Command{}
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+
+	err := runServiceStart(cmd, nil)
+	if err == nil {
+		t.Fatal("runServiceStart() should return error when not installed")
+	}
+	if err != service.ErrNotInstalled {
+		t.Errorf("runServiceStart() error = %v, want ErrNotInstalled", err)
+	}
+}
+
+func TestRunServiceStartAlreadyRunning(t *testing.T) {
+	origServiceStatus := serviceStatus
+	t.Cleanup(func() { serviceStatus = origServiceStatus })
+
+	serviceStatus = func(string) (*service.Info, error) {
+		return &service.Info{
+			Installed: true,
+			Running:   true,
+			Label:     service.DefaultLabel,
+		}, nil
+	}
+
+	cmd := &cobra.Command{}
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+
+	if err := runServiceStart(cmd, nil); err != nil {
+		t.Fatalf("runServiceStart() error = %v", err)
+	}
+
+	got := out.String()
+	if !strings.Contains(got, "already running") {
+		t.Errorf("output missing 'already running', got:\n%s", got)
+	}
+}
+
+func TestRunServiceStopNotInstalled(t *testing.T) {
+	origServiceStatus := serviceStatus
+	t.Cleanup(func() { serviceStatus = origServiceStatus })
+
+	serviceStatus = func(string) (*service.Info, error) {
+		return &service.Info{Label: service.DefaultLabel}, nil
+	}
+
+	cmd := &cobra.Command{}
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+
+	err := runServiceStop(cmd, nil)
+	if err == nil {
+		t.Fatal("runServiceStop() should return error when not installed")
+	}
+	if err != service.ErrNotInstalled {
+		t.Errorf("runServiceStop() error = %v, want ErrNotInstalled", err)
+	}
+}
+
+func TestRunServiceStopNotRunning(t *testing.T) {
+	origServiceStatus := serviceStatus
+	t.Cleanup(func() { serviceStatus = origServiceStatus })
+
+	serviceStatus = func(string) (*service.Info, error) {
+		return &service.Info{
+			Installed: true,
+			Running:   false,
+			Label:     service.DefaultLabel,
+		}, nil
+	}
+
+	cmd := &cobra.Command{}
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+
+	if err := runServiceStop(cmd, nil); err != nil {
+		t.Fatalf("runServiceStop() error = %v", err)
+	}
+
+	got := out.String()
+	if !strings.Contains(got, "not running") {
+		t.Errorf("output missing 'not running', got:\n%s", got)
+	}
+}
+
 func TestRunServiceStatusNoMismatchWarningWhenPathsMatch(t *testing.T) {
 	binDir := t.TempDir()
 	binaryPath := filepath.Join(binDir, "snappy")
