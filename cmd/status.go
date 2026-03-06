@@ -36,10 +36,10 @@ func runStatus(cmd *cobra.Command, _ []string) error {
 	defer cancel()
 
 	tmStatus := platform.CheckStatus(ctx, runner)
-	apfsVolume, _ := platform.FindAPFSVolume(ctx, runner, cfg.MountPoint)
-	diskInfo, diskErr := platform.GetDiskInfo(ctx, runner, cfg.MountPoint)
+	apfsVolume, _ := platform.FindAPFSVolume(ctx, runner, config.DefaultMount)
+	diskInfo, diskErr := platform.GetDiskInfo(ctx, runner, config.DefaultMount)
 
-	dates, snapErr := platform.ListSnapshots(ctx, runner, cfg.MountPoint)
+	dates, snapErr := platform.ListSnapshots(ctx, runner, config.DefaultMount)
 	localCount := len(dates)
 
 	var otherCount int
@@ -99,7 +99,7 @@ func writeStatusJSON(cmd *cobra.Command, cfg *config.Config, tmStatus, apfsVolum
 		Auto        autoJSON      `json:"auto"`
 	}{
 		TimeMachine: tmStatus,
-		Mount:       cfg.MountPoint,
+		Mount:       config.DefaultMount,
 		APFSVolume:  apfsVolume,
 		Disk:        disk,
 		Snapshots:   snaps,
@@ -118,7 +118,7 @@ func writeStatusHuman(cmd *cobra.Command, cfg *config.Config, tmStatus, apfsVolu
 	if _, err := fmt.Fprintf(w, "Time Machine: %s\n", tmStatus); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w, "Mount: %s\n", cfg.MountPoint); err != nil {
+	if _, err := fmt.Fprintf(w, "Mount: %s\n", config.DefaultMount); err != nil {
 		return err
 	}
 	if apfsVolume != "" {
