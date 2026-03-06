@@ -87,8 +87,9 @@ when nothing meaningful has changed.
 ## Issue #53: Remove mount point config
 
 Remove the `MountPoint` field from `Config`. The mount point is always "/" on
-macOS for Time Machine snapshots. Keep mount in JSON and human output (hardcoded
-to "/") for backward compatibility.
+macOS for Time Machine snapshots. Continue to show the mount point (hardcoded
+to "/") in `snappy status` and `snappy list` output (both human and JSON), but
+omit it from `snappy config` show/init output.
 
 ### Config package (`internal/config/config.go`)
 

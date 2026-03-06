@@ -30,14 +30,3 @@ Error: running TUI: * (glob)
 $ "${SNAPPY_BIN}" --config /dev/null 2>/dev/null
 [1]
 ```
-
-## Config flag with empty config file
-
-Validates the config pipeline: `/dev/null` provides an empty config file.
-
-```scrut {output_stream: stderr}
-$ "${SNAPPY_BIN}" --config /dev/null
-Warning: config file error: * (glob)
-Error: running TUI: * (glob)
-[1]
-```
