@@ -115,15 +115,13 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	}
 	tmStatus := platform.CheckStatus(startupCtx, runner)
 
-	volumeName, err := platform.GetVolumeName(startupCtx, runner, cfg.MountPoint)
-	if err != nil || volumeName == "" {
-		volumeName = cfg.MountPoint
-	}
-
+	volumeName := cfg.MountPoint
 	var apfsContainer string
-	containerRef, containerErr := platform.GetContainerReference(startupCtx, runner, cfg.MountPoint)
-	if containerErr == nil && containerRef != "" {
-		apfsContainer = containerRef
+	if mountInfo, mountErr := platform.GetMountInfo(startupCtx, runner, cfg.MountPoint); mountErr == nil {
+		if mountInfo.VolumeName != "" {
+			volumeName = mountInfo.VolumeName
+		}
+		apfsContainer = mountInfo.APFSContainerReference
 	}
 
 	log.Log(logger.Startup, fmt.Sprintf("snappy %s | volume=%s | refresh=%ds",

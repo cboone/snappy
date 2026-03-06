@@ -345,6 +345,39 @@ func TestFindAPFSVolumeReturnsEmptyWhenNoDeviceSupportsSnapshots(t *testing.T) {
 	}
 }
 
+func TestGetMountInfo(t *testing.T) {
+	plistXML := `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>DeviceIdentifier</key>
+	<string>disk3s1s1</string>
+	<key>VolumeName</key>
+	<string>Macintosh HD</string>
+	<key>APFSContainerReference</key>
+	<string>disk3</string>
+</dict>
+</plist>`
+
+	r := &mockRunner{responses: map[string]mockResponse{
+		"diskutil info -plist /": {output: []byte(plistXML)},
+	}}
+
+	info, err := GetMountInfo(context.Background(), r, "/")
+	if err != nil {
+		t.Fatalf("GetMountInfo() error = %v", err)
+	}
+	if info.DeviceIdentifier != "disk3s1s1" {
+		t.Errorf("DeviceIdentifier = %q, want %q", info.DeviceIdentifier, "disk3s1s1")
+	}
+	if info.VolumeName != "Macintosh HD" {
+		t.Errorf("VolumeName = %q, want %q", info.VolumeName, "Macintosh HD")
+	}
+	if info.APFSContainerReference != "disk3" {
+		t.Errorf("APFSContainerReference = %q, want %q", info.APFSContainerReference, "disk3")
+	}
+}
+
 func TestGetContainerReference(t *testing.T) {
 	r := &mockRunner{responses: map[string]mockResponse{
 		"diskutil info -plist /": {output: []byte(infoPlistWithContainer("disk3s1s1", "disk3"))},

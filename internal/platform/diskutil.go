@@ -118,35 +118,40 @@ func GetSnapshotDetails(ctx context.Context, r CommandRunner, volume string) (de
 	return details, otherCount, nil
 }
 
+// MountInfo holds the diskutil info fields for a given mount point.
+type MountInfo struct {
+	DeviceIdentifier       string
+	VolumeName             string
+	APFSContainerReference string
+}
+
+// GetMountInfo returns device identifier, volume name, and APFS container
+// reference for the given mount point in a single diskutil info call.
+func GetMountInfo(ctx context.Context, r CommandRunner, mount string) (MountInfo, error) {
+	info, err := getDiskutilInfo(ctx, r, mount)
+	if err != nil {
+		return MountInfo{}, err
+	}
+	return MountInfo(info), nil
+}
+
 // GetVolumeName returns the human-friendly volume name for the given mount
 // point by parsing the VolumeName field from diskutil info -plist.
 func GetVolumeName(ctx context.Context, r CommandRunner, mount string) (string, error) {
-	out, err := r.Run(ctx, "diskutil", "info", "-plist", mount)
+	info, err := getDiskutilInfo(ctx, r, mount)
 	if err != nil {
-		return "", fmt.Errorf("getting volume name for %s: %w", mount, err)
+		return "", err
 	}
-
-	var info diskutilInfoPlist
-	if _, err := plist.Unmarshal(out, &info); err != nil {
-		return "", fmt.Errorf("parsing diskutil plist for %s: %w", mount, err)
-	}
-
 	return info.VolumeName, nil
 }
 
 // GetContainerReference returns the APFS container reference (e.g. "disk3")
 // for the given mount point by parsing diskutil info -plist.
 func GetContainerReference(ctx context.Context, r CommandRunner, mount string) (string, error) {
-	out, err := r.Run(ctx, "diskutil", "info", "-plist", mount)
+	info, err := getDiskutilInfo(ctx, r, mount)
 	if err != nil {
-		return "", fmt.Errorf("getting container reference for %s: %w", mount, err)
+		return "", err
 	}
-
-	var info diskutilInfoPlist
-	if _, err := plist.Unmarshal(out, &info); err != nil {
-		return "", fmt.Errorf("parsing diskutil plist for %s: %w", mount, err)
-	}
-
 	return info.APFSContainerReference, nil
 }
 
@@ -168,17 +173,25 @@ func GetContainerTidemark(ctx context.Context, r CommandRunner, container string
 	return limits.MinimumSizeNoGuard, nil
 }
 
-func getDeviceIdentifier(ctx context.Context, r CommandRunner, mount string) (string, error) {
+func getDiskutilInfo(ctx context.Context, r CommandRunner, mount string) (diskutilInfoPlist, error) {
 	out, err := r.Run(ctx, "diskutil", "info", "-plist", mount)
 	if err != nil {
-		return "", fmt.Errorf("getting device identifier for %s: %w", mount, err)
+		return diskutilInfoPlist{}, fmt.Errorf("getting diskutil info for %s: %w", mount, err)
 	}
 
 	var info diskutilInfoPlist
 	if _, err := plist.Unmarshal(out, &info); err != nil {
-		return "", fmt.Errorf("parsing diskutil plist for %s: %w", mount, err)
+		return diskutilInfoPlist{}, fmt.Errorf("parsing diskutil plist for %s: %w", mount, err)
 	}
 
+	return info, nil
+}
+
+func getDeviceIdentifier(ctx context.Context, r CommandRunner, mount string) (string, error) {
+	info, err := getDiskutilInfo(ctx, r, mount)
+	if err != nil {
+		return "", err
+	}
 	return info.DeviceIdentifier, nil
 }
 
