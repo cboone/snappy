@@ -3,7 +3,6 @@ package platform
 import (
 	"context"
 	"fmt"
-	"math"
 	"strings"
 )
 
@@ -26,17 +25,19 @@ func FormatBytes(b int64) string {
 	if b == 0 {
 		return "0 B"
 	}
-	const unit = 1024
+	const unit float64 = 1024
 	units := []string{"B", "KB", "MB", "GB", "TB", "PB"}
-	if b < unit {
-		return fmt.Sprintf("%d B", b)
+	val := float64(b)
+	for i := 1; i < len(units); i++ {
+		if val < unit {
+			if i == 1 {
+				return fmt.Sprintf("%d B", b)
+			}
+			return fmt.Sprintf("%.1f %s", val, units[i-1])
+		}
+		val /= unit
 	}
-	exp := int(math.Log(float64(b)) / math.Log(unit))
-	if exp >= len(units) {
-		exp = len(units) - 1
-	}
-	val := float64(b) / math.Pow(unit, float64(exp))
-	return fmt.Sprintf("%.1f %s", val, units[exp])
+	return fmt.Sprintf("%.1f %s", val, units[len(units)-1])
 }
 
 // GetDiskInfo runs df -h on the given mount point and returns formatted
