@@ -35,14 +35,18 @@ func runDaemon(cmd *cobra.Command, _ []string) error {
 	runner := newRunner()
 	w := cmd.OutOrStdout()
 
-	logLine(w, "STARTUP", "snappy run (interval=%s, thin >%s to %s)",
-		cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence)
+	if err := logLine(w, "STARTUP", "snappy run (interval=%s, thin >%s to %s)",
+		cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence); err != nil {
+		return err
+	}
 
 	ctx, stop := signal.NotifyContext(cmd.Context(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	// Run first iteration immediately.
-	runIteration(ctx, w, runner, cfg)
+	if err := runIteration(ctx, w, runner, cfg); err != nil {
+		return err
+	}
 
 	ticker := time.NewTicker(cfg.AutoSnapshotInterval)
 	defer ticker.Stop()
@@ -50,15 +54,16 @@ func runDaemon(cmd *cobra.Command, _ []string) error {
 	for {
 		select {
 		case <-ctx.Done():
-			logLine(w, "SHUTDOWN", "signal received, exiting")
-			return nil
+			return logLine(w, "SHUTDOWN", "signal received, exiting")
 		case <-ticker.C:
-			runIteration(ctx, w, runner, cfg)
+			if err := runIteration(ctx, w, runner, cfg); err != nil {
+				return err
+			}
 		}
 	}
 }
 
-func runIteration(ctx context.Context, w io.Writer, runner platform.CommandRunner, cfg *config.Config) {
+func runIteration(ctx context.Context, w io.Writer, runner platform.CommandRunner, cfg *config.Config) error {
 	// Create snapshot.
 	createCtx, createCancel := context.WithTimeout(ctx, time.Minute)
 	date, err := platform.CreateSnapshot(createCtx, runner)
@@ -66,11 +71,17 @@ func runIteration(ctx context.Context, w io.Writer, runner platform.CommandRunne
 
 	switch {
 	case err != nil:
-		logLine(w, "ERROR", "create snapshot: %v", err)
+		if err := logLine(w, "ERROR", "create snapshot: %v", err); err != nil {
+			return err
+		}
 	case date == "":
-		logLine(w, "SNAPSHOT", "Created: <unknown date>")
+		if err := logLine(w, "SNAPSHOT", "Created: <unknown date>"); err != nil {
+			return err
+		}
 	default:
-		logLine(w, "SNAPSHOT", "Created: %s", date)
+		if err := logLine(w, "SNAPSHOT", "Created: %s", date); err != nil {
+			return err
+		}
 	}
 
 	// Load snapshots for thinning and count.
@@ -79,8 +90,7 @@ func runIteration(ctx context.Context, w io.Writer, runner platform.CommandRunne
 	loadCancel()
 
 	if err != nil {
-		logLine(w, "ERROR", "list snapshots: %v", err)
-		return
+		return logLine(w, "ERROR", "list snapshots: %v", err)
 	}
 
 	// Thin old snapshots.
@@ -92,20 +102,25 @@ func runIteration(ctx context.Context, w io.Writer, runner platform.CommandRunne
 	if len(targets) > 0 {
 		deleted, deleteErr := deleteSnapshots(ctx, runner, targets)
 		if deleteErr != nil {
-			logLine(w, "ERROR", "thin: %v", deleteErr)
+			if err := logLine(w, "ERROR", "thin: %v", deleteErr); err != nil {
+				return err
+			}
 		}
 		currentCount -= deleted
 		if currentCount < 0 {
 			currentCount = 0
 		}
-		logLine(w, "THIN", "Thinned %d snapshot(s)", deleted)
+		if err := logLine(w, "THIN", "Thinned %d snapshot(s)", deleted); err != nil {
+			return err
+		}
 	}
 
-	logLine(w, "LIST", "%d snapshot(s)", currentCount)
+	return logLine(w, "LIST", "%d snapshot(s)", currentCount)
 }
 
-func logLine(w io.Writer, event, format string, args ...any) {
+func logLine(w io.Writer, event, format string, args ...any) error {
 	ts := time.Now().Format("2006-01-02 15:04:05")
 	msg := fmt.Sprintf(format, args...)
-	_, _ = fmt.Fprintf(w, "[%s] %-8s %s\n", ts, event, msg)
+	_, err := fmt.Fprintf(w, "[%s] %-8s %s\n", ts, event, msg)
+	return err
 }
