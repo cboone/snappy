@@ -10,7 +10,7 @@
 
 `brew install cboone/tap/snappy` and it's automatically installed and running. Run `snappy` on its own to see the status of your snapshots, view your config, and mount your snapshot backups to restore files.
 
-Snappy only runs on macOS. It relies on [`tmutil`](https://ss64.com/mac/tmutil.html) and [APFS snapshots](https://eclecticlight.co/2026/01/31/explainer-snapshots-2/). If you're on Linux, [`zsh-auto-snapshot`](https://manpages.debian.org/trixie/zfs-auto-snapshot/zfs-auto-snapshot.8.en.html) is a good option (and is what inspired Snappy in the first place). AFAICT, it should work on pretty much any macOS version since 11 (macOS Big Sur), when [Time Machine](<https://en.wikipedia.org/wiki/Time_Machine_(macOS)>) began to use APFS snapshotting.
+Snappy only runs on macOS. It relies on [`tmutil`](https://ss64.com/mac/tmutil.html) and [APFS snapshots](https://eclecticlight.co/2026/01/31/explainer-snapshots-2/). If you're on Linux, [`zsh-auto-snapshot`](https://manpages.debian.org/trixie/zfs-auto-snapshot/zfs-auto-snapshot.8.en.html) is a good option (and is what inspired Snappy in the first place). AFAICT, it should work on pretty much any macOS version since 11 (macOS Big Sur), when [Time Machine](https://en.wikipedia.org/wiki/Time_Machine_%28macOS%29) began to use APFS snapshotting.
 
 **You don't need to use Time Machine for Snappy to work.** You can use Time Machine's fancy UI to view your backups and restore files if you want, or you can use Snappy's snapshot mounting to browse and restore your files via the Finder. None of the functionality requires Time Machine to be enabled, even using the Time Machine UI to view backups.
 
