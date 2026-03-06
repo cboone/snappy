@@ -44,7 +44,16 @@ homebrew_casks:
       - snappy
     url:
       verified: "github.com/cboone/snappy"
+    caveats: |
+      To run snappy automatically in the background:
+        snappy service install
+
+      To stop the background service:
+        snappy service uninstall
     hooks:
       post:
         install:
           - 'xattr -dr com.apple.quarantine "#{staged_path}/snappy"'
+    uninstall:
+      launchctl:
+        - com.cboone.snappy
