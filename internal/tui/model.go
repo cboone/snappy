@@ -94,9 +94,11 @@ type Model struct {
 
 	tmStatus           string
 	apfsVolume         string
+	apfsContainer      string
 	volumeName         string
 	lastOtherSnapCount int
 	diskInfo           string
+	tidemark           string
 	lastRefresh        time.Time
 
 	width              int
@@ -135,7 +137,7 @@ type Model struct {
 }
 
 // NewModel creates a Model with the given dependencies.
-func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Logger, apfsVolume, tmStatus, volumeName, version string) Model {
+func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Logger, apfsVolume, apfsContainer, tmStatus, volumeName, version string) Model {
 	now := time.Now()
 	hasDarkBG := true
 
@@ -172,6 +174,7 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 		thinPinned:    make(map[string]struct{}),
 		recentCreated: make(map[string]struct{}),
 		recentThinned: make(map[string]struct{}),
+		apfsContainer: apfsContainer,
 		version:       version,
 		width:         80,
 		height:        24,
@@ -197,7 +200,7 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 // auto-snapshot is enabled, since it drives the countdown timer.
 func (m Model) Init() tea.Cmd {
 	cmds := []tea.Cmd{
-		doRefresh(m.runner, m.apfsVolume),
+		doRefresh(m.runner, m.apfsVolume, m.apfsContainer),
 		refreshTick(m.cfg.RefreshInterval),
 		tea.RequestBackgroundColor,
 	}

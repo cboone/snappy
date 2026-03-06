@@ -345,6 +345,127 @@ func TestFindAPFSVolumeReturnsEmptyWhenNoDeviceSupportsSnapshots(t *testing.T) {
 	}
 }
 
+func TestGetMountInfo(t *testing.T) {
+	plistXML := `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>DeviceIdentifier</key>
+	<string>disk3s1s1</string>
+	<key>VolumeName</key>
+	<string>Macintosh HD</string>
+	<key>APFSContainerReference</key>
+	<string>disk3</string>
+</dict>
+</plist>`
+
+	r := &mockRunner{responses: map[string]mockResponse{
+		"diskutil info -plist /": {output: []byte(plistXML)},
+	}}
+
+	info, err := GetMountInfo(context.Background(), r, "/")
+	if err != nil {
+		t.Fatalf("GetMountInfo() error = %v", err)
+	}
+	if info.DeviceIdentifier != "disk3s1s1" {
+		t.Errorf("DeviceIdentifier = %q, want %q", info.DeviceIdentifier, "disk3s1s1")
+	}
+	if info.VolumeName != "Macintosh HD" {
+		t.Errorf("VolumeName = %q, want %q", info.VolumeName, "Macintosh HD")
+	}
+	if info.APFSContainerReference != "disk3" {
+		t.Errorf("APFSContainerReference = %q, want %q", info.APFSContainerReference, "disk3")
+	}
+}
+
+func TestGetContainerReference(t *testing.T) {
+	r := &mockRunner{responses: map[string]mockResponse{
+		"diskutil info -plist /": {output: []byte(infoPlistWithContainer("disk3s1s1", "disk3"))},
+	}}
+
+	got, err := GetContainerReference(context.Background(), r, "/")
+	if err != nil {
+		t.Fatalf("GetContainerReference() error = %v", err)
+	}
+	if got != "disk3" {
+		t.Errorf("GetContainerReference() = %q, want %q", got, "disk3")
+	}
+}
+
+func TestGetContainerReferenceEmpty(t *testing.T) {
+	r := &mockRunner{responses: map[string]mockResponse{
+		"diskutil info -plist /": {output: []byte(infoPlist("disk3s1s1"))},
+	}}
+
+	got, err := GetContainerReference(context.Background(), r, "/")
+	if err != nil {
+		t.Fatalf("GetContainerReference() error = %v", err)
+	}
+	if got != "" {
+		t.Errorf("GetContainerReference() = %q, want empty", got)
+	}
+}
+
+func TestGetContainerTidemark(t *testing.T) {
+	plistXML := `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>MinimumSizeNoGuard</key>
+	<integer>2153406005248</integer>
+	<key>ContainerCurrentSize</key>
+	<integer>4000787030016</integer>
+</dict>
+</plist>`
+
+	r := &mockRunner{responses: map[string]mockResponse{
+		"diskutil apfs resizeContainer disk3 limits -plist": {output: []byte(plistXML)},
+	}}
+
+	got, err := GetContainerTidemark(context.Background(), r, "disk3")
+	if err != nil {
+		t.Fatalf("GetContainerTidemark() error = %v", err)
+	}
+	if got != 2153406005248 {
+		t.Errorf("GetContainerTidemark() = %d, want %d", got, 2153406005248)
+	}
+}
+
+func TestGetContainerTidemarkError(t *testing.T) {
+	r := &mockRunner{responses: map[string]mockResponse{
+		"diskutil apfs resizeContainer disk3 limits -plist": {err: fmt.Errorf("not supported")},
+	}}
+
+	_, err := GetContainerTidemark(context.Background(), r, "disk3")
+	if err == nil {
+		t.Error("GetContainerTidemark() expected error, got nil")
+	}
+}
+
+func TestFormatBytes(t *testing.T) {
+	tests := []struct {
+		name string
+		b    int64
+		want string
+	}{
+		{"zero", 0, "0 B"},
+		{"bytes", 512, "512 B"},
+		{"kilobytes", 1536, "1.5 KB"},
+		{"megabytes", 104857600, "100.0 MB"},
+		{"gigabytes", 494384128819, "460.4 GB"},
+		{"terabytes", 2153406005248, "2.0 TB"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FormatBytes(tt.b)
+			if got != tt.want {
+				t.Errorf("FormatBytes(%d) = %q, want %q", tt.b, got, tt.want)
+			}
+		})
+	}
+}
+
 func infoPlist(device string) string {
 	return fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -354,6 +475,19 @@ func infoPlist(device string) string {
 	<string>%s</string>
 </dict>
 </plist>`, device)
+}
+
+func infoPlistWithContainer(device, container string) string {
+	return fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>DeviceIdentifier</key>
+	<string>%s</string>
+	<key>APFSContainerReference</key>
+	<string>%s</string>
+</dict>
+</plist>`, device, container)
 }
 
 const emptySnapshotsPlist = `<?xml version="1.0" encoding="UTF-8"?>

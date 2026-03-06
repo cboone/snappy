@@ -20,6 +20,7 @@ type RefreshResultMsg struct {
 	DiskErr     bool
 	SnapshotErr error
 	APFSErr     error
+	Tidemark    int64
 }
 
 // SnapshotCreatedMsg signals that a snapshot creation attempt completed.
