@@ -768,6 +768,50 @@ func TestAutoToggleOnClearsThinPinned(t *testing.T) {
 	}
 }
 
+func TestUITickStopsWhenAutoDisabledAndIdle(t *testing.T) {
+	m := testModel()
+	// Toggle auto off (starts enabled).
+	m.auto.Toggle(m.now())
+	m.loading = false
+
+	updated, cmd := m.Update(UITickMsg{})
+	_ = updated.(Model)
+	if cmd != nil {
+		t.Error("expected nil cmd when auto is disabled and not loading")
+	}
+}
+
+func TestUITickContinuesWhenAutoEnabled(t *testing.T) {
+	m := testModel()
+	// Auto is enabled by default in testConfig.
+
+	updated, cmd := m.Update(UITickMsg{})
+	_ = updated.(Model)
+	if cmd == nil {
+		t.Error("expected non-nil cmd when auto is enabled")
+	}
+}
+
+func TestAutoToggleOnRestartsUITick(t *testing.T) {
+	m := testModel()
+	// Toggle off first.
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model := updated.(Model)
+	if model.auto.Enabled() {
+		t.Fatal("expected auto disabled after first toggle")
+	}
+
+	// Toggle back on: should return uiTick command.
+	updated, cmd := model.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model = updated.(Model)
+	if !model.auto.Enabled() {
+		t.Fatal("expected auto enabled after second toggle")
+	}
+	if cmd == nil {
+		t.Error("expected non-nil cmd (uiTick) when toggling auto on")
+	}
+}
+
 func TestSuccessfulThinClearsThinPinned(t *testing.T) {
 	m := testModel()
 	m.thinning = true
