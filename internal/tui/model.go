@@ -120,6 +120,7 @@ type Model struct {
 
 	snapPanelY int
 	logPanelY  int
+	helpBarY   int
 
 	now func() time.Time
 }

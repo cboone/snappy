@@ -105,6 +105,7 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 
 	m.snapPanelY = infoHeight
 	m.logPanelY = infoHeight + 2 + snapH
+	m.helpBarY = m.logPanelY + 2 + logH
 
 	m.snapTable.SetWidth(cw)
 	m.snapTable.SetHeight(snapH)
@@ -177,6 +178,8 @@ func (m Model) handleMouseClick(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	switch {
+	case msg.Y >= m.helpBarY:
+		// Click is on the help bar; ignore.
 	case msg.Y >= m.logPanelY:
 		m.setFocusPanel(panelLog)
 		// Translate click Y to a visual line, then find the entry.
@@ -201,7 +204,7 @@ func (m Model) handleMouseClick(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleMouseWheel(msg tea.MouseWheelMsg) (tea.Model, tea.Cmd) {
-	if msg.Y >= m.logPanelY {
+	if msg.Y >= m.logPanelY && msg.Y < m.helpBarY {
 		m.setFocusPanel(panelLog)
 		switch msg.Button {
 		case tea.MouseWheelUp:
@@ -211,7 +214,7 @@ func (m Model) handleMouseWheel(msg tea.MouseWheelMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	}
-	if msg.Y >= m.snapPanelY {
+	if msg.Y >= m.snapPanelY && msg.Y < m.logPanelY {
 		m.setFocusPanel(panelSnap)
 		switch msg.Button {
 		case tea.MouseWheelUp:
@@ -546,10 +549,7 @@ func (m *Model) updateLogViewContent() {
 	// Prefix: "15:04:05   TYPE     " = 8 + 3 + 7 + 3 = 21 chars.
 	const prefixW = 21
 	w := m.logView.Width()
-	msgW := w - prefixW
-	if msgW < 10 {
-		msgW = 10
-	}
+	msgW := max(w-prefixW, 10)
 	indent := strings.Repeat(" ", prefixW)
 
 	m.logEntryY = make([]int, m.logCount)
