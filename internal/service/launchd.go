@@ -23,8 +23,8 @@ type PlistConfig struct {
 	ConfigFile string // optional --config path; empty means use defaults
 }
 
-// ServiceStatus describes the current state of the launchd agent.
-type ServiceStatus struct {
+// Info describes the current state of the launchd agent.
+type Info struct {
 	Installed  bool
 	Running    bool
 	PID        int
@@ -202,13 +202,13 @@ func Stop(label string) error {
 }
 
 // Status queries launchctl for the current state of the agent.
-func Status(label string) (*ServiceStatus, error) {
+func Status(label string) (*Info, error) {
 	plistPath, err := PlistPath(label)
 	if err != nil {
 		return nil, err
 	}
 
-	st := &ServiceStatus{
+	st := &Info{
 		Label:     label,
 		PlistPath: plistPath,
 	}
@@ -230,8 +230,9 @@ func Status(label string) (*ServiceStatus, error) {
 	cmd := exec.Command("launchctl", "print", serviceTarget(label))
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		// Not loaded or not running is not an error for status.
-		return st, nil
+		// Not loaded or not running is not an error for status;
+		// launchctl returns non-zero when the service isn't registered.
+		return st, nil //nolint:nilerr // intentional: launchctl failure means not running
 	}
 
 	st.Running = true
@@ -258,12 +259,12 @@ func bootout(label, plistPath string) error {
 	if _, statErr := os.Stat(plistPath); statErr == nil {
 		//nolint:gosec // arguments are controlled
 		legacyCmd := exec.Command("launchctl", "bootout", domainTarget(), plistPath)
-		if legacyOut, legacyErr := legacyCmd.CombinedOutput(); legacyErr == nil {
+		legacyOut, legacyErr := legacyCmd.CombinedOutput()
+		if legacyErr == nil {
 			return nil
-		} else {
-			outStr = strings.TrimSpace(string(legacyOut))
-			err = legacyErr
 		}
+		outStr = strings.TrimSpace(string(legacyOut))
+		err = legacyErr
 	}
 
 	// "No such process" or "Could not find service" means it wasn't loaded.

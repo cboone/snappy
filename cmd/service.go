@@ -240,4 +240,3 @@ var findTail = func() (string, error) {
 	}
 	return "", fmt.Errorf("tail command not found")
 }
-

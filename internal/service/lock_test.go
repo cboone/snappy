@@ -13,7 +13,7 @@ func TestAcquireSucceeds(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Acquire() error = %v", err)
 	}
-	defer lock.Release()
+	defer func() { _ = lock.Release() }()
 
 	if _, err := os.Stat(path); err != nil {
 		t.Fatalf("lock file not created: %v", err)
@@ -27,7 +27,7 @@ func TestAcquireReturnsErrLockedWhenHeld(t *testing.T) {
 	if err != nil {
 		t.Fatalf("first Acquire() error = %v", err)
 	}
-	defer first.Release()
+	defer func() { _ = first.Release() }()
 
 	_, err = Acquire(path)
 	if err == nil {
@@ -46,7 +46,7 @@ func TestAcquireCreatesDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Acquire() error = %v", err)
 	}
-	defer lock.Release()
+	defer func() { _ = lock.Release() }()
 
 	if _, err := os.Stat(dir); err != nil {
 		t.Fatalf("directory not created: %v", err)
@@ -68,7 +68,7 @@ func TestReleaseAllowsReacquire(t *testing.T) {
 	if err != nil {
 		t.Fatalf("re-Acquire() error = %v", err)
 	}
-	defer second.Release()
+	_ = second.Release()
 }
 
 func TestReleaseIdempotent(t *testing.T) {
@@ -94,7 +94,7 @@ func TestIsHeldReturnsTrueWhenLocked(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Acquire() error = %v", err)
 	}
-	defer lock.Release()
+	defer func() { _ = lock.Release() }()
 
 	if !IsHeld(path) {
 		t.Error("IsHeld() = false, want true")
@@ -108,7 +108,7 @@ func TestIsHeldReturnsFalseWhenReleased(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Acquire() error = %v", err)
 	}
-	lock.Release()
+	_ = lock.Release()
 
 	if IsHeld(path) {
 		t.Error("IsHeld() = true, want false")

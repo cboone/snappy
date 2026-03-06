@@ -45,7 +45,7 @@ func runDaemon(cmd *cobra.Command, _ []string) error {
 		}
 		return fmt.Errorf("acquiring lock: %w", err)
 	}
-	defer lock.Release()
+	defer func() { _ = lock.Release() }()
 
 	// Create a shared logger that writes to the snappy.log file.
 	log := logger.New(logger.Options{
