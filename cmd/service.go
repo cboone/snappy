@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/spf13/cobra"
@@ -87,11 +89,27 @@ func runServiceInstall(cmd *cobra.Command, _ []string) error {
 	cfg := config.Load()
 	w := cmd.OutOrStdout()
 
+	configPath := cfgFile
+	if configPath != "" {
+		if configPath == "~" || strings.HasPrefix(configPath, "~/") {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return fmt.Errorf("expanding config path: %w", err)
+			}
+			configPath = filepath.Join(home, strings.TrimPrefix(configPath[1:], "/"))
+		}
+		absPath, err := filepath.Abs(configPath)
+		if err != nil {
+			return fmt.Errorf("resolving config path: %w", err)
+		}
+		configPath = absPath
+	}
+
 	plistCfg := service.PlistConfig{
 		Label:      service.DefaultLabel,
 		BinaryPath: binPath,
 		LogDir:     cfg.LogDir,
-		ConfigFile: cfgFile,
+		ConfigFile: configPath,
 	}
 
 	if err := service.Install(plistCfg); err != nil {

@@ -12,8 +12,7 @@ The service runs "snappy run" as a LaunchAgent, starting at login and
 restarting automatically if it exits unexpectedly.
 
 Usage:
-  snappy service [flags]
-  snappy service [command]
+  snappy service [command] [flags]
 
 Available Commands:
   install     Install and start the snappy launchd agent

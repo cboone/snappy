@@ -366,7 +366,7 @@ func TestViewAutoStatusDaemon(t *testing.T) {
 	cfg := testConfig()
 	log := logger.New(logger.Options{MaxEntries: 50})
 	runner := &mockRunner{responses: map[string]mockResponse{}}
-	m := NewModel(cfg, runner, log, "disk3s5", "Configured", "/", "dev", true)
+	m := NewModel(cfg, runner, log, "disk3s5", "disk3", "Configured", "/", "dev", true)
 	m.width = 80
 	m.height = 40
 
@@ -383,7 +383,7 @@ func TestAutoToggleIgnoredWhenDaemonActive(t *testing.T) {
 	cfg := testConfig()
 	log := logger.New(logger.Options{MaxEntries: 50})
 	runner := &mockRunner{responses: map[string]mockResponse{}}
-	m := NewModel(cfg, runner, log, "disk3s5", "Configured", "/", "dev", true)
+	m := NewModel(cfg, runner, log, "disk3s5", "disk3", "Configured", "/", "dev", true)
 	m.width = 80
 	m.height = 40
 
@@ -452,7 +452,7 @@ func TestRefreshTickClearsDaemonActiveWhenLockReleased(t *testing.T) {
 	cfg.LogDir = t.TempDir()
 	log := logger.New(logger.Options{MaxEntries: 50})
 	runner := &mockRunner{responses: map[string]mockResponse{}}
-	m := NewModel(cfg, runner, log, "disk3s5", "Configured", "/", "dev", true)
+	m := NewModel(cfg, runner, log, "disk3s5", "disk3", "Configured", "/", "dev", true)
 	m.now = func() time.Time {
 		return time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
 	}

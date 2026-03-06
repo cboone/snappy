@@ -14,8 +14,8 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/cboone/snappy/internal/logger"
-	"github.com/cboone/snappy/internal/service"
 	"github.com/cboone/snappy/internal/platform"
+	"github.com/cboone/snappy/internal/service"
 	"github.com/cboone/snappy/internal/snapshot"
 )
 
