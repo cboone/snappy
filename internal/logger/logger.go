@@ -180,23 +180,33 @@ func (l *Logger) LoadTail() {
 	}
 	defer func() { _ = f.Close() }()
 
-	var lines []string
+	// Use a fixed-size ring buffer so memory stays O(maxSize) regardless of file size.
+	buf := make([]string, 0, l.maxSize)
+	start := 0
+	count := 0
+
 	scanner := bufio.NewScanner(f)
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
+		line := scanner.Text()
+		if count < l.maxSize {
+			buf = append(buf, line)
+			count++
+		} else {
+			buf[start] = line
+			start = (start + 1) % l.maxSize
+		}
 	}
 	if err := scanner.Err(); err != nil {
 		fmt.Fprintln(os.Stderr, "snappy: error reading log file:", err)
 	}
 
-	// Keep only the last maxSize lines.
-	if len(lines) > l.maxSize {
-		lines = lines[len(lines)-l.maxSize:]
-	}
-
-	for _, line := range lines {
-		if entry, ok := parseLogLine(line, l.now()); ok {
+	// Replay buffered lines from oldest to newest into the in-memory entry ring.
+	refTime := l.now()
+	for i := 0; i < count; i++ {
+		idx := (start + i) % len(buf)
+		line := buf[idx]
+		if entry, ok := parseLogLine(line, refTime); ok {
 			if len(l.entries) < l.maxSize {
 				l.entries = append(l.entries, entry)
 			} else {

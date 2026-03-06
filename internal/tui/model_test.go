@@ -1062,6 +1062,7 @@ func TestMixedEstaleAndRealErrorLogsAsError(t *testing.T) {
 
 func TestOpenLogKeyBinding(t *testing.T) {
 	m := testModel()
+	m.cfg.LogDir = t.TempDir()
 
 	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'l', Text: "l"})
 	model := updated.(Model)
@@ -1080,6 +1081,30 @@ func TestOpenLogKeyBinding(t *testing.T) {
 	}
 	if !found {
 		t.Error("expected OPEN log entry for 'l' key press")
+	}
+}
+
+func TestOpenLogKeyBindingEmptyDir(t *testing.T) {
+	m := testModel()
+	// LogDir is "" by default in testConfig.
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'l', Text: "l"})
+	model := updated.(Model)
+
+	if cmd != nil {
+		t.Error("expected nil command when LogDir is empty")
+	}
+
+	entries := model.log.Entries()
+	var found bool
+	for _, e := range entries {
+		if e.Category == logger.CatOpen && e.Level == logger.LevelWarn {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected WARN OPEN log entry when LogDir is empty")
 	}
 }
 

@@ -65,6 +65,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case ThinResultMsg:
 		return m.handleThinResult(msg)
+
+	case OpenLogDirResultMsg:
+		if msg.Err != nil {
+			m.log.Log(logger.LevelError, logger.CatOpen, fmt.Sprintf("Failed to open log directory: %v", msg.Err))
+			m.updateLogViewContent()
+		}
+		return m, nil
 	}
 
 	return m, nil
@@ -162,6 +169,11 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case key.Matches(msg, m.keys.OpenLog):
+		if m.cfg.LogDir == "" {
+			m.log.Log(logger.LevelWarn, logger.CatOpen, "Log directory unavailable")
+			m.updateLogViewContent()
+			return m, nil
+		}
 		m.log.Log(logger.LevelInfo, logger.CatOpen, "Opening log directory...")
 		m.updateLogViewContent()
 		return m, doOpenLogDir(m.cfg.LogDir)

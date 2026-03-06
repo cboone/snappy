@@ -62,7 +62,7 @@ Change from `Log(eventType EventType, message string)` to `Log(level Level, cate
 [14:32:01] INFO  STARTUP  snappy v0.6.0 | volume=/ | refresh=60s
 ```
 
-Format string: `[%s] %-5s %-8s %s` (time, level padded to 5, category padded to 8, message). Total prefix width increases from 21 to 27 characters.
+Format string: `[%s] %-5s %-8s %s` (time, level padded to 5, category padded to 8, message). Total prefix width increases from 21 to 26 characters.
 
 ### Styling
 

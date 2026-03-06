@@ -142,9 +142,14 @@ func uiTick() tea.Cmd {
 
 func doOpenLogDir(dir string) tea.Cmd {
 	return func() tea.Msg {
-		if dir != "" {
-			_ = exec.Command("open", dir).Start()
+		if dir == "" {
+			return OpenLogDirResultMsg{Err: fmt.Errorf("log directory path is empty")}
 		}
-		return nil
+
+		if err := exec.Command("open", dir).Start(); err != nil {
+			return OpenLogDirResultMsg{Err: err}
+		}
+
+		return OpenLogDirResultMsg{}
 	}
 }
