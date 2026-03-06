@@ -908,3 +908,96 @@ func TestCreatedSnapshotNotDuplicatedAsAdded(t *testing.T) {
 		t.Errorf("ADDED entries for created snapshot = %d, want 0 (suppressed by recentCreated)", addedCount)
 	}
 }
+
+func TestThinnedSnapshotsNotDuplicatedAsRemoved(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	// First refresh: establishes baseline with two snapshots.
+	initial := []snapshot.Snapshot{
+		{Date: "2026-03-01-130000", Time: now.Add(-2 * time.Hour)},
+		{Date: "2026-03-01-130100", Time: now.Add(-119 * time.Minute)},
+	}
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: initial,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	// Thinning result: one snapshot thinned.
+	updated, _ = model.Update(ThinResultMsg{
+		Deleted:      1,
+		ThinnedDates: []string{"2026-03-01-130100"},
+	})
+	model = updated.(Model)
+
+	// Refresh: missing thinned snapshot.
+	remaining := []snapshot.Snapshot{
+		{Date: "2026-03-01-130000", Time: now.Add(-2 * time.Hour)},
+	}
+	updated, _ = model.Update(RefreshResultMsg{
+		Snapshots: remaining,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model = updated.(Model)
+
+	entries := model.log.Entries()
+	var removedCount int
+	for _, e := range entries {
+		if e.Category == logger.CatRemoved && strings.Contains(e.Message, "2026-03-01-130100") {
+			removedCount++
+		}
+	}
+	if removedCount != 0 {
+		t.Errorf("REMOVED entries for thinned snapshot = %d, want 0 (suppressed by recentThinned)", removedCount)
+	}
+}
+
+func TestMaybeThinLogsThinningStart(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	// Set up snapshots old enough to trigger thinning.
+	snaps := []snapshot.Snapshot{
+		{Date: "2026-03-01-130000", Time: now.Add(-2 * time.Hour)},
+		{Date: "2026-03-01-130100", Time: now.Add(-119 * time.Minute)},
+	}
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: snaps,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	entries := model.log.Entries()
+	var thinStartCount int
+	for _, e := range entries {
+		if e.Category == logger.CatAuto && strings.Contains(e.Message, "Thinning") {
+			thinStartCount++
+		}
+	}
+	if thinStartCount != 1 {
+		t.Errorf("AUTO 'Thinning' entries = %d, want 1", thinStartCount)
+	}
+}
+
+func TestDoThinSnapshotsReturnsThinnedDates(t *testing.T) {
+	runner := &mockRunner{responses: map[string]mockResponse{
+		"tmutil deletelocalsnapshots 2026-03-01-140000": {output: []byte("Deleted\n")},
+		"tmutil deletelocalsnapshots 2026-03-01-140100": {err: fmt.Errorf("permission denied")},
+	}}
+
+	msg := doThinSnapshots(runner, []string{"2026-03-01-140000", "2026-03-01-140100"})()
+	result, ok := msg.(ThinResultMsg)
+	if !ok {
+		t.Fatalf("msg type = %T, want ThinResultMsg", msg)
+	}
+
+	if len(result.ThinnedDates) != 1 || result.ThinnedDates[0] != "2026-03-01-140000" {
+		t.Fatalf("ThinnedDates = %v, want [2026-03-01-140000]", result.ThinnedDates)
+	}
+}

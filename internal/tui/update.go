@@ -360,8 +360,12 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 		}
 		clear(m.recentCreated)
 		for _, s := range diff.Removed {
+			if _, ok := m.recentThinned[s.Date]; ok {
+				continue
+			}
 			m.log.Log(logger.LevelInfo, logger.CatRemoved, "Snapshot disappeared: "+s.Date)
 		}
+		clear(m.recentThinned)
 	}
 	m.hadFirstRefresh = true
 
@@ -404,6 +408,8 @@ func (m *Model) maybeThin(cmds []tea.Cmd) []tea.Cmd {
 	if len(filtered) > 0 {
 		m.thinning = true
 		m.loading = true
+		m.log.Log(logger.LevelInfo, logger.CatAuto, fmt.Sprintf("Thinning %d snapshot(s)...", len(filtered)))
+		m.updateLogViewContent()
 		cmds = append(cmds, doThinSnapshots(m.runner, filtered), m.spinner.Tick)
 	}
 	return cmds
@@ -438,6 +444,9 @@ func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
 	m.thinning = false
 	if !m.snapshotting {
 		m.loading = false
+	}
+	for _, d := range msg.ThinnedDates {
+		m.recentThinned[d] = struct{}{}
 	}
 	if msg.Deleted > 0 {
 		m.log.Log(logger.LevelInfo, logger.CatThinned, fmt.Sprintf(

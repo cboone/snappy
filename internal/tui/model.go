@@ -103,6 +103,7 @@ type Model struct {
 	thinning       bool
 	thinPinned      map[string]struct{}
 	recentCreated   map[string]struct{}
+	recentThinned   map[string]struct{}
 	hadFirstRefresh bool
 	version         string
 
@@ -164,6 +165,7 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 		refreshing: true,
 		thinPinned:    make(map[string]struct{}),
 		recentCreated: make(map[string]struct{}),
+		recentThinned: make(map[string]struct{}),
 		version:    version,
 		width:      80,
 		height:     24,
