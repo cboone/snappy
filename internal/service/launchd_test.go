@@ -202,6 +202,62 @@ func TestReadBinaryFromPlistMissing(t *testing.T) {
 	}
 }
 
+func TestReadBinaryFromPlistMalformed(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "bad.plist")
+	if err := os.WriteFile(path, []byte("not a plist at all"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := readBinaryFromPlist(path)
+	if got != "" {
+		t.Errorf("readBinaryFromPlist() = %q, want empty for malformed plist", got)
+	}
+}
+
+func TestReadBinaryFromPlistEmptyArgs(t *testing.T) {
+	content := `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.cboone.snappy</string>
+    <key>ProgramArguments</key>
+    <array>
+    </array>
+</dict>
+</plist>`
+
+	path := filepath.Join(t.TempDir(), "empty-args.plist")
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := readBinaryFromPlist(path)
+	if got != "" {
+		t.Errorf("readBinaryFromPlist() = %q, want empty for empty ProgramArguments", got)
+	}
+}
+
+func TestReadBinaryFromPlistRoundTrip(t *testing.T) {
+	cfg := PlistConfig{
+		Label:      "com.cboone.snappy",
+		BinaryPath: "/opt/homebrew/bin/snappy",
+		LogDir:     "/Users/test/.local/share/snappy",
+	}
+
+	data, err := GeneratePlist(cfg)
+	if err != nil {
+		t.Fatalf("GeneratePlist() error = %v", err)
+	}
+
+	path := filepath.Join(t.TempDir(), "roundtrip.plist")
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := readBinaryFromPlist(path)
+	if got != cfg.BinaryPath {
+		t.Errorf("readBinaryFromPlist() = %q, want %q", got, cfg.BinaryPath)
+	}
+}
+
 func TestLogPath(t *testing.T) {
 	got := LogPath("/some/dir")
 	want := "/some/dir/snappy-service.log"

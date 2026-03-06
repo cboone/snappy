@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+
+	"howett.net/plist"
 )
 
 // DefaultLabel is the launchd agent label for snappy.
@@ -302,37 +304,28 @@ func parseRuntimeFromPrint(output string) (running bool, pid int) {
 	return pid > 0, pid
 }
 
+// launchdPlist is the subset of a launchd plist we need for reading back
+// the binary path.
+type launchdPlist struct {
+	ProgramArguments []string `plist:"ProgramArguments"`
+}
+
 // readBinaryFromPlist reads the first ProgramArguments string from a plist
-// file. This is a best-effort extraction using simple string searching.
+// file using proper plist parsing.
 func readBinaryFromPlist(path string) string {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return ""
 	}
 
-	content := string(data)
-	// Find the first <string>...</string> after <key>ProgramArguments</key> <array>.
-	_, rest, found := strings.Cut(content, "<key>ProgramArguments</key>")
-	if !found {
+	var pl launchdPlist
+	if _, err := plist.Unmarshal(data, &pl); err != nil {
 		return ""
 	}
-	arrayIdx := strings.Index(rest, "<array>")
-	if arrayIdx < 0 {
+	if len(pl.ProgramArguments) == 0 {
 		return ""
 	}
-	rest = rest[arrayIdx:]
-
-	start := strings.Index(rest, "<string>")
-	if start < 0 {
-		return ""
-	}
-	start += len("<string>")
-	end := strings.Index(rest[start:], "</string>")
-	if end < 0 {
-		return ""
-	}
-
-	return rest[start : start+end]
+	return pl.ProgramArguments[0]
 }
 
 // LogPath returns the path to the service's stdout/stderr log file.
