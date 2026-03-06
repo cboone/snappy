@@ -1082,3 +1082,68 @@ func TestOpenLogKeyBinding(t *testing.T) {
 		t.Error("expected OPEN log entry for 'l' key press")
 	}
 }
+
+func TestRefreshSummaryOnlyLoggedOnChange(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	disk := platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"}
+	snaps := []snapshot.Snapshot{
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
+	}
+
+	// First refresh: should log the summary.
+	updated, _ := m.Update(RefreshResultMsg{Snapshots: snaps, TMStatus: "Configured", DiskInfo: disk})
+	model := updated.(Model)
+
+	// Second refresh: same data, should not log again.
+	updated, _ = model.Update(RefreshResultMsg{Snapshots: snaps, TMStatus: "Configured", DiskInfo: disk})
+	model = updated.(Model)
+
+	entries := model.log.Entries()
+	var refreshCount int
+	for _, e := range entries {
+		if e.Category == logger.CatRefresh && strings.Contains(e.Message, "Refresh:") {
+			refreshCount++
+		}
+	}
+	if refreshCount != 1 {
+		t.Errorf("REFRESH summary entries = %d, want 1 (second identical refresh should be suppressed)", refreshCount)
+	}
+}
+
+func TestRefreshSummaryLoggedOnDiskChange(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	snaps := []snapshot.Snapshot{
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
+	}
+
+	// First refresh.
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: snaps, TMStatus: "Configured",
+		DiskInfo: platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	// Second refresh: different disk info.
+	updated, _ = model.Update(RefreshResultMsg{
+		Snapshots: snaps, TMStatus: "Configured",
+		DiskInfo: platform.DiskInfo{Total: "460Gi", Used: "220Gi", Available: "237Gi", Percent: "49%"},
+	})
+	model = updated.(Model)
+
+	entries := model.log.Entries()
+	var refreshCount int
+	for _, e := range entries {
+		if e.Category == logger.CatRefresh && strings.Contains(e.Message, "Refresh:") {
+			refreshCount++
+		}
+	}
+	if refreshCount != 2 {
+		t.Errorf("REFRESH summary entries = %d, want 2 (disk changed between refreshes)", refreshCount)
+	}
+}

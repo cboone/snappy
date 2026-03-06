@@ -374,10 +374,12 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 	}
 	m.hadFirstRefresh = true
 
-	m.log.Log(logger.LevelInfo, logger.CatRefresh, fmt.Sprintf(
-		"Refresh: %d snapshots, disk %s",
-		len(m.snapshots), m.diskInfo,
-	))
+	refreshSummary := fmt.Sprintf("Refresh: %d snapshots, disk %s",
+		len(m.snapshots), m.diskInfo)
+	if refreshSummary != m.lastRefreshSummary {
+		m.log.Log(logger.LevelInfo, logger.CatRefresh, refreshSummary)
+		m.lastRefreshSummary = refreshSummary
+	}
 
 	m.updateSnapViewContent()
 	m.updateLogViewContent()

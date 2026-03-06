@@ -108,8 +108,9 @@ type Model struct {
 	thinning       bool
 	thinPinned      map[string]struct{}
 	recentCreated   map[string]struct{}
-	recentThinned   map[string]struct{}
-	hadFirstRefresh bool
+	recentThinned      map[string]struct{}
+	hadFirstRefresh    bool
+	lastRefreshSummary string
 	version         string
 
 	keys          keyMap
