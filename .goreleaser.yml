@@ -46,5 +46,4 @@ homebrew_casks:
       verified: "github.com/cboone/snappy"
     hooks:
       post:
-        install:
-          - 'xattr -dr com.apple.quarantine "#{staged_path}/snappy"'
+        install: 'xattr -dr com.apple.quarantine "#{staged_path}/snappy"'
