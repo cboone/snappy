@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
@@ -13,6 +14,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/cboone/snappy/internal/logger"
+	"github.com/cboone/snappy/internal/service"
 	"github.com/cboone/snappy/internal/snapshot"
 )
 
@@ -287,6 +289,7 @@ func (m *Model) moveLogCursor(delta int) {
 
 func (m Model) handleTick() (tea.Model, tea.Cmd) {
 	now := m.now()
+	m.syncDaemonState(now)
 
 	var cmds []tea.Cmd
 
@@ -310,6 +313,26 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 	cmds = append(cmds, refreshTick(m.cfg.RefreshInterval))
 
 	return m, tea.Batch(cmds...)
+}
+
+func (m *Model) syncDaemonState(now time.Time) {
+	lockPath := service.DefaultLockPath(m.cfg.LogDir)
+	lockHeld := service.IsHeld(lockPath)
+
+	switch {
+	case lockHeld && !m.daemonActive:
+		m.daemonActive = true
+		if m.auto.Enabled() {
+			m.auto.Toggle(now)
+		}
+		m.log.Log(logger.Info, "Background service detected; TUI auto-snapshots disabled")
+		m.updateLogViewContent()
+
+	case !lockHeld && m.daemonActive:
+		m.daemonActive = false
+		m.log.Log(logger.Info, "Background service no longer detected; press 'a' to enable auto-snapshots")
+		m.updateLogViewContent()
+	}
 }
 
 func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {

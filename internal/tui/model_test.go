@@ -12,6 +12,7 @@ import (
 	"github.com/cboone/snappy/internal/config"
 	"github.com/cboone/snappy/internal/logger"
 	"github.com/cboone/snappy/internal/platform"
+	"github.com/cboone/snappy/internal/service"
 	"github.com/cboone/snappy/internal/snapshot"
 )
 
@@ -404,6 +405,70 @@ func TestAutoToggleIgnoredWhenDaemonActive(t *testing.T) {
 	}
 	if !found {
 		t.Error("expected log message about daemon managing auto-snapshots")
+	}
+}
+
+func TestRefreshTickDisablesAutoWhenDaemonLockAppears(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+	m.cfg.LogDir = t.TempDir()
+	m.auto.RecordSnapshot(now.Add(-2 * m.auto.Interval()))
+
+	lockPath := service.DefaultLockPath(m.cfg.LogDir)
+	lock, err := service.Acquire(lockPath)
+	if err != nil {
+		t.Fatalf("Acquire() error = %v", err)
+	}
+	defer func() { _ = lock.Release() }()
+
+	updated, _ := m.Update(RefreshTickMsg{})
+	model := updated.(Model)
+
+	if !model.daemonActive {
+		t.Error("expected daemonActive = true after lock appears")
+	}
+	if model.auto.Enabled() {
+		t.Error("expected auto-snapshots disabled after lock appears")
+	}
+	if model.snapshotting {
+		t.Error("expected no auto-snapshot while daemon lock is held")
+	}
+
+	entries := model.log.Entries()
+	found := false
+	for _, e := range entries {
+		if strings.Contains(e.Message, "Background service detected") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected lock-detection log message")
+	}
+}
+
+func TestRefreshTickClearsDaemonActiveWhenLockReleased(t *testing.T) {
+	cfg := testConfig()
+	cfg.LogDir = t.TempDir()
+	log := logger.New(logger.Options{MaxEntries: 50})
+	runner := &mockRunner{responses: map[string]mockResponse{}}
+	m := NewModel(cfg, runner, log, "disk3s5", "Configured", "/", "dev", true)
+	m.now = func() time.Time {
+		return time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	}
+
+	updated, _ := m.Update(RefreshTickMsg{})
+	model := updated.(Model)
+
+	if model.daemonActive {
+		t.Error("expected daemonActive = false when lock is no longer held")
+	}
+
+	updated, _ = model.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model = updated.(Model)
+	if !model.auto.Enabled() {
+		t.Error("expected auto-snapshots to be toggleable after daemon lock release")
 	}
 }
 
