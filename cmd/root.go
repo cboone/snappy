@@ -103,6 +103,7 @@ func runTUI(_ *cobra.Command, _ []string) error {
 		MaxFiles:   cfg.LogMaxFiles,
 	})
 	defer log.Close()
+	log.LoadTail()
 
 	runner := platform.OSRunner{}
 	startupCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

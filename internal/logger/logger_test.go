@@ -259,3 +259,62 @@ func TestRotationWithMaxFilesZeroClampsToOneBackup(t *testing.T) {
 		t.Error("snappy.log.2 should NOT exist when MaxFiles is clamped to 1")
 	}
 }
+
+func TestLoadTailSeedsRingBuffer(t *testing.T) {
+	dir := t.TempDir()
+	l := New(Options{LogDir: dir, MaxEntries: 50})
+	l.Log(LevelInfo, CatStartup, "previous session entry")
+	l.Log(LevelWarn, CatThinned, "previous thinning warning")
+	l.Close()
+
+	l2 := New(Options{LogDir: dir, MaxEntries: 50})
+	defer l2.Close()
+	l2.LoadTail()
+
+	entries := l2.Entries()
+	if len(entries) != 2 {
+		t.Fatalf("Entries() len = %d, want 2", len(entries))
+	}
+	if entries[0].Category != CatStartup {
+		t.Errorf("entries[0].Category = %q, want %q", entries[0].Category, CatStartup)
+	}
+	if entries[0].Level != LevelInfo {
+		t.Errorf("entries[0].Level = %q, want %q", entries[0].Level, LevelInfo)
+	}
+	if entries[1].Level != LevelWarn {
+		t.Errorf("entries[1].Level = %q, want %q", entries[1].Level, LevelWarn)
+	}
+	if entries[1].Message != "previous thinning warning" {
+		t.Errorf("entries[1].Message = %q, want %q", entries[1].Message, "previous thinning warning")
+	}
+}
+
+func TestLoadTailNoFileIsNoop(t *testing.T) {
+	l := New(Options{MaxEntries: 50})
+	defer l.Close()
+	l.LoadTail()
+	if len(l.Entries()) != 0 {
+		t.Error("LoadTail with no file should leave entries empty")
+	}
+}
+
+func TestLoadTailTruncatesToMaxEntries(t *testing.T) {
+	dir := t.TempDir()
+	l := New(Options{LogDir: dir, MaxEntries: 100})
+	for i := range 20 {
+		l.Log(LevelInfo, CatRefresh, fmt.Sprintf("line-%d", i))
+	}
+	l.Close()
+
+	l2 := New(Options{LogDir: dir, MaxEntries: 5})
+	defer l2.Close()
+	l2.LoadTail()
+
+	entries := l2.Entries()
+	if len(entries) != 5 {
+		t.Fatalf("Entries() len = %d, want 5", len(entries))
+	}
+	if entries[0].Message != "line-15" {
+		t.Errorf("entries[0].Message = %q, want %q", entries[0].Message, "line-15")
+	}
+}

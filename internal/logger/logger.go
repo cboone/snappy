@@ -2,9 +2,11 @@
 package logger
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -159,6 +161,106 @@ func (l *Logger) Close() {
 		_ = l.file.Close()
 		l.file = nil
 	}
+}
+
+// LoadTail reads the last maxSize lines from the log file and seeds the ring
+// buffer. Call this after New and before the first Log to give the TUI
+// continuity across restarts. Unparseable lines are silently skipped.
+func (l *Logger) LoadTail() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if l.filePath == "" || l.maxSize <= 0 {
+		return
+	}
+
+	f, err := os.Open(l.filePath)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+
+	// Keep only the last maxSize lines.
+	if len(lines) > l.maxSize {
+		lines = lines[len(lines)-l.maxSize:]
+	}
+
+	for _, line := range lines {
+		if entry, ok := parseLogLine(line, l.now()); ok {
+			if len(l.entries) < l.maxSize {
+				l.entries = append(l.entries, entry)
+			} else {
+				copy(l.entries, l.entries[1:])
+				l.entries[l.maxSize-1] = entry
+			}
+		}
+	}
+}
+
+// parseLogLine parses a formatted log line into an Entry.
+// Expected format: "[HH:MM:SS] LEVEL CATEGORY message"
+// The date component is taken from refTime since the file only stores time.
+func parseLogLine(line string, refTime time.Time) (Entry, bool) {
+	// Minimum: "[HH:MM:SS] X Y z" = at least 16 chars
+	if len(line) < 16 || line[0] != '[' {
+		return Entry{}, false
+	}
+
+	closeBracket := strings.IndexByte(line, ']')
+	if closeBracket < 0 {
+		return Entry{}, false
+	}
+
+	timeStr := line[1:closeBracket]
+	t, err := time.Parse("15:04:05", timeStr)
+	if err != nil {
+		return Entry{}, false
+	}
+	// Combine parsed time-of-day with refTime's date.
+	ts := time.Date(refTime.Year(), refTime.Month(), refTime.Day(),
+		t.Hour(), t.Minute(), t.Second(), 0, refTime.Location())
+
+	rest := line[closeBracket+1:]
+	rest = strings.TrimLeft(rest, " ")
+
+	// Split into level, category, and message.
+	fields := strings.SplitN(rest, " ", 3)
+
+	var level Level
+	var cat Category
+	var message string
+
+	switch len(fields) {
+	case 3:
+		level = Level(strings.TrimSpace(fields[0]))
+		remaining := strings.TrimLeft(fields[1]+" "+fields[2], " ")
+		catAndMsg := strings.SplitN(remaining, " ", 2)
+		cat = Category(strings.TrimSpace(catAndMsg[0]))
+		if len(catAndMsg) > 1 {
+			message = strings.TrimLeft(catAndMsg[1], " ")
+		}
+	case 2:
+		// Old format: "[HH:MM:SS] TYPE     message" - treat TYPE as category, default to INFO.
+		level = LevelInfo
+		cat = Category(strings.TrimSpace(fields[0]))
+		message = strings.TrimLeft(fields[1], " ")
+	default:
+		return Entry{}, false
+	}
+
+	return Entry{
+		Timestamp: ts,
+		Level:     level,
+		Category:  cat,
+		Message:   message,
+		Formatted: line,
+	}, true
 }
 
 // maybeRotate checks the current log file size and rotates if it reaches or
