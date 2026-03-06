@@ -674,6 +674,6 @@ func logEntryStyle(s modelStyles, t logger.EventType) lipgloss.Style {
 	case logger.Startup:
 		return s.textMagenta
 	default:
-		return lipgloss.NewStyle()
+		return s.textDefault
 	}
 }
