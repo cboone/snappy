@@ -74,7 +74,7 @@ func IsHeld(path string) bool {
 
 	err = syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
 	if err != nil {
-		return true
+		return errors.Is(err, syscall.EWOULDBLOCK)
 	}
 	_ = syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
 	return false

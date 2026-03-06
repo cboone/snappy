@@ -94,7 +94,7 @@ Only one auto-snapshot routine runs at a time. When the background service is ac
 
 ### Service details
 
-The service installs a standard macOS LaunchAgent plist at `~/Library/LaunchAgents/com.cboone.snappy.plist`. It runs `snappy run` with your configured settings. Logs go to the shared Snappy log file (default: `~/.local/share/snappy/snappy.log`). A file-based lock prevents duplicate auto-snapshot processes, whether from the service, the TUI, or manual `snappy run` invocations.
+The service installs a standard macOS LaunchAgent plist at `~/Library/LaunchAgents/com.cboone.snappy.plist`. It runs `snappy run` with your configured settings. The LaunchAgent captures stdout/stderr to `~/.local/share/snappy/snappy-service.log`, while `snappy run` also writes log entries into the shared Snappy log file (default: `~/.local/share/snappy/snappy.log`) used by the TUI log panel. A file-based lock prevents duplicate auto-snapshot processes, whether from the service, the TUI, or manual `snappy run` invocations.
 
 ## Installation
 

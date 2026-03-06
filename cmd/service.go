@@ -79,7 +79,7 @@ func init() {
 }
 
 func runServiceInstall(cmd *cobra.Command, _ []string) error {
-	binPath, err := service.ResolveBinaryPath()
+	binPath, err := resolveServiceBinaryPath()
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,10 @@ func runServiceInstall(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	plistPath, _ := service.PlistPath(service.DefaultLabel)
+	plistPath, err := service.PlistPath(service.DefaultLabel)
+	if err != nil {
+		return fmt.Errorf("determining plist path: %w", err)
+	}
 	_, _ = fmt.Fprintf(w, "Installed and started snappy background service.\n")
 	_, _ = fmt.Fprintf(w, "  Binary: %s\n", binPath)
 	_, _ = fmt.Fprintf(w, "  Plist:  %s\n", plistPath)

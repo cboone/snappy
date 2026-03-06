@@ -231,13 +231,17 @@ func Status(label string) (*Info, error) {
 	//nolint:gosec // arguments are controlled
 	cmd := exec.Command("launchctl", "print", serviceTarget(label))
 	out, err := cmd.CombinedOutput()
+	outStr := strings.TrimSpace(string(out))
 	if err != nil {
 		// Not loaded or not running is not an error for status;
 		// launchctl returns non-zero when the service isn't registered.
-		return st, nil //nolint:nilerr // intentional: launchctl failure means not running
+		if isNotLoadedError(outStr) {
+			return st, nil
+		}
+		return nil, fmt.Errorf("launchctl print: %s (%w)", outStr, err)
 	}
 
-	st.Running, st.PID = parseRuntimeFromPrint(string(out))
+	st.Running, st.PID = parseRuntimeFromPrint(outStr)
 
 	return st, nil
 }
