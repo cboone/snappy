@@ -38,7 +38,6 @@ func (m *mockRunner) Run(_ context.Context, name string, args ...string) ([]byte
 func testConfig() *config.Config {
 	return &config.Config{
 		RefreshInterval:      60 * time.Second,
-		MountPoint:           "/",
 		LogDir:               "",
 		AutoEnabled:          true,
 		AutoSnapshotInterval: 60 * time.Second,

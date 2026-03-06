@@ -34,8 +34,7 @@ func TestLoadSnapshots(t *testing.T) {
 		},
 	}}
 
-	cfg := config.Load()
-	snapshots, apfsVolume, otherCount, err := loadSnapshots(context.Background(), runner, cfg)
+	snapshots, apfsVolume, otherCount, err := loadSnapshots(context.Background(), runner)
 	if err != nil {
 		t.Fatalf("loadSnapshots() error = %v", err)
 	}
@@ -67,8 +66,7 @@ func TestLoadSnapshotsListError(t *testing.T) {
 		},
 	}}
 
-	cfg := config.Load()
-	_, _, _, err := loadSnapshots(context.Background(), runner, cfg)
+	_, _, _, err := loadSnapshots(context.Background(), runner)
 	if err == nil {
 		t.Error("loadSnapshots() expected error, got nil")
 	}

@@ -145,7 +145,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 		m.refreshing = true
 		m.loading = true
-		return m, tea.Batch(doRefresh(m.runner, m.cfg, m.apfsVolume), m.spinner.Tick)
+		return m, tea.Batch(doRefresh(m.runner, m.apfsVolume), m.spinner.Tick)
 
 	case key.Matches(msg, m.keys.AutoSnap):
 		now := m.now()
@@ -301,7 +301,7 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 	// fetches the pre-snapshot list.
 	if !snapshotDue && !m.refreshing {
 		m.refreshing = true
-		cmds = append(cmds, doRefresh(m.runner, m.cfg, m.apfsVolume))
+		cmds = append(cmds, doRefresh(m.runner, m.apfsVolume))
 	}
 	cmds = append(cmds, refreshTick(m.cfg.RefreshInterval))
 
@@ -373,7 +373,7 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 	if m.refreshPending {
 		m.refreshPending = false
 		m.refreshing = true
-		cmds = append(cmds, doRefresh(m.runner, m.cfg, m.apfsVolume))
+		cmds = append(cmds, doRefresh(m.runner, m.apfsVolume))
 	}
 
 	// Check thinning (skip if already in flight).
@@ -424,7 +424,7 @@ func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd
 		return m, nil
 	}
 	m.refreshing = true
-	return m, doRefresh(m.runner, m.cfg, m.apfsVolume)
+	return m, doRefresh(m.runner, m.apfsVolume)
 }
 
 func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
@@ -467,7 +467,7 @@ func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	m.refreshing = true
-	return m, doRefresh(m.runner, m.cfg, m.apfsVolume)
+	return m, doRefresh(m.runner, m.apfsVolume)
 }
 
 // updateSnapViewContent rebuilds columns and rows on the snapshot table.

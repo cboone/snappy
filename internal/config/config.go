@@ -18,7 +18,6 @@ import (
 // Config holds all runtime settings for Snappy.
 type Config struct {
 	RefreshInterval      time.Duration
-	MountPoint           string
 	LogDir               string
 	LogMaxSize           int64 // max log file size in bytes; 0 = no rotation
 	LogMaxFiles          int   // number of rotated backup files to keep
@@ -28,8 +27,11 @@ type Config struct {
 	ThinCadence          time.Duration
 }
 
+// DefaultMount is the mount point used for Time Machine snapshots.
+// On macOS this is always "/".
+const DefaultMount = "/"
+
 const (
-	defaultMount       = "/"
 	defaultLogDir      = ""
 	defaultLogMaxSize  = int64(5 * 1024 * 1024) // 5 MB
 	defaultLogMaxFiles = 3
@@ -48,7 +50,6 @@ const (
 func Load() *Config {
 	cfg := &Config{
 		RefreshInterval:      parseSecondsOrDuration(viper.Get("refresh"), defaultRefreshInterval),
-		MountPoint:           viper.GetString("mount"),
 		LogDir:               viper.GetString("log_dir"),
 		LogMaxSize:           viper.GetInt64("log_max_size"),
 		LogMaxFiles:          viper.GetInt("log_max_files"),
@@ -71,7 +72,6 @@ func Load() *Config {
 // Cobra's initConfig phase before Load.
 func SetDefaults() {
 	viper.SetDefault("refresh", defaultRefreshInterval)
-	viper.SetDefault("mount", defaultMount)
 	viper.SetDefault("log_dir", defaultLogDir)
 	viper.SetDefault("log_max_size", defaultLogMaxSize)
 	viper.SetDefault("log_max_files", defaultLogMaxFiles)
@@ -97,9 +97,6 @@ var defaultConfigTmpl = template.Must(template.New("config").Parse(`# Snappy con
 # How often to refresh the snapshot list.
 # Accepts Go duration strings (e.g., "60s", "2m") or plain seconds.
 refresh: {{.Refresh}}
-
-# Mount point to monitor for Time Machine snapshots.
-mount: "{{.Mount}}"
 
 # Directory for log files. Leave empty for the default (~/.local/share/snappy).
 log_dir: "{{.LogDir}}"
@@ -127,7 +124,6 @@ thin_cadence: {{.ThinCadence}}
 func WriteDefaultConfig(w io.Writer) error {
 	data := struct {
 		Refresh              string
-		Mount                string
 		LogDir               string
 		LogMaxSize           int64
 		LogMaxFiles          int
@@ -137,7 +133,6 @@ func WriteDefaultConfig(w io.Writer) error {
 		ThinCadence          string
 	}{
 		Refresh:              formatDurationAsSeconds(defaultRefreshInterval),
-		Mount:                defaultMount,
 		LogDir:               defaultLogDir,
 		LogMaxSize:           defaultLogMaxSize,
 		LogMaxFiles:          defaultLogMaxFiles,
@@ -159,7 +154,6 @@ func formatDurationAsSeconds(d time.Duration) string {
 var formatConfigTmpl = template.Must(template.New("format").Parse(`Config file: {{.ConfigFile}}
 
 refresh: {{.Refresh}}
-mount: {{.Mount}}
 log_dir:{{if .LogDir}} {{.LogDir}}{{end}}
 log_max_size: {{.LogMaxSize}}
 log_max_files: {{.LogMaxFiles}}
@@ -177,7 +171,6 @@ func FormatConfig(w io.Writer, cfg *Config, configFile string) error {
 	data := struct {
 		ConfigFile           string
 		Refresh              string
-		Mount                string
 		LogDir               string
 		LogMaxSize           int64
 		LogMaxFiles          int
@@ -188,7 +181,6 @@ func FormatConfig(w io.Writer, cfg *Config, configFile string) error {
 	}{
 		ConfigFile:           configFile,
 		Refresh:              cfg.RefreshInterval.String(),
-		Mount:                cfg.MountPoint,
 		LogDir:               cfg.LogDir,
 		LogMaxSize:           cfg.LogMaxSize,
 		LogMaxFiles:          cfg.LogMaxFiles,

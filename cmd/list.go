@@ -29,25 +29,24 @@ func runList(cmd *cobra.Command, _ []string) error {
 	}
 
 	jsonOut, _ := cmd.Flags().GetBool("json")
-	cfg := config.Load()
 	runner := newRunner()
 
 	ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
 	defer cancel()
 
-	snapshots, _, _, err := loadSnapshots(ctx, runner, cfg)
+	snapshots, _, _, err := loadSnapshots(ctx, runner)
 	if err != nil {
 		return err
 	}
 
 	if jsonOut {
-		return writeListJSON(cmd, cfg, snapshots)
+		return writeListJSON(cmd, snapshots)
 	}
 
-	return writeListHuman(cmd, cfg, snapshots)
+	return writeListHuman(cmd, snapshots)
 }
 
-func writeListJSON(cmd *cobra.Command, cfg *config.Config, snapshots []snapshot.Snapshot) error {
+func writeListJSON(cmd *cobra.Command, snapshots []snapshot.Snapshot) error {
 	now := time.Now()
 
 	type jsonSnapshot struct {
@@ -77,18 +76,18 @@ func writeListJSON(cmd *cobra.Command, cfg *config.Config, snapshots []snapshot.
 		Count     int            `json:"count"`
 		Snapshots []jsonSnapshot `json:"snapshots"`
 	}{
-		Mount:     cfg.MountPoint,
+		Mount:     config.DefaultMount,
 		Count:     len(snapshots),
 		Snapshots: items,
 	})
 }
 
-func writeListHuman(cmd *cobra.Command, cfg *config.Config, snapshots []snapshot.Snapshot) error {
+func writeListHuman(cmd *cobra.Command, snapshots []snapshot.Snapshot) error {
 	w := cmd.OutOrStdout()
 	count := len(snapshots)
 	now := time.Now()
 
-	if _, err := fmt.Fprintf(w, "%d snapshot(s) on %s\n", count, cfg.MountPoint); err != nil {
+	if _, err := fmt.Fprintf(w, "%d snapshot(s) on %s\n", count, config.DefaultMount); err != nil {
 		return err
 	}
 

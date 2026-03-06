@@ -31,13 +31,12 @@ $ "${SNAPPY_BIN}" --config /dev/null 2>/dev/null
 [1]
 ```
 
-## Config flag combined with env var
+## Config flag with empty config file
 
-Validates the full config pipeline: env var provides `mount`, `/dev/null`
-provides an empty config file.
+Validates the config pipeline: `/dev/null` provides an empty config file.
 
 ```scrut {output_stream: stderr}
-$ SNAPPY_MOUNT="/Volumes/Test" "${SNAPPY_BIN}" --config /dev/null
+$ "${SNAPPY_BIN}" --config /dev/null
 Warning: config file error: * (glob)
 Error: running TUI: * (glob)
 [1]

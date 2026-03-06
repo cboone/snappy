@@ -86,7 +86,7 @@ func runIteration(ctx context.Context, w io.Writer, runner platform.CommandRunne
 
 	// Load snapshots for thinning and count.
 	loadCtx, loadCancel := context.WithTimeout(ctx, 30*time.Second)
-	snapshots, _, _, err := loadSnapshots(loadCtx, runner, cfg)
+	snapshots, _, _, err := loadSnapshots(loadCtx, runner)
 	loadCancel()
 
 	if err != nil {
