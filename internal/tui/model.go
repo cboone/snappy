@@ -89,9 +89,11 @@ type Model struct {
 
 	tmStatus           string
 	apfsVolume         string
+	apfsContainer      string
 	volumeName         string
 	lastOtherSnapCount int
 	diskInfo           string
+	tidemark           string
 	lastRefresh        time.Time
 
 	width          int
@@ -126,7 +128,7 @@ type Model struct {
 }
 
 // NewModel creates a Model with the given dependencies.
-func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Logger, apfsVolume, tmStatus, volumeName, version string) Model {
+func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Logger, apfsVolume, apfsContainer, tmStatus, volumeName, version string) Model {
 	now := time.Now()
 	hasDarkBG := true
 
@@ -152,27 +154,28 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 	)
 
 	m := Model{
-		cfg:        cfg,
-		runner:     runner,
-		log:        log,
-		auto:       snapshot.NewAutoManager(cfg.AutoEnabled, cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence, now),
-		apfsVolume: apfsVolume,
-		tmStatus:   tmStatus,
-		volumeName: volumeName,
-		refreshing: true,
-		thinPinned: make(map[string]struct{}),
-		version:    version,
-		width:      80,
-		height:     24,
-		keys:       keys,
-		help:       h,
-		snapTable:  st,
-		logView:    lv,
-		spinner:    s,
-		styles:     styles,
-		focusPanel: panelSnap,
-		hasDarkBG:  hasDarkBG,
-		now:        time.Now,
+		cfg:           cfg,
+		runner:        runner,
+		log:           log,
+		auto:          snapshot.NewAutoManager(cfg.AutoEnabled, cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence, now),
+		apfsVolume:    apfsVolume,
+		apfsContainer: apfsContainer,
+		tmStatus:      tmStatus,
+		volumeName:    volumeName,
+		refreshing:    true,
+		thinPinned:    make(map[string]struct{}),
+		version:       version,
+		width:         80,
+		height:        24,
+		keys:          keys,
+		help:          h,
+		snapTable:     st,
+		logView:       lv,
+		spinner:       s,
+		styles:        styles,
+		focusPanel:    panelSnap,
+		hasDarkBG:     hasDarkBG,
+		now:           time.Now,
 	}
 
 	m.updateSnapViewContent()
@@ -185,7 +188,7 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 // background color request.
 func (m Model) Init() tea.Cmd {
 	return tea.Batch(
-		doRefresh(m.runner, m.cfg, m.apfsVolume),
+		doRefresh(m.runner, m.cfg, m.apfsVolume, m.apfsContainer),
 		refreshTick(m.cfg.RefreshInterval),
 		tea.RequestBackgroundColor,
 		uiTick(),

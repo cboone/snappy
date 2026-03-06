@@ -51,7 +51,7 @@ func testModel() Model {
 	cfg := testConfig()
 	log := logger.New(logger.Options{MaxEntries: 50})
 	runner := &mockRunner{responses: map[string]mockResponse{}}
-	m := NewModel(cfg, runner, log, "disk3s5", "Configured", "/", "dev")
+	m := NewModel(cfg, runner, log, "disk3s5", "disk3", "Configured", "/", "dev")
 	m.width = 80
 	m.height = 40
 	return m
@@ -364,6 +364,8 @@ func TestViewAutoStatusOff(t *testing.T) {
 
 func TestViewAPFSDetails(t *testing.T) {
 	m := testModel()
+	m.width = 120
+	m.snapTable.SetWidth(contentWidth(120))
 	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
 	m.now = func() time.Time { return now }
 	m.snapshots = []snapshot.Snapshot{
