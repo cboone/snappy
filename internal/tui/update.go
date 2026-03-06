@@ -352,9 +352,13 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 				"Found %d existing snapshots", len(diff.Added)))
 		} else {
 			for _, s := range diff.Added {
+				if _, ok := m.recentCreated[s.Date]; ok {
+					continue
+				}
 				m.log.Log(logger.LevelInfo, logger.CatAdded, "Snapshot appeared: "+s.Date)
 			}
 		}
+		clear(m.recentCreated)
 		for _, s := range diff.Removed {
 			m.log.Log(logger.LevelInfo, logger.CatRemoved, "Snapshot disappeared: "+s.Date)
 		}
@@ -414,6 +418,7 @@ func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd
 	case msg.Err != nil:
 		m.log.Log(logger.LevelError, logger.CatSnapshot, fmt.Sprintf("Failed to create snapshot: %v", msg.Err))
 	case msg.Date != "":
+		m.recentCreated[msg.Date] = struct{}{}
 		m.log.Log(logger.LevelInfo, logger.CatCreated, "Snapshot created: "+msg.Date)
 	default:
 		m.log.Log(logger.LevelInfo, logger.CatCreated, "Snapshot created")

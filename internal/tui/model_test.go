@@ -864,3 +864,47 @@ func TestSecondRefreshLogsIndividualAdded(t *testing.T) {
 		t.Errorf("ADDED entries = %d, want 1 for new snapshot on second refresh", addedCount)
 	}
 }
+
+func TestCreatedSnapshotNotDuplicatedAsAdded(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	// First refresh: establishes baseline.
+	initial := []snapshot.Snapshot{
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
+	}
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: initial,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	// Snapshot created: records date in recentCreated.
+	updated, _ = model.Update(SnapshotCreatedMsg{Date: "2026-03-01-150000"})
+	model = updated.(Model)
+
+	// Refresh includes the new snapshot.
+	withNew := []snapshot.Snapshot{
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
+		{Date: "2026-03-01-150000", Time: now},
+	}
+	updated, _ = model.Update(RefreshResultMsg{
+		Snapshots: withNew,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model = updated.(Model)
+
+	entries := model.log.Entries()
+	var addedCount int
+	for _, e := range entries {
+		if e.Category == logger.CatAdded && strings.Contains(e.Message, "2026-03-01-150000") {
+			addedCount++
+		}
+	}
+	if addedCount != 0 {
+		t.Errorf("ADDED entries for created snapshot = %d, want 0 (suppressed by recentCreated)", addedCount)
+	}
+}
