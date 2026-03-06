@@ -27,8 +27,15 @@ type APFSInfo struct {
 
 // diskutilInfoPlist is the subset of diskutil info -plist we need.
 type diskutilInfoPlist struct {
-	DeviceIdentifier string `plist:"DeviceIdentifier"`
-	VolumeName       string `plist:"VolumeName"`
+	DeviceIdentifier       string `plist:"DeviceIdentifier"`
+	VolumeName             string `plist:"VolumeName"`
+	APFSContainerReference string `plist:"APFSContainerReference"`
+}
+
+// containerLimitsPlist holds the resize limits for an APFS container.
+type containerLimitsPlist struct {
+	MinimumSizeNoGuard   int64 `plist:"MinimumSizeNoGuard"`
+	ContainerCurrentSize int64 `plist:"ContainerCurrentSize"`
 }
 
 // apfsSnapshotEntry represents a single snapshot in the APFS plist.
@@ -125,6 +132,40 @@ func GetVolumeName(ctx context.Context, r CommandRunner, mount string) (string, 
 	}
 
 	return info.VolumeName, nil
+}
+
+// GetContainerReference returns the APFS container reference (e.g. "disk3")
+// for the given mount point by parsing diskutil info -plist.
+func GetContainerReference(ctx context.Context, r CommandRunner, mount string) (string, error) {
+	out, err := r.Run(ctx, "diskutil", "info", "-plist", mount)
+	if err != nil {
+		return "", fmt.Errorf("getting container reference for %s: %w", mount, err)
+	}
+
+	var info diskutilInfoPlist
+	if _, err := plist.Unmarshal(out, &info); err != nil {
+		return "", fmt.Errorf("parsing diskutil plist for %s: %w", mount, err)
+	}
+
+	return info.APFSContainerReference, nil
+}
+
+// GetContainerTidemark returns the minimum container size in bytes
+// (MinimumSizeNoGuard) for the given APFS container. This represents the
+// lowest size the container can be resized to, constrained by file and
+// snapshot usage.
+func GetContainerTidemark(ctx context.Context, r CommandRunner, container string) (int64, error) {
+	out, err := r.Run(ctx, "diskutil", "apfs", "resizeContainer", container, "limits", "-plist")
+	if err != nil {
+		return 0, fmt.Errorf("getting container limits for %s: %w", container, err)
+	}
+
+	var limits containerLimitsPlist
+	if _, err := plist.Unmarshal(out, &limits); err != nil {
+		return 0, fmt.Errorf("parsing container limits plist for %s: %w", container, err)
+	}
+
+	return limits.MinimumSizeNoGuard, nil
 }
 
 func getDeviceIdentifier(ctx context.Context, r CommandRunner, mount string) (string, error) {
