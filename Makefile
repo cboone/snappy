@@ -76,7 +76,7 @@ test-scrut-install: ## Run scrut tests for install.sh
 test-scrut-install-update: ## Update install.sh scrut test expectations
 	INSTALL_SH_BIN="$(CURDIR)/install.sh" scrut update --replace --assume-yes tests/scrut/install-script/
 
-INSTALL_TEST_VERSION ?= v0.3.1
+INSTALL_TEST_VERSION ?= $(shell gh release view --json tagName --jq '.tagName' 2>/dev/null || echo "v0.3.1")
 
 test-install: ## Run install.sh against a real GitHub release (requires network)
 	@echo "Testing install.sh with version $(INSTALL_TEST_VERSION)..."
