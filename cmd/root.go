@@ -122,7 +122,7 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	}
 
 	log.Log(logger.LevelInfo, logger.CatStartup, fmt.Sprintf("snappy %s | volume=%s | refresh=%ds",
-		version, cfg.MountPoint, int(cfg.RefreshInterval.Seconds())))
+		version, volumeName, int(cfg.RefreshInterval.Seconds())))
 	if apfsVolume != "" {
 		log.Log(logger.LevelInfo, logger.CatStartup, fmt.Sprintf("apfs-volume=%s", apfsVolume))
 	}

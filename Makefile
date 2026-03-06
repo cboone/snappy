@@ -4,7 +4,7 @@ OUTDIR  := bin
 
 LDFLAGS := -ldflags "-X main.version=$(VERSION)"
 
-.PHONY: all build test test-scrut test-scrut-update test-scrut-ez test-scrut-ez-update test-all lint lint-go lint-md lint-actions vet fmt fmt-check format format-check clean cover tidy help
+.PHONY: all build test test-scrut test-scrut-update test-scrut-ez test-scrut-ez-update test-scrut-install test-scrut-install-update test-install test-all test-ci lint lint-go lint-md lint-actions vet fmt fmt-check format format-check clean cover tidy help
 
 all: fmt-check vet lint test build ## Run all checks and build
 
@@ -65,7 +65,31 @@ test-scrut-ez: ## Run scrut tests for snappy-ez
 test-scrut-ez-update: ## Update snappy-ez scrut test expectations
 	SNAPPY_EZ_BIN="$(CURDIR)/bin/snappy-ez" scrut update --replace --assume-yes tests/scrut/snappy-ez/
 
+test-scrut-install: ## Run scrut tests for install.sh
+	@echo "Running install.sh scrut tests..."
+	@if ! command -v scrut >/dev/null 2>&1; then \
+		echo "scrut not installed. Install from https://github.com/facebookincubator/scrut"; \
+		exit 1; \
+	fi
+	INSTALL_SH_BIN="$(CURDIR)/install.sh" scrut test tests/scrut/install-script/
+
+test-scrut-install-update: ## Update install.sh scrut test expectations
+	INSTALL_SH_BIN="$(CURDIR)/install.sh" scrut update --replace --assume-yes tests/scrut/install-script/
+
+INSTALL_TEST_VERSION ?= $(shell gh release view --json tagName --jq '.tagName' 2>/dev/null || echo "v0.3.1")
+
+test-install: ## Run install.sh against a real GitHub release (requires network)
+	@echo "Testing install.sh with version $(INSTALL_TEST_VERSION)..."
+	@tmp_dir=$$(mktemp -d); \
+		trap 'rm -rf "$${tmp_dir}"' EXIT; \
+		set -e; \
+		INSTALL_DIR="$${tmp_dir}" bash "$(CURDIR)/install.sh" --version $(INSTALL_TEST_VERSION); \
+		"$${tmp_dir}/snappy" --version; \
+		echo "install.sh test passed."
+
 test-all: test test-scrut test-scrut-ez ## Run all tests (unit + scrut + scrut-ez)
+
+test-ci: test-all test-scrut-install test-install ## All tests including CI-only (network, macOS)
 
 clean: ## Remove build artifacts
 	rm -f $(OUTDIR)/$(BINARY) dist coverage.out
