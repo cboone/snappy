@@ -586,6 +586,59 @@ func TestMouseClickSnapshotSelectsTopVisibleRowWhenTableIsOffset(t *testing.T) {
 	}
 }
 
+func TestSnapRowAtVisualLineMatchesRenderedRows(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	for i := range 10 {
+		d := now.Add(-time.Duration(10-i) * time.Minute)
+		m.snapshots = append(m.snapshots, snapshot.Snapshot{
+			Date:      d.Format("2006-01-02-150405"),
+			Time:      d,
+			UUID:      fmt.Sprintf("00000000-0000-0000-0000-%012d", i+1),
+			XID:       1547200 + i,
+			Purgeable: true,
+		})
+	}
+	m.updateSnapViewContent()
+
+	// Size the terminal so the table shows ~8 data rows, forcing a scroll
+	// when the cursor moves past the viewport.
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 30})
+	model := updated.(Model)
+
+	// Scroll down a few rows so the table viewport is offset.
+	for range 4 {
+		updated, _ = model.Update(tea.KeyPressMsg{Code: 'j', Text: "j"})
+		model = updated.(Model)
+	}
+
+	// Each visible line should map to a row whose DATE column matches.
+	rows := model.snapTable.Rows()
+	visibleRows := model.snapTable.Height() - 1 // subtract header line
+	for line := range visibleRows {
+		row := model.snapRowAtVisualLine(line)
+		if row < 0 || row >= len(rows) {
+			t.Errorf("line %d: snapRowAtVisualLine returned %d, want valid row index", line, row)
+			continue
+		}
+		// The row's date should be a valid formatted timestamp.
+		date := rows[row][0]
+		if len(date) != len("2006-01-02 15:04:05") {
+			t.Errorf("line %d -> row %d: date = %q, want 19-char timestamp", line, row, date)
+		}
+	}
+
+	// Out-of-range lines should return -1.
+	if row := model.snapRowAtVisualLine(-1); row != -1 {
+		t.Errorf("line -1: snapRowAtVisualLine = %d, want -1", row)
+	}
+	if row := model.snapRowAtVisualLine(999); row != -1 {
+		t.Errorf("line 999: snapRowAtVisualLine = %d, want -1", row)
+	}
+}
+
 func TestSnapshotPanelKeepsViewportHeightWhenEmpty(t *testing.T) {
 	m := testModel()
 	updated, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 40})
