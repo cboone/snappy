@@ -107,3 +107,18 @@ jobs:
 
       - name: Run snappy-ez scrut tests
         run: make test-scrut-ez
+
+      - name: Run install.sh scrut tests
+        run: make test-scrut-install
+
+  test-install:
+    name: Test install.sh
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Run install.sh against a real release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: make test-install
