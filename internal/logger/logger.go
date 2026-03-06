@@ -182,8 +182,12 @@ func (l *Logger) LoadTail() {
 
 	var lines []string
 	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "snappy: error reading log file:", err)
 	}
 
 	// Keep only the last maxSize lines.
@@ -227,33 +231,34 @@ func parseLogLine(line string, refTime time.Time) (Entry, bool) {
 		t.Hour(), t.Minute(), t.Second(), 0, refTime.Location())
 
 	rest := line[closeBracket+1:]
-	rest = strings.TrimLeft(rest, " ")
+	rest = strings.TrimSpace(rest)
 
-	// Split into level, category, and message.
-	fields := strings.SplitN(rest, " ", 3)
+	// Use Fields to collapse repeated spaces so old-format lines with
+	// padded columns (e.g., "STARTUP  snappy started") are parsed correctly.
+	fields := strings.Fields(rest)
+	if len(fields) < 2 {
+		return Entry{}, false
+	}
 
 	var level Level
 	var cat Category
 	var message string
 
-	switch len(fields) {
-	case 3:
-		level = Level(strings.TrimSpace(fields[0]))
-		remaining := strings.TrimLeft(fields[1]+" "+fields[2], " ")
-		catAndMsg := strings.SplitN(remaining, " ", 2)
-		cat = Category(strings.TrimSpace(catAndMsg[0]))
-		if len(catAndMsg) > 1 {
-			message = strings.TrimLeft(catAndMsg[1], " ")
+	// Detect whether the first token is a known level (new format) or a
+	// category (old format where level is implicit).
+	switch Level(strings.ToUpper(fields[0])) {
+	case LevelInfo, LevelWarn, LevelError:
+		level = Level(strings.ToUpper(fields[0]))
+		cat = Category(fields[1])
+		if len(fields) > 2 {
+			message = strings.Join(fields[2:], " ")
 		}
-	case 2:
-		// Fallback for lines with only two tokens after the timestamp (e.g.,
-		// a category and a single-word message with no padding). Old-format
-		// lines with %-8s padding typically produce 3 fields and hit case 3.
-		level = LevelInfo
-		cat = Category(strings.TrimSpace(fields[0]))
-		message = strings.TrimLeft(fields[1], " ")
 	default:
-		return Entry{}, false
+		level = LevelInfo
+		cat = Category(fields[0])
+		if len(fields) > 1 {
+			message = strings.Join(fields[1:], " ")
+		}
 	}
 
 	return Entry{

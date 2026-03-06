@@ -78,32 +78,32 @@ Category can optionally add a secondary style hint (e.g., dim for FOUND, cyan fo
 
 Every existing `log.Log()` call remapped to Level + Category:
 
-| Location | Old EventType | New Level | New Category | Message |
-| --- | --- | --- | --- | --- |
-| root.go:114 | Startup | **WARN** | STARTUP | Warning: failed to discover APFS volume... |
-| root.go:123 | Startup | INFO | STARTUP | snappy version/volume/refresh |
-| root.go:126 | Startup | INFO | STARTUP | apfs-volume=... |
-| root.go:128 | Startup | INFO | STARTUP | auto-snapshot config |
-| update.go:133 | Info | INFO | SNAPSHOT | Creating snapshot... |
-| update.go:152 | Info | INFO | AUTO | Auto-snapshots enabled... |
-| update.go:159 | Info | INFO | AUTO | Auto-snapshots disabled |
-| update.go:165 | Info | INFO | SHUTDOWN | Shutting down |
-| update.go:290 | Auto | INFO | AUTO | Creating auto-snapshot... |
-| update.go:317 | Info | INFO | REFRESH | Non-TM snapshots on...: N |
-| update.go:330 | Error | ERROR | REFRESH | APFS details unavailable... |
-| update.go:334 | Error | ERROR | REFRESH | Failed to list snapshots... |
-| update.go:351 | Added | INFO | ADDED | Snapshot appeared: DATE |
-| update.go:354 | Removed | INFO | REMOVED | Snapshot disappeared: DATE |
-| update.go:358 | Info | INFO | REFRESH | Refresh: N snapshots, disk... |
-| update.go:409 | Error | ERROR | SNAPSHOT | Failed to create snapshot... |
-| update.go:411 | Created | INFO | CREATED | Snapshot created: DATE |
-| update.go:413 | Created | INFO | CREATED | Snapshot created |
-| update.go:432 | Thinned | INFO | THINNED | Thinned N snapshot(s)... |
-| update.go:445 | Error | **WARN** | THINNED | ESTALE: stale handle, skipped (see Part 4) |
-| update.go:445 | Error | ERROR | THINNED | Other thinning errors (non-ESTALE) |
-| (new) | -- | INFO | FOUND | Found N existing snapshots |
-| (new) | -- | INFO | AUTO | Thinning N snapshot(s)... |
-| (new) | -- | INFO | OPEN | Opening log directory... |
+| Location      | Old EventType | New Level | New Category | Message                                    |
+| ------------- | ------------- | --------- | ------------ | ------------------------------------------ |
+| root.go:114   | Startup       | **WARN**  | STARTUP      | Warning: failed to discover APFS volume... |
+| root.go:123   | Startup       | INFO      | STARTUP      | snappy version/volume/refresh              |
+| root.go:126   | Startup       | INFO      | STARTUP      | apfs-volume=...                            |
+| root.go:128   | Startup       | INFO      | STARTUP      | auto-snapshot config                       |
+| update.go:133 | Info          | INFO      | SNAPSHOT     | Creating snapshot...                       |
+| update.go:152 | Info          | INFO      | AUTO         | Auto-snapshots enabled...                  |
+| update.go:159 | Info          | INFO      | AUTO         | Auto-snapshots disabled                    |
+| update.go:165 | Info          | INFO      | SHUTDOWN     | Shutting down                              |
+| update.go:290 | Auto          | INFO      | AUTO         | Creating auto-snapshot...                  |
+| update.go:317 | Info          | INFO      | REFRESH      | Non-TM snapshots on...: N                  |
+| update.go:330 | Error         | ERROR     | REFRESH      | APFS details unavailable...                |
+| update.go:334 | Error         | ERROR     | REFRESH      | Failed to list snapshots...                |
+| update.go:351 | Added         | INFO      | ADDED        | Snapshot appeared: DATE                    |
+| update.go:354 | Removed       | INFO      | REMOVED      | Snapshot disappeared: DATE                 |
+| update.go:358 | Info          | INFO      | REFRESH      | Refresh: N snapshots, disk...              |
+| update.go:409 | Error         | ERROR     | SNAPSHOT     | Failed to create snapshot...               |
+| update.go:411 | Created       | INFO      | CREATED      | Snapshot created: DATE                     |
+| update.go:413 | Created       | INFO      | CREATED      | Snapshot created                           |
+| update.go:432 | Thinned       | INFO      | THINNED      | Thinned N snapshot(s)...                   |
+| update.go:445 | Error         | **WARN**  | THINNED      | ESTALE: stale handle, skipped (see Part 4) |
+| update.go:445 | Error         | ERROR     | THINNED      | Other thinning errors (non-ESTALE)         |
+| (new)         | --            | INFO      | FOUND        | Found N existing snapshots                 |
+| (new)         | --            | INFO      | AUTO         | Thinning N snapshot(s)...                  |
+| (new)         | --            | INFO      | OPEN         | Opening log directory...                   |
 
 ### Files to modify
 
@@ -268,16 +268,16 @@ Replace N individual ADDED lines on first refresh with a single FOUND summary.
 
 ## Files Modified
 
-| File | Parts |
-| --- | --- |
-| `internal/logger/logger.go` | 0, 5 |
-| `internal/logger/logger_test.go` | 0, 5 |
-| `internal/tui/model.go` | 0, 1, 2, 3, 6, 7 |
-| `internal/tui/update.go` | 0, 1, 2, 3, 4, 6, 7 |
-| `internal/tui/commands.go` | 3, 4, 6 |
-| `internal/tui/messages.go` | 3, 4 |
-| `cmd/root.go` | 0, 5 |
-| `internal/tui/model_test.go` | 0, 1, 2, 3, 4, 7 |
+| File                             | Parts               |
+| -------------------------------- | ------------------- |
+| `internal/logger/logger.go`      | 0, 5                |
+| `internal/logger/logger_test.go` | 0, 5                |
+| `internal/tui/model.go`          | 0, 1, 2, 3, 6, 7    |
+| `internal/tui/update.go`         | 0, 1, 2, 3, 4, 6, 7 |
+| `internal/tui/commands.go`       | 3, 4, 6             |
+| `internal/tui/messages.go`       | 3, 4                |
+| `cmd/root.go`                    | 0, 5                |
+| `internal/tui/model_test.go`     | 0, 1, 2, 3, 4, 7    |
 
 ## Commit Strategy
 

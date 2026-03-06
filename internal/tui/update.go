@@ -383,6 +383,9 @@ func (m *Model) applyDiskInfo(msg RefreshResultMsg) {
 // suppressing duplicates from recent creates/thins.
 func (m *Model) logDiffChanges(prev, current []snapshot.Snapshot) {
 	if len(prev) == 0 && len(current) == 0 {
+		if !m.hadFirstRefresh {
+			m.hadFirstRefresh = true
+		}
 		return
 	}
 
@@ -605,8 +608,8 @@ func (m *Model) updateLogViewContent() {
 		return
 	}
 
-	// Prefix: "15:04:05   LEVEL CATEGORY  " = 8 + 3 + 5 + 1 + 8 + 2 = 27 chars.
-	const prefixW = 27
+	// Prefix: "15:04:05   LEVEL CATEGORY " = 8 + 3 + 5 + 1 + 8 + 1 = 26 chars.
+	const prefixW = 26
 	w := m.logView.Width()
 	msgW := max(w-prefixW, 10)
 	indent := strings.Repeat(" ", prefixW)
