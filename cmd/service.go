@@ -11,6 +11,10 @@ import (
 	"github.com/cboone/snappy/internal/service"
 )
 
+var serviceStatus = service.Status
+
+var resolveServiceBinaryPath = service.ResolveBinaryPath
+
 var serviceCmd = &cobra.Command{
 	Use:   "service",
 	Short: "Manage the snappy background service (launchd)",
@@ -105,7 +109,7 @@ func runServiceInstall(cmd *cobra.Command, _ []string) error {
 func runServiceUninstall(cmd *cobra.Command, _ []string) error {
 	w := cmd.OutOrStdout()
 
-	st, err := service.Status(service.DefaultLabel)
+	st, err := serviceStatus(service.DefaultLabel)
 	if err != nil {
 		return err
 	}
@@ -125,7 +129,7 @@ func runServiceUninstall(cmd *cobra.Command, _ []string) error {
 func runServiceStart(cmd *cobra.Command, _ []string) error {
 	w := cmd.OutOrStdout()
 
-	st, err := service.Status(service.DefaultLabel)
+	st, err := serviceStatus(service.DefaultLabel)
 	if err != nil {
 		return err
 	}
@@ -148,7 +152,7 @@ func runServiceStart(cmd *cobra.Command, _ []string) error {
 func runServiceStop(cmd *cobra.Command, _ []string) error {
 	w := cmd.OutOrStdout()
 
-	st, err := service.Status(service.DefaultLabel)
+	st, err := serviceStatus(service.DefaultLabel)
 	if err != nil {
 		return err
 	}
@@ -171,7 +175,7 @@ func runServiceStop(cmd *cobra.Command, _ []string) error {
 func runServiceStatus(cmd *cobra.Command, _ []string) error {
 	w := cmd.OutOrStdout()
 
-	st, err := service.Status(service.DefaultLabel)
+	st, err := serviceStatus(service.DefaultLabel)
 	if err != nil {
 		return err
 	}
@@ -192,6 +196,13 @@ func runServiceStatus(cmd *cobra.Command, _ []string) error {
 		// Check if the binary still exists.
 		if _, statErr := os.Stat(st.BinaryPath); statErr != nil {
 			_, _ = fmt.Fprintf(w, "         (warning: binary not found at this path)\n")
+		}
+
+		currentBinaryPath, resolveErr := resolveServiceBinaryPath()
+		if resolveErr == nil && currentBinaryPath != "" && currentBinaryPath != st.BinaryPath {
+			_, _ = fmt.Fprintf(w, "         (warning: installed service uses a different binary)\n")
+			_, _ = fmt.Fprintf(w, "         (current snappy binary: %s)\n", currentBinaryPath)
+			_, _ = fmt.Fprintf(w, "         (run \"snappy service install\" to update)\n")
 		}
 	}
 
