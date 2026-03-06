@@ -246,7 +246,9 @@ func parseLogLine(line string, refTime time.Time) (Entry, bool) {
 			message = strings.TrimLeft(catAndMsg[1], " ")
 		}
 	case 2:
-		// Old format: "[HH:MM:SS] TYPE     message" - treat TYPE as category, default to INFO.
+		// Fallback for lines with only two tokens after the timestamp (e.g.,
+		// a category and a single-word message with no padding). Old-format
+		// lines with %-8s padding typically produce 3 fields and hit case 3.
 		level = LevelInfo
 		cat = Category(strings.TrimSpace(fields[0]))
 		message = strings.TrimLeft(fields[1], " ")

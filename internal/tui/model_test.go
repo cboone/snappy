@@ -1113,6 +1113,83 @@ func TestRefreshSummaryOnlyLoggedOnChange(t *testing.T) {
 	}
 }
 
+func TestLogEntryAtVisualLine(t *testing.T) {
+	tests := []struct {
+		name       string
+		entryY     []int
+		totalLines int
+		line       int
+		want       int
+	}{
+		{
+			name:       "first entry",
+			entryY:     []int{0, 1, 2},
+			totalLines: 3,
+			line:       0,
+			want:       0,
+		},
+		{
+			name:       "last entry",
+			entryY:     []int{0, 1, 2},
+			totalLines: 3,
+			line:       2,
+			want:       2,
+		},
+		{
+			name:       "wrapped entry second visual line",
+			entryY:     []int{0, 3, 5},
+			totalLines: 7,
+			line:       4,
+			want:       1,
+		},
+		{
+			name:       "wrapped entry first visual line",
+			entryY:     []int{0, 3, 5},
+			totalLines: 7,
+			line:       3,
+			want:       1,
+		},
+		{
+			name:       "out of range negative",
+			entryY:     []int{0, 1, 2},
+			totalLines: 3,
+			line:       -1,
+			want:       -1,
+		},
+		{
+			name:       "out of range beyond total",
+			entryY:     []int{0, 1, 2},
+			totalLines: 3,
+			line:       3,
+			want:       -1,
+		},
+		{
+			name:       "empty entries",
+			entryY:     nil,
+			totalLines: 0,
+			line:       0,
+			want:       -1,
+		},
+		{
+			name:       "single entry multiple lines",
+			entryY:     []int{0},
+			totalLines: 4,
+			line:       3,
+			want:       0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := logEntryAtVisualLine(tt.entryY, tt.totalLines, tt.line)
+			if got != tt.want {
+				t.Errorf("logEntryAtVisualLine(%v, %d, %d) = %d, want %d",
+					tt.entryY, tt.totalLines, tt.line, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestRefreshSummaryLoggedOnDiskChange(t *testing.T) {
 	m := testModel()
 	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
