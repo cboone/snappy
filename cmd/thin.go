@@ -35,7 +35,7 @@ func runThin(cmd *cobra.Command, _ []string) error {
 	ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
 	defer cancel()
 
-	snapshots, _, _, err := loadSnapshots(ctx, runner, cfg)
+	snapshots, _, _, err := loadSnapshots(ctx, runner)
 	if err != nil {
 		return err
 	}

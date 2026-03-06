@@ -15,21 +15,6 @@ Error: running TUI: * (glob)
 [1]
 ```
 
-## SNAPPY_MOUNT env var reaches TUI stage
-
-```scrut {output_stream: stderr}
-$ SNAPPY_MOUNT="/Volumes/Test" "${SNAPPY_BIN}"
-Error: running TUI: * (glob)
-[1]
-```
-
-## SNAPPY_MOUNT env var produces no stdout
-
-```scrut
-$ SNAPPY_MOUNT="/Volumes/Test" "${SNAPPY_BIN}" 2>/dev/null
-[1]
-```
-
 ## SNAPPY_AUTO_ENABLED=false reaches TUI stage
 
 ```scrut {output_stream: stderr}
@@ -57,15 +42,17 @@ Error: running TUI: * (glob)
 ## Multiple SNAPPY env vars together
 
 ```scrut {output_stream: stderr}
-$ SNAPPY_MOUNT="/Volumes/Test" SNAPPY_REFRESH=30 SNAPPY_AUTO_ENABLED=false "${SNAPPY_BIN}"
+$ SNAPPY_REFRESH=30 SNAPPY_AUTO_ENABLED=false "${SNAPPY_BIN}"
 Error: running TUI: * (glob)
 [1]
 ```
 
-## Env var with help flag
+## Help flag with env var set
+
+Environment variables should not interfere with help output.
 
 ```scrut
-$ SNAPPY_MOUNT="/Volumes/Test" "${SNAPPY_BIN}" --help
+$ SNAPPY_REFRESH=30 "${SNAPPY_BIN}" --help
 Automatically increase your Time Machine snapshot frequency
 
 Usage:
@@ -89,9 +76,11 @@ Flags:
 Use "snappy [command] --help" for more information about a command.
 ```
 
-## Env var with version flag
+## Version flag with env var set
+
+Environment variables should not interfere with version output.
 
 ```scrut
-$ SNAPPY_MOUNT="/Volumes/Test" "${SNAPPY_BIN}" --version
+$ SNAPPY_REFRESH=30 "${SNAPPY_BIN}" --version
 snappy version * (glob)
 ```
