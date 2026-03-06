@@ -785,3 +785,82 @@ func TestSuccessfulThinClearsThinPinned(t *testing.T) {
 		t.Errorf("thinPinned = %v, want empty after successful thin", model.thinPinned)
 	}
 }
+
+func TestFirstRefreshLogsSummaryNotIndividualAdded(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	snaps := []snapshot.Snapshot{
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
+		{Date: "2026-03-01-144000", Time: now.Add(-20 * time.Minute)},
+		{Date: "2026-03-01-145000", Time: now.Add(-10 * time.Minute)},
+	}
+
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: snaps,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	entries := model.log.Entries()
+	var foundCount, addedCount int
+	for _, e := range entries {
+		if e.Category == logger.CatFound {
+			foundCount++
+			if !strings.Contains(e.Message, "3 existing snapshots") {
+				t.Errorf("FOUND message = %q, want to contain '3 existing snapshots'", e.Message)
+			}
+		}
+		if e.Category == logger.CatAdded {
+			addedCount++
+		}
+	}
+	if foundCount != 1 {
+		t.Errorf("FOUND entries = %d, want 1", foundCount)
+	}
+	if addedCount != 0 {
+		t.Errorf("ADDED entries = %d, want 0 on first refresh", addedCount)
+	}
+}
+
+func TestSecondRefreshLogsIndividualAdded(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	// First refresh: establishes baseline.
+	initial := []snapshot.Snapshot{
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
+	}
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: initial,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	// Second refresh: new snapshot appears.
+	withNew := []snapshot.Snapshot{
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
+		{Date: "2026-03-01-145000", Time: now.Add(-10 * time.Minute)},
+	}
+	updated, _ = model.Update(RefreshResultMsg{
+		Snapshots: withNew,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model = updated.(Model)
+
+	entries := model.log.Entries()
+	var addedCount int
+	for _, e := range entries {
+		if e.Category == logger.CatAdded {
+			addedCount++
+		}
+	}
+	if addedCount != 1 {
+		t.Errorf("ADDED entries = %d, want 1 for new snapshot on second refresh", addedCount)
+	}
+}

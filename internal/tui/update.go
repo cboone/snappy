@@ -347,13 +347,19 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 	if len(prev) > 0 || len(msg.Snapshots) > 0 {
 		diff := snapshot.ComputeDiff(prev, msg.Snapshots)
 
-		for _, s := range diff.Added {
-			m.log.Log(logger.LevelInfo, logger.CatAdded, "Snapshot appeared: "+s.Date)
+		if !m.hadFirstRefresh && len(diff.Added) > 0 {
+			m.log.Log(logger.LevelInfo, logger.CatFound, fmt.Sprintf(
+				"Found %d existing snapshots", len(diff.Added)))
+		} else {
+			for _, s := range diff.Added {
+				m.log.Log(logger.LevelInfo, logger.CatAdded, "Snapshot appeared: "+s.Date)
+			}
 		}
 		for _, s := range diff.Removed {
 			m.log.Log(logger.LevelInfo, logger.CatRemoved, "Snapshot disappeared: "+s.Date)
 		}
 	}
+	m.hadFirstRefresh = true
 
 	m.log.Log(logger.LevelInfo, logger.CatRefresh, fmt.Sprintf(
 		"Refresh: %d snapshots, disk %s",
@@ -665,6 +671,8 @@ func logEntryStyle(s modelStyles, level logger.Level, cat logger.Category) lipgl
 			return s.textMagenta
 		case logger.CatCreated, logger.CatAdded:
 			return s.textGreen
+		case logger.CatFound:
+			return s.textDim
 		default:
 			return lipgloss.NewStyle()
 		}

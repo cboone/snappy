@@ -101,8 +101,9 @@ type Model struct {
 	refreshPending bool
 	snapshotting   bool
 	thinning       bool
-	thinPinned     map[string]struct{}
-	version        string
+	thinPinned      map[string]struct{}
+	hadFirstRefresh bool
+	version         string
 
 	keys          keyMap
 	help          help.Model
