@@ -120,8 +120,7 @@ func runTUI(_ *cobra.Command, _ []string) error {
 		volumeName = config.DefaultMount
 	}
 
-	log.Log(logger.Startup, fmt.Sprintf("snappy %s | volume=%s | refresh=%ds",
-		version, config.DefaultMount, int(cfg.RefreshInterval.Seconds())))
+	log.Log(logger.Startup, startupSummary(version, volumeName, cfg.RefreshInterval))
 	if apfsVolume != "" {
 		log.Log(logger.Startup, fmt.Sprintf("apfs-volume=%s", apfsVolume))
 	}
@@ -137,4 +136,9 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	}
 
 	return nil
+}
+
+func startupSummary(version, volumeName string, refreshInterval time.Duration) string {
+	return fmt.Sprintf("snappy %s | volume=%s | refresh=%ds",
+		version, volumeName, int(refreshInterval.Seconds()))
 }
