@@ -54,6 +54,7 @@ func writeListJSON(cmd *cobra.Command, cfg *config.Config, snapshots []snapshot.
 		Date         string `json:"date"`
 		Relative     string `json:"relative"`
 		UUID         string `json:"uuid,omitempty"`
+		XIDDelta     *int   `json:"xid_delta,omitempty"`
 		Purgeable    *bool  `json:"purgeable,omitempty"`
 		LimitsShrink *bool  `json:"limits_shrink,omitempty"`
 	}
@@ -68,6 +69,10 @@ func writeListJSON(cmd *cobra.Command, cfg *config.Config, snapshots []snapshot.
 		if s.UUID != "" {
 			item.Purgeable = &s.Purgeable
 			item.LimitsShrink = &s.LimitsShrink
+			if i > 0 && snapshots[i-1].UUID != "" {
+				delta := s.XID - snapshots[i-1].XID
+				item.XIDDelta = &delta
+			}
 		}
 		items[i] = item
 	}
@@ -109,6 +114,11 @@ func writeListHuman(cmd *cobra.Command, cfg *config.Config, snapshots []snapshot
 		line := fmt.Sprintf("  %2d. %s   (%s)", num, s.Date, relative)
 
 		if s.UUID != "" {
+			var delta string
+			if i > 0 && snapshots[i-1].UUID != "" {
+				delta = fmt.Sprintf("   delta:%d", s.XID-snapshots[i-1].XID)
+			}
+
 			flags := "purgeable"
 			if !s.Purgeable {
 				flags = "pinned"
@@ -116,7 +126,7 @@ func writeListHuman(cmd *cobra.Command, cfg *config.Config, snapshots []snapshot
 			if s.LimitsShrink {
 				flags += "   limits shrink"
 			}
-			line += fmt.Sprintf("   %s   %s", s.UUID, flags)
+			line += fmt.Sprintf("   %s%s   %s", s.UUID, delta, flags)
 		}
 
 		if _, err := fmt.Fprintln(w, line); err != nil {
