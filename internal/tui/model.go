@@ -99,19 +99,19 @@ type Model struct {
 	diskInfo           string
 	lastRefresh        time.Time
 
-	width          int
-	height         int
-	quitting       bool
-	refreshing     bool
-	refreshPending bool
-	snapshotting   bool
-	thinning       bool
-	thinPinned      map[string]struct{}
-	recentCreated   map[string]struct{}
+	width              int
+	height             int
+	quitting           bool
+	refreshing         bool
+	refreshPending     bool
+	snapshotting       bool
+	thinning           bool
+	thinPinned         map[string]struct{}
+	recentCreated      map[string]struct{}
 	recentThinned      map[string]struct{}
 	hadFirstRefresh    bool
 	lastRefreshSummary string
-	version         string
+	version            string
 
 	keys          keyMap
 	help          help.Model
@@ -161,29 +161,29 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 	)
 
 	m := Model{
-		cfg:        cfg,
-		runner:     runner,
-		log:        log,
-		auto:       snapshot.NewAutoManager(cfg.AutoEnabled, cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence, now),
-		apfsVolume: apfsVolume,
-		tmStatus:   tmStatus,
-		volumeName: volumeName,
-		refreshing: true,
+		cfg:           cfg,
+		runner:        runner,
+		log:           log,
+		auto:          snapshot.NewAutoManager(cfg.AutoEnabled, cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence, now),
+		apfsVolume:    apfsVolume,
+		tmStatus:      tmStatus,
+		volumeName:    volumeName,
+		refreshing:    true,
 		thinPinned:    make(map[string]struct{}),
 		recentCreated: make(map[string]struct{}),
 		recentThinned: make(map[string]struct{}),
-		version:    version,
-		width:      80,
-		height:     24,
-		keys:       keys,
-		help:       h,
-		snapTable:  st,
-		logView:    lv,
-		spinner:    s,
-		styles:     styles,
-		focusPanel: panelSnap,
-		hasDarkBG:  hasDarkBG,
-		now:        time.Now,
+		version:       version,
+		width:         80,
+		height:        24,
+		keys:          keys,
+		help:          h,
+		snapTable:     st,
+		logView:       lv,
+		spinner:       s,
+		styles:        styles,
+		focusPanel:    panelSnap,
+		hasDarkBG:     hasDarkBG,
+		now:           time.Now,
 	}
 
 	m.updateSnapViewContent()

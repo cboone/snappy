@@ -316,20 +316,8 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 	}
 	m.tmStatus = msg.TMStatus
 
-	if msg.APFSInfo.Volume != "" {
-		m.apfsVolume = msg.APFSInfo.Volume
-		if msg.APFSInfo.OtherSnapCount > 0 && msg.APFSInfo.OtherSnapCount != m.lastOtherSnapCount {
-			m.log.Log(logger.LevelInfo, logger.CatRefresh, fmt.Sprintf("Non-TM snapshots on %s: %d",
-				msg.APFSInfo.Volume, msg.APFSInfo.OtherSnapCount))
-		}
-		m.lastOtherSnapCount = msg.APFSInfo.OtherSnapCount
-	}
-
-	if msg.DiskErr {
-		m.diskInfo = "unavailable"
-	} else {
-		m.diskInfo = msg.DiskInfo.String()
-	}
+	m.applyAPFSInfo(msg)
+	m.applyDiskInfo(msg)
 
 	if msg.APFSErr != nil {
 		m.log.Log(logger.LevelError, logger.CatRefresh, fmt.Sprintf("APFS details unavailable: %v", msg.APFSErr))
@@ -344,42 +332,12 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 
 	m.lastRefresh = m.now()
 
-	// Compute diff
 	prev := m.snapshots
 	m.prevSnapshots = prev
 	m.snapshots = msg.Snapshots
 
-	if len(prev) > 0 || len(msg.Snapshots) > 0 {
-		diff := snapshot.ComputeDiff(prev, msg.Snapshots)
-
-		if !m.hadFirstRefresh && len(diff.Added) > 0 {
-			m.log.Log(logger.LevelInfo, logger.CatFound, fmt.Sprintf(
-				"Found %d existing snapshots", len(diff.Added)))
-		} else {
-			for _, s := range diff.Added {
-				if _, ok := m.recentCreated[s.Date]; ok {
-					continue
-				}
-				m.log.Log(logger.LevelInfo, logger.CatAdded, "Snapshot appeared: "+s.Date)
-			}
-		}
-		clear(m.recentCreated)
-		for _, s := range diff.Removed {
-			if _, ok := m.recentThinned[s.Date]; ok {
-				continue
-			}
-			m.log.Log(logger.LevelInfo, logger.CatRemoved, "Snapshot disappeared: "+s.Date)
-		}
-		clear(m.recentThinned)
-	}
-	m.hadFirstRefresh = true
-
-	refreshSummary := fmt.Sprintf("Refresh: %d snapshots, disk %s",
-		len(m.snapshots), m.diskInfo)
-	if refreshSummary != m.lastRefreshSummary {
-		m.log.Log(logger.LevelInfo, logger.CatRefresh, refreshSummary)
-		m.lastRefreshSummary = refreshSummary
-	}
+	m.logDiffChanges(prev, msg.Snapshots)
+	m.logRefreshSummary()
 
 	m.updateSnapViewContent()
 	m.updateLogViewContent()
@@ -397,6 +355,71 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 	cmds = m.maybeThin(cmds)
 
 	return m, tea.Batch(cmds...)
+}
+
+// applyAPFSInfo updates APFS volume state and logs non-TM snapshot count changes.
+func (m *Model) applyAPFSInfo(msg RefreshResultMsg) {
+	if msg.APFSInfo.Volume == "" {
+		return
+	}
+	m.apfsVolume = msg.APFSInfo.Volume
+	if msg.APFSInfo.OtherSnapCount > 0 && msg.APFSInfo.OtherSnapCount != m.lastOtherSnapCount {
+		m.log.Log(logger.LevelInfo, logger.CatRefresh, fmt.Sprintf("Non-TM snapshots on %s: %d",
+			msg.APFSInfo.Volume, msg.APFSInfo.OtherSnapCount))
+	}
+	m.lastOtherSnapCount = msg.APFSInfo.OtherSnapCount
+}
+
+// applyDiskInfo updates the cached disk info string from a refresh result.
+func (m *Model) applyDiskInfo(msg RefreshResultMsg) {
+	if msg.DiskErr {
+		m.diskInfo = "unavailable"
+	} else {
+		m.diskInfo = msg.DiskInfo.String()
+	}
+}
+
+// logDiffChanges logs snapshot additions and removals between refreshes,
+// suppressing duplicates from recent creates/thins.
+func (m *Model) logDiffChanges(prev, current []snapshot.Snapshot) {
+	if len(prev) == 0 && len(current) == 0 {
+		return
+	}
+
+	diff := snapshot.ComputeDiff(prev, current)
+
+	if !m.hadFirstRefresh && len(diff.Added) > 0 {
+		m.log.Log(logger.LevelInfo, logger.CatFound, fmt.Sprintf(
+			"Found %d existing snapshots", len(diff.Added)))
+	} else {
+		for _, s := range diff.Added {
+			if _, ok := m.recentCreated[s.Date]; ok {
+				continue
+			}
+			m.log.Log(logger.LevelInfo, logger.CatAdded, "Snapshot appeared: "+s.Date)
+		}
+	}
+	clear(m.recentCreated)
+
+	for _, s := range diff.Removed {
+		if _, ok := m.recentThinned[s.Date]; ok {
+			continue
+		}
+		m.log.Log(logger.LevelInfo, logger.CatRemoved, "Snapshot disappeared: "+s.Date)
+	}
+	clear(m.recentThinned)
+
+	m.hadFirstRefresh = true
+}
+
+// logRefreshSummary logs the refresh summary only when the content changes.
+func (m *Model) logRefreshSummary() {
+	summary := fmt.Sprintf("Refresh: %d snapshots, disk %s",
+		len(m.snapshots), m.diskInfo)
+	if summary != m.lastRefreshSummary {
+		m.log.Log(logger.LevelInfo, logger.CatRefresh, summary)
+		m.lastRefreshSummary = summary
+	}
 }
 
 func (m *Model) maybeThin(cmds []tea.Cmd) []tea.Cmd {
