@@ -621,6 +621,14 @@ func logEntryAtVisualLine(entryY []int, totalLines, line int) int {
 // snapRowAtVisualLine returns the snapshot row index shown at the given
 // viewport visual line, excluding the table header line. Returns -1 if
 // out of range or if the line doesn't map to a snapshot row.
+//
+// The rendered table view is parsed instead of tracking scroll offsets
+// directly because the Bubbles table component does not expose its
+// internal viewport scroll position. To identify which row was clicked,
+// the method strips ANSI sequences from the rendered line and matches
+// the leading 19-character DATE column ("2006-01-02 15:04:05") against
+// the table's row data. This couples the method to the DATE column
+// being first with a fixed width.
 func (m Model) snapRowAtVisualLine(line int) int {
 	if line < 0 {
 		return -1
