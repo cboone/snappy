@@ -301,6 +301,13 @@ func (m Model) handleScroll(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m Model) flashFrames() int {
+	if m.hasDarkBG {
+		return flashFramesDark
+	}
+	return flashFramesLight
+}
+
 func (m *Model) setFocusPanel(panel int) tea.Cmd {
 	if panel == m.focusPanel {
 		return nil
@@ -318,7 +325,7 @@ func (m *Model) setFocusPanel(panel int) tea.Cmd {
 		gainPanel:   panel,
 		losePanel:   prev,
 		frame:       0,
-		totalFrames: flashTotalFrames,
+		totalFrames: m.flashFrames(),
 		id:          nextID,
 	}
 	return flashTick(nextID)

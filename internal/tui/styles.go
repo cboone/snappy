@@ -63,7 +63,7 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 	if hasDarkBG {
 		flashDim, _ = colorful.Hex("#555555")
 		flashBright, _ = colorful.Hex("#ffffff")
-		flashGlint, _ = colorful.Hex("#ffd700")      // gold glint (sunlight on glass)
+		flashGlint, _ = colorful.Hex("#ffd700")       // gold glint (sunlight on glass)
 		flashTitleDim, _ = colorful.Hex("#949494")    // ANSI 246
 		flashTitleBright, _ = colorful.Hex("#ffffff") // default fg
 	} else {

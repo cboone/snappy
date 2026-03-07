@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	flashTotalFrames = 20
+	flashFramesLight = 24 // 24 × 16ms = 384ms (slower for subtlety)
+	flashFramesDark  = 18 // 18 × 16ms = 288ms (snappier on dark bg)
 )
 
 // flashState tracks the border flash animation when focus changes.
