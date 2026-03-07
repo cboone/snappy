@@ -123,6 +123,28 @@ func TestIsHeldReturnsFalseWhenFileDoesNotExist(t *testing.T) {
 	}
 }
 
+func TestIsHeldDoesNotBlockAcquire(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "test.lock")
+
+	// Create the lock file so IsHeld can open it.
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("creating lock file: %v", err)
+	}
+	f.Close()
+
+	// IsHeld on an unheld lock should not prevent a subsequent Acquire.
+	if IsHeld(path) {
+		t.Fatal("IsHeld() = true on unheld lock")
+	}
+
+	lock, err := Acquire(path)
+	if err != nil {
+		t.Fatalf("Acquire() after IsHeld() error = %v", err)
+	}
+	_ = lock.Release()
+}
+
 func TestDefaultLockPath(t *testing.T) {
 	got := DefaultLockPath("/some/dir")
 	want := "/some/dir/snappy.lock"
