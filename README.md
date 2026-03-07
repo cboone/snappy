@@ -8,7 +8,7 @@
 
 **Frequent, automatic, super fast, lightweight snapshot backups of your entire drive.** Snappy uses the macOS built-in snapshotting system to allow easy access to and rollbacks of individual files, directories, or the entire disk.
 
-`brew install cboone/tap/snappy` and it's automatically installed and running. Run `snappy` on its own to see the status of your snapshots, view your config, and mount your snapshot backups to restore files.
+`brew install cboone/tap/snappy` then `snappy service install` and it's installed and snapshotting. Run `snappy` on its own to see the status of your snapshots, view your config, and mount your snapshot backups to restore files.
 
 **Snappy only runs on macOS.** It relies on [`tmutil`](https://man.freebsd.org/cgi/man.cgi?query=tmutil&manpath=macOS+26.3) and [APFS snapshots](https://eclecticlight.co/2026/01/31/explainer-snapshots-2/). If you're on Linux, [`zsh-auto-snapshot`](https://manpages.debian.org/trixie/zfs-auto-snapshot/zfs-auto-snapshot.8.en.html) is a good option (and is what inspired Snappy in the first place). AFAICT, it should work on pretty much any macOS version since 11 (macOS Big Sur), when [Time Machine](https://en.wikipedia.org/wiki/Time_Machine_%28macOS%29) began to use APFS snapshotting.
 
