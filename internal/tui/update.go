@@ -397,7 +397,8 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 		m.auto.RecordSnapshot(now)
 		m.log.Log(logger.LevelInfo, logger.CatAuto, "Creating auto-snapshot...")
 		m.updateLogViewContent()
-		cmds = append(cmds, doCreateSnapshot(m.runner), m.spinner.Tick)
+		lockPath := service.DefaultLockPath(m.cfg.LogDir)
+		cmds = append(cmds, doAutoCreateSnapshot(m.runner, lockPath), m.spinner.Tick)
 	}
 
 	// Skip refresh when an auto-snapshot is in flight; SnapshotCreatedMsg
@@ -602,6 +603,8 @@ func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd
 		m.loading = false
 	}
 	switch {
+	case msg.Skipped:
+		m.log.Log(logger.LevelInfo, logger.CatAuto, "Auto-snapshot skipped: daemon holds lock")
 	case msg.Err != nil:
 		m.log.Log(logger.LevelError, logger.CatSnapshot, fmt.Sprintf("Failed to create snapshot: %v", msg.Err))
 	case msg.Date != "":

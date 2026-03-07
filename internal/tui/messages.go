@@ -25,9 +25,12 @@ type RefreshResultMsg struct {
 }
 
 // SnapshotCreatedMsg signals that a snapshot creation attempt completed.
+// Skipped is true when an auto-snapshot was skipped because the daemon
+// already holds the lock.
 type SnapshotCreatedMsg struct {
-	Date string
-	Err  error
+	Date    string
+	Err     error
+	Skipped bool
 }
 
 // OpenLogDirResultMsg reports the result of attempting to open the log directory.

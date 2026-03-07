@@ -1973,3 +1973,28 @@ func TestTidemarkFetchFailureLogged(t *testing.T) {
 		t.Error("expected WARN log for tidemark fetch failure")
 	}
 }
+
+func TestAutoSnapshotSkippedWhenLockHeld(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	// Simulate receiving a skipped auto-snapshot result.
+	updated, _ := m.Update(SnapshotCreatedMsg{Skipped: true})
+	model := updated.(Model)
+
+	entries := model.log.Entries()
+	var found bool
+	for _, e := range entries {
+		if e.Category == logger.CatAuto && strings.Contains(e.Message, "skipped") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected log message about auto-snapshot being skipped due to lock")
+	}
+	if model.snapshotting {
+		t.Error("snapshotting should be false after skipped result")
+	}
+}
