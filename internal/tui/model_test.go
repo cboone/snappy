@@ -1939,6 +1939,36 @@ func TestLogViewportOffsetPreservedWhenNewEntriesArrive(t *testing.T) {
 	}
 }
 
+func TestLogViewportOffsetUnchangedOnResizeRewrap(t *testing.T) {
+	m := testModel()
+
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 16})
+	m = updated.(Model)
+
+	msg := strings.Repeat("wrap me ", 16)
+	for i := range 12 {
+		m.log.Log(logger.LevelInfo, logger.CatRefresh, fmt.Sprintf("%02d %s", i, msg))
+	}
+	m.updateLogViewContent()
+
+	m.logView.SetYOffset(4)
+	initialOffset := m.logView.YOffset()
+	if initialOffset != 4 {
+		t.Fatalf("setup: YOffset = %d, want 4", initialOffset)
+	}
+	initialTotalLines := m.logTotalLines
+
+	updated, _ = m.Update(tea.WindowSizeMsg{Width: 80, Height: 16})
+	m = updated.(Model)
+
+	if m.logTotalLines <= initialTotalLines {
+		t.Fatalf("setup: logTotalLines = %d, want > %d after narrower resize", m.logTotalLines, initialTotalLines)
+	}
+	if got := m.logView.YOffset(); got != initialOffset {
+		t.Errorf("YOffset after resize = %d, want %d", got, initialOffset)
+	}
+}
+
 func TestUITickOnlyUpdatesAgeColumn(t *testing.T) {
 	m := testModel()
 	m.width = 120

@@ -826,6 +826,7 @@ func (m *Model) adjustLogCursor(entries []logger.Entry) {
 
 func (m *Model) updateLogViewContent() {
 	entries := m.log.Entries()
+	prevLastSeq := m.logLastSeq
 	m.adjustLogCursor(entries)
 
 	if m.logCount == 0 {
@@ -839,6 +840,7 @@ func (m *Model) updateLogViewContent() {
 	w := m.logView.Width()
 	msgW := max(w-prefixW, 10)
 	indent := strings.Repeat(" ", prefixW)
+	prependedLines := countPrependedLogLines(entries, prevLastSeq, msgW)
 
 	m.logEntryY = make([]int, m.logCount)
 	var b strings.Builder
@@ -877,21 +879,35 @@ func (m *Model) updateLogViewContent() {
 		displayIdx++
 	}
 	prevOffset := m.logView.YOffset()
-	prevTotalLines := m.logTotalLines
 
 	m.logTotalLines = visualLine
 	m.logView.SetContent(b.String())
 
 	// Preserve viewport position when the user has scrolled away from the top.
 	// New entries prepend to the newest-first display, shifting everything down.
-	if prevOffset > 0 && m.logTotalLines > prevTotalLines {
-		newOffset := prevOffset + (m.logTotalLines - prevTotalLines)
+	if prevOffset > 0 && prependedLines > 0 {
+		newOffset := prevOffset + prependedLines
 		maxOffset := max(m.logTotalLines-m.logView.Height(), 0)
 		if newOffset > maxOffset {
 			newOffset = maxOffset
 		}
 		m.logView.SetYOffset(newOffset)
 	}
+}
+
+func countPrependedLogLines(entries []logger.Entry, prevLastSeq uint64, msgW int) int {
+	if prevLastSeq == 0 {
+		return 0
+	}
+
+	prependedLines := 0
+	for i := len(entries) - 1; i >= 0; i-- {
+		if entries[i].Seq <= prevLastSeq {
+			break
+		}
+		prependedLines += strings.Count(ansi.Wordwrap(entries[i].Message, msgW, ""), "\n") + 1
+	}
+	return prependedLines
 }
 
 // logEntryAtVisualLine returns the entry index whose visual line range
