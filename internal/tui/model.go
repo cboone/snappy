@@ -147,14 +147,25 @@ type Model struct {
 	now func() time.Time
 }
 
-// NewModel creates a Model with the given dependencies. When daemonActive is
+// ModelParams groups the string and boolean parameters for NewModel,
+// preventing accidental argument reordering at call sites.
+type ModelParams struct {
+	APFSVolume    string
+	APFSContainer string
+	TMStatus      string
+	VolumeName    string
+	Version       string
+	DaemonActive  bool
+}
+
+// NewModel creates a Model with the given dependencies. When DaemonActive is
 // true, auto-snapshots are disabled because a background service holds the lock.
-func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Logger, apfsVolume, apfsContainer, tmStatus, volumeName, version string, daemonActive bool) Model {
+func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Logger, params ModelParams) Model {
 	now := time.Now()
 	hasDarkBG := true
 
 	autoEnabled := cfg.AutoEnabled
-	if daemonActive {
+	if params.DaemonActive {
 		autoEnabled = false
 	}
 
@@ -185,16 +196,16 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 		runner:          runner,
 		log:             log,
 		auto:            snapshot.NewAutoManager(autoEnabled, cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence, now),
-		apfsVolume:      apfsVolume,
-		tmStatus:        tmStatus,
-		volumeName:      volumeName,
-		daemonActive:    daemonActive,
-		apfsContainer:   apfsContainer,
+		apfsVolume:      params.APFSVolume,
+		tmStatus:        params.TMStatus,
+		volumeName:      params.VolumeName,
+		daemonActive:    params.DaemonActive,
+		apfsContainer:   params.APFSContainer,
 		refreshing:      true,
 		thinPinned:      make(map[string]struct{}),
 		recentCreated:   make(map[string]struct{}),
 		recentThinned:   make(map[string]struct{}),
-		version:         version,
+		version:         params.Version,
 		width:           80,
 		height:          24,
 		keys:            keys,
