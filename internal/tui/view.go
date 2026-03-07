@@ -119,7 +119,24 @@ func (m Model) renderSnapshotPanel(width int) string {
 		style = m.styles.sectionFocus
 	}
 
-	rendered := style.Width(sw).Render(m.snapTable.View())
+	header := m.snapHeaderLine
+	bodyLines := m.snapBodyLines
+
+	var clipped string
+	if len(bodyLines) > 0 {
+		end := min(m.snapScrollOffset+m.snapVisibleRows, len(bodyLines))
+		start := min(m.snapScrollOffset, end)
+		visible := make([]string, 0, m.snapVisibleRows)
+		visible = append(visible, bodyLines[start:end]...)
+		for len(visible) < m.snapVisibleRows {
+			visible = append(visible, "")
+		}
+		clipped = header + "\n" + strings.Join(visible, "\n")
+	} else {
+		clipped = header
+	}
+
+	rendered := style.Width(sw).Render(clipped)
 	borderFg := lipgloss.NewStyle().Foreground(style.GetBorderTopForeground())
 	return borderTitle(rendered, title, borderFg)
 }

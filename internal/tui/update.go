@@ -123,7 +123,7 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 
 	// Fixed-height rows: info panel + snap/log borders + help bar.
 	// Info panel: 3 body lines + 2 borders = 5.
-	// Snap panel: 2 borders (table header is inside SetHeight).
+	// Snap panel: 2 borders (visible rows set via snapVisibleRows).
 	// Log panel: 2 borders.
 	// Help bar: 1.
 	const (
@@ -137,7 +137,7 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	m.helpBarY = m.logPanelY + 2 + logH
 
 	m.snapTable.SetWidth(cw)
-	m.snapTable.SetHeight(snapH)
+	m.snapVisibleRows = snapH - 1
 	m.logView.SetWidth(cw)
 	m.logView.SetHeight(logH)
 
@@ -243,11 +243,14 @@ func (m Model) handleMouseClick(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 		}
 	case msg.Y >= m.snapPanelY:
 		m.setFocusPanel(panelSnap)
-		// Translate click Y to a visible table line. The table has a 1-line
-		// header inside the bordered panel (+1 border top, +1 header).
+		// Translate click Y to a data row index: -1 border, -1 header.
 		line := msg.Y - m.snapPanelY - 2
-		if row := m.snapRowAtVisualLine(line); row >= 0 {
-			m.snapTable.SetCursor(row)
+		if line >= 0 && line < m.snapVisibleRows {
+			row := line + m.snapScrollOffset
+			if row >= 0 && row < len(m.snapTable.Rows()) {
+				m.snapTable.SetCursor(row)
+				m.updateSnapRenderCache()
+			}
 		}
 	default:
 		m.setFocusPanel(panelInfo)
@@ -260,9 +263,9 @@ func (m Model) handleMouseWheel(msg tea.MouseWheelMsg) (tea.Model, tea.Cmd) {
 		m.setFocusPanel(panelLog)
 		switch msg.Button {
 		case tea.MouseWheelUp:
-			m.moveLogCursor(-1)
+			m.scrollLogView(-1)
 		case tea.MouseWheelDown:
-			m.moveLogCursor(1)
+			m.scrollLogView(1)
 		}
 		return m, nil
 	}
@@ -270,10 +273,11 @@ func (m Model) handleMouseWheel(msg tea.MouseWheelMsg) (tea.Model, tea.Cmd) {
 		m.setFocusPanel(panelSnap)
 		switch msg.Button {
 		case tea.MouseWheelUp:
-			m.snapTable.MoveUp(1)
+			m.snapScrollOffset--
 		case tea.MouseWheelDown:
-			m.snapTable.MoveDown(1)
+			m.snapScrollOffset++
 		}
+		m.clampSnapScroll()
 	}
 	return m, nil
 }
@@ -290,18 +294,24 @@ func (m Model) handleScroll(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case panelSnap:
 		var cmd tea.Cmd
 		m.snapTable, cmd = m.snapTable.Update(msg)
+		m.ensureSnapCursorVisible()
+		m.updateSnapRenderCache()
 		return m, cmd
 	}
 	return m, nil
 }
 
 func (m *Model) setFocusPanel(panel int) {
+	if m.focusPanel == panel {
+		return
+	}
 	m.focusPanel = panel
 	if panel == panelSnap {
 		m.snapTable.Focus()
 	} else {
 		m.snapTable.Blur()
 	}
+	m.updateSnapRenderCache()
 }
 
 func (m *Model) moveLogCursor(delta int) {
@@ -323,6 +333,27 @@ func (m *Model) moveLogCursor(delta int) {
 	} else if entryY >= offset+h {
 		m.logView.SetYOffset(entryY - h + 1)
 	}
+}
+
+func (m *Model) scrollLogView(delta int) {
+	offset := m.logView.YOffset() + delta
+	maxOffset := max(m.logTotalLines-m.logView.Height(), 0)
+	m.logView.SetYOffset(max(min(offset, maxOffset), 0))
+}
+
+func (m *Model) clampSnapScroll() {
+	maxOffset := max(len(m.snapTable.Rows())-m.snapVisibleRows, 0)
+	m.snapScrollOffset = max(min(m.snapScrollOffset, maxOffset), 0)
+}
+
+func (m *Model) ensureSnapCursorVisible() {
+	cursor := m.snapTable.Cursor()
+	if cursor < m.snapScrollOffset {
+		m.snapScrollOffset = cursor
+	} else if cursor >= m.snapScrollOffset+m.snapVisibleRows {
+		m.snapScrollOffset = cursor - m.snapVisibleRows + 1
+	}
+	m.clampSnapScroll()
 }
 
 func (m Model) handleTick() (tea.Model, tea.Cmd) {
@@ -612,6 +643,9 @@ func (m *Model) updateSnapViewContent() {
 		row := make(table.Row, len(cols))
 		row[0] = "(none, press 's' to create the first snapshot)"
 		m.snapTable.SetRows([]table.Row{row})
+		m.snapTable.SetHeight(2)
+		m.updateSnapRenderCache()
+		m.clampSnapScroll()
 		return
 	}
 
@@ -643,6 +677,20 @@ func (m *Model) updateSnapViewContent() {
 		rows = append(rows, table.Row{date, age, xid, delta, uuid, status})
 	}
 	m.snapTable.SetRows(rows)
+	m.snapTable.SetHeight(max(len(rows)+1, 2))
+	m.updateSnapRenderCache()
+	m.clampSnapScroll()
+}
+
+func (m *Model) updateSnapRenderCache() {
+	tableOut := m.snapTable.View()
+	parts := strings.SplitN(tableOut, "\n", 2)
+	m.snapHeaderLine = parts[0]
+	if len(parts) > 1 {
+		m.snapBodyLines = strings.Split(parts[1], "\n")
+		return
+	}
+	m.snapBodyLines = nil
 }
 
 // snapTableColumns returns the column definitions for the snapshot table,
@@ -769,44 +817,6 @@ func logEntryAtVisualLine(entryY []int, totalLines, line int) int {
 	}
 	if entryY[lo] <= line {
 		return lo
-	}
-	return -1
-}
-
-// snapRowAtVisualLine returns the snapshot row index shown at the given
-// viewport visual line, excluding the table header line. Returns -1 if
-// out of range or if the line doesn't map to a snapshot row.
-//
-// The rendered table view is parsed instead of tracking scroll offsets
-// directly because the Bubbles table component does not expose its
-// internal viewport scroll position. To identify which row was clicked,
-// the method strips ANSI sequences from the rendered line and matches
-// the leading 19-character DATE column ("2006-01-02 15:04:05") against
-// the table's row data. This couples the method to the DATE column
-// being first with a fixed width.
-func (m Model) snapRowAtVisualLine(line int) int {
-	if line < 0 {
-		return -1
-	}
-
-	lines := strings.Split(m.snapTable.View(), "\n")
-	rowLine := line + 1 // Skip table header.
-	if rowLine >= len(lines) {
-		return -1
-	}
-
-	const dateWidth = len("2006-01-02 15:04:05")
-	text := strings.TrimSpace(ansi.Strip(lines[rowLine]))
-	if len(text) < dateWidth {
-		return -1
-	}
-
-	date := text[:dateWidth]
-	rows := m.snapTable.Rows()
-	for i := range rows {
-		if len(rows[i]) > 0 && rows[i][0] == date {
-			return i
-		}
 	}
 	return -1
 }

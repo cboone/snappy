@@ -658,7 +658,7 @@ func TestLogViewShowsNewestFirst(t *testing.T) {
 	}
 }
 
-func TestMouseClickSnapshotSelectsTopVisibleRowWhenTableIsOffset(t *testing.T) {
+func TestMouseClickSnapshotSelectsTopVisibleRowWhenScrolled(t *testing.T) {
 	m := testModel()
 	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
 	m.now = func() time.Time { return now }
@@ -678,15 +678,21 @@ func TestMouseClickSnapshotSelectsTopVisibleRowWhenTableIsOffset(t *testing.T) {
 	updated, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 16})
 	model := updated.(Model)
 
-	for range 2 {
-		updated, _ = model.Update(tea.KeyPressMsg{Code: 'j', Text: "j"})
-		model = updated.(Model)
+	// Scroll viewport down without moving cursor via mouse wheel.
+	updated, _ = model.Update(tea.MouseWheelMsg{
+		Button: tea.MouseWheelDown,
+		Y:      model.snapPanelY + 2,
+	})
+	model = updated.(Model)
+
+	if got := model.snapScrollOffset; got != 1 {
+		t.Fatalf("snapScrollOffset = %d, want 1 after wheel down", got)
+	}
+	if got := model.snapTable.Cursor(); got != 0 {
+		t.Fatalf("cursor after wheel = %d, want 0 (unchanged)", got)
 	}
 
-	if got := model.snapTable.Cursor(); got != 2 {
-		t.Fatalf("cursor before click = %d, want 2", got)
-	}
-
+	// Click the top visible line: should select row at snapScrollOffset.
 	updated, _ = model.Update(tea.MouseClickMsg{
 		Button: tea.MouseLeft,
 		Y:      model.snapPanelY + 2,
@@ -698,7 +704,7 @@ func TestMouseClickSnapshotSelectsTopVisibleRowWhenTableIsOffset(t *testing.T) {
 	}
 }
 
-func TestSnapRowAtVisualLineMatchesRenderedRows(t *testing.T) {
+func TestMouseWheelSnapScrollsWithoutChangingCursor(t *testing.T) {
 	m := testModel()
 	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
 	m.now = func() time.Time { return now }
@@ -715,39 +721,221 @@ func TestSnapRowAtVisualLineMatchesRenderedRows(t *testing.T) {
 	}
 	m.updateSnapViewContent()
 
-	// Size the terminal so the table shows ~8 data rows, forcing a scroll
-	// when the cursor moves past the viewport.
-	updated, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 30})
+	// Height 16: snapH=3, snapVisibleRows=2, so 10 rows have maxOffset=8.
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 16})
 	model := updated.(Model)
 
-	// Scroll down a few rows so the table viewport is offset.
-	for range 4 {
+	cursorBefore := model.snapTable.Cursor()
+
+	// Scroll down 3 times via mouse wheel.
+	for range 3 {
+		updated, _ = model.Update(tea.MouseWheelMsg{
+			Button: tea.MouseWheelDown,
+			Y:      model.snapPanelY + 2,
+		})
+		model = updated.(Model)
+	}
+
+	if got := model.snapScrollOffset; got != 3 {
+		t.Errorf("snapScrollOffset = %d, want 3 after 3 wheel-downs", got)
+	}
+	if got := model.snapTable.Cursor(); got != cursorBefore {
+		t.Errorf("cursor = %d, want %d (unchanged by wheel)", got, cursorBefore)
+	}
+
+	// Scroll back up.
+	updated, _ = model.Update(tea.MouseWheelMsg{
+		Button: tea.MouseWheelUp,
+		Y:      model.snapPanelY + 2,
+	})
+	model = updated.(Model)
+
+	if got := model.snapScrollOffset; got != 2 {
+		t.Errorf("snapScrollOffset = %d, want 2 after wheel-up", got)
+	}
+}
+
+func TestMouseWheelLogScrollsWithoutChangingCursor(t *testing.T) {
+	m := testModel()
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
+	model := updated.(Model)
+
+	// Add enough log entries to overflow the viewport.
+	for i := range 20 {
+		model.log.Log(logger.LevelInfo, logger.CatRefresh, fmt.Sprintf("entry-%d", i))
+	}
+	model.updateLogViewContent()
+
+	cursorBefore := model.logCursor
+
+	// Scroll down via mouse wheel inside the log panel.
+	updated, _ = model.Update(tea.MouseWheelMsg{
+		Button: tea.MouseWheelDown,
+		Y:      model.logPanelY + 1,
+	})
+	model = updated.(Model)
+
+	if got := model.logCursor; got != cursorBefore {
+		t.Errorf("logCursor = %d, want %d (unchanged by wheel)", got, cursorBefore)
+	}
+	if got := model.logView.YOffset(); got != 1 {
+		t.Errorf("logView.YOffset = %d, want 1 after wheel-down", got)
+	}
+}
+
+func TestKeyboardScrollSnapMovesCursorAndAutoScrolls(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	for i := range 10 {
+		d := now.Add(-time.Duration(10-i) * time.Minute)
+		m.snapshots = append(m.snapshots, snapshot.Snapshot{
+			Date:      d.Format("2006-01-02-150405"),
+			Time:      d,
+			UUID:      fmt.Sprintf("00000000-0000-0000-0000-%012d", i+1),
+			XID:       1547200 + i,
+			Purgeable: true,
+		})
+	}
+	m.updateSnapViewContent()
+
+	// Height 16: snapH=3, snapVisibleRows=2.
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 16})
+	model := updated.(Model)
+
+	if model.snapVisibleRows != 2 {
+		t.Fatalf("snapVisibleRows = %d, want 2", model.snapVisibleRows)
+	}
+
+	// Move cursor down past visible rows: should auto-scroll.
+	for range 3 {
 		updated, _ = model.Update(tea.KeyPressMsg{Code: 'j', Text: "j"})
 		model = updated.(Model)
 	}
 
-	// Each visible line should map to a row whose DATE column matches.
-	rows := model.snapTable.Rows()
-	visibleRows := model.snapTable.Height() - 1 // subtract header line
-	for line := range visibleRows {
-		row := model.snapRowAtVisualLine(line)
-		if row < 0 || row >= len(rows) {
-			t.Errorf("line %d: snapRowAtVisualLine returned %d, want valid row index", line, row)
-			continue
-		}
-		// The row's date should be a valid formatted timestamp.
-		date := rows[row][0]
-		if len(date) != len("2006-01-02 15:04:05") {
-			t.Errorf("line %d -> row %d: date = %q, want 19-char timestamp", line, row, date)
-		}
+	if got := model.snapTable.Cursor(); got != 3 {
+		t.Errorf("cursor = %d, want 3 after 3 j presses", got)
+	}
+	// Cursor should be visible: snapScrollOffset <= 3 < snapScrollOffset + 2.
+	if model.snapTable.Cursor() < model.snapScrollOffset ||
+		model.snapTable.Cursor() >= model.snapScrollOffset+model.snapVisibleRows {
+		t.Errorf("cursor %d not visible with offset=%d visibleRows=%d",
+			model.snapTable.Cursor(), model.snapScrollOffset, model.snapVisibleRows)
+	}
+}
+
+func TestSnapScrollOffsetClampedOnRowDecrease(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	for i := range 10 {
+		d := now.Add(-time.Duration(10-i) * time.Minute)
+		m.snapshots = append(m.snapshots, snapshot.Snapshot{
+			Date:      d.Format("2006-01-02-150405"),
+			Time:      d,
+			UUID:      fmt.Sprintf("00000000-0000-0000-0000-%012d", i+1),
+			XID:       1547200 + i,
+			Purgeable: true,
+		})
+	}
+	m.updateSnapViewContent()
+
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
+	model := updated.(Model)
+
+	// Scroll near the bottom.
+	model.snapScrollOffset = 8
+	model.clampSnapScroll()
+
+	// Reduce row count: offset should be clamped.
+	model.snapshots = model.snapshots[:3]
+	model.updateSnapViewContent()
+
+	maxOffset := max(len(model.snapTable.Rows())-model.snapVisibleRows, 0)
+	if model.snapScrollOffset > maxOffset {
+		t.Errorf("snapScrollOffset = %d, want <= %d after row decrease",
+			model.snapScrollOffset, maxOffset)
+	}
+}
+
+func TestEnsureSnapCursorVisible(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	for i := range 10 {
+		d := now.Add(-time.Duration(10-i) * time.Minute)
+		m.snapshots = append(m.snapshots, snapshot.Snapshot{
+			Date:      d.Format("2006-01-02-150405"),
+			Time:      d,
+			UUID:      fmt.Sprintf("00000000-0000-0000-0000-%012d", i+1),
+			XID:       1547200 + i,
+			Purgeable: true,
+		})
+	}
+	m.updateSnapViewContent()
+
+	// Height 16: snapH=3, snapVisibleRows=2.
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 16})
+	model := updated.(Model)
+
+	// Cursor below visible range: should scroll down.
+	model.snapTable.SetCursor(5)
+	model.ensureSnapCursorVisible()
+	if model.snapScrollOffset > 5 || model.snapScrollOffset+model.snapVisibleRows <= 5 {
+		t.Errorf("cursor 5 not visible: offset=%d visibleRows=%d",
+			model.snapScrollOffset, model.snapVisibleRows)
 	}
 
-	// Out-of-range lines should return -1.
-	if row := model.snapRowAtVisualLine(-1); row != -1 {
-		t.Errorf("line -1: snapRowAtVisualLine = %d, want -1", row)
+	// Cursor above visible range: should scroll up.
+	model.snapScrollOffset = 5
+	model.snapTable.SetCursor(2)
+	model.ensureSnapCursorVisible()
+	if model.snapScrollOffset > 2 {
+		t.Errorf("cursor 2 not visible: offset=%d", model.snapScrollOffset)
 	}
-	if row := model.snapRowAtVisualLine(999); row != -1 {
-		t.Errorf("line 999: snapRowAtVisualLine = %d, want -1", row)
+}
+
+func TestRenderSnapshotPanelClipsWithOffset(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	for i := range 10 {
+		d := now.Add(-time.Duration(10-i) * time.Minute)
+		m.snapshots = append(m.snapshots, snapshot.Snapshot{
+			Date:      d.Format("2006-01-02-150405"),
+			Time:      d,
+			UUID:      fmt.Sprintf("00000000-0000-0000-0000-%012d", i+1),
+			XID:       1547200 + i,
+			Purgeable: true,
+		})
+	}
+	m.updateSnapViewContent()
+
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
+	model := updated.(Model)
+
+	// Render at offset 0.
+	panel0 := model.renderSnapshotPanel(model.width)
+
+	// Scroll down.
+	model.snapScrollOffset = 3
+	model.clampSnapScroll()
+	panel3 := model.renderSnapshotPanel(model.width)
+
+	// Both panels should have the same number of lines (consistent height).
+	lines0 := strings.Count(panel0, "\n")
+	lines3 := strings.Count(panel3, "\n")
+	if lines0 != lines3 {
+		t.Errorf("panel line count offset=0: %d, offset=3: %d, want equal", lines0, lines3)
+	}
+
+	// Content should differ (different rows visible).
+	if panel0 == panel3 {
+		t.Error("panel content identical at offset 0 and 3, want different visible rows")
 	}
 }
 
