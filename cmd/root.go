@@ -182,7 +182,7 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	if apfsContainer != "" {
 		log.Log(logger.LevelInfo, logger.CatStartup, fmt.Sprintf("apfs-container=%s", apfsContainer))
 	}
-	// Check if a background daemon holds the auto-snapshot lock.
+	// Check if a background service holds the auto-snapshot lock.
 	lockPath := service.DefaultLockPath(cfg.LogDir)
 	daemonActive := service.IsHeld(lockPath)
 

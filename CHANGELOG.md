@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-03-06
+
+### Added
+
+- Background service with launchd plist generation and lifecycle management
+- Single-instance lock via flock to prevent concurrent daemon runs
+- Lock acquisition and shared logger for daemon mode
+- `service` management commands (install, uninstall, start, stop, status)
+- Service setup instructions added to install paths
+- TUI detection of running daemon with auto-snapshot disabling
+- Container reference, tidemark, and FormatBytes in platform layer
+- XID delta column and tidemark display in TUI
+- XID delta in CLI `list` output with container discovery
+- Summarized first-run snapshot discovery as single FOUND log entry
+- Seed ring buffer from existing log file on startup
+- `l` key binding to open log directory from TUI
+- Pinned indicator in TUI snapshot table for ESTALE failures
+- Shift+Tab to cycle panel focus in reverse
+
+### Fixed
+
+- Propagated write errors from logLine in run daemon
+- Logged resolved startup volume name at startup
+- Suppressed redundant ADDED log after snapshot creation
+- Suppressed redundant REMOVED log after thinning, added thinning start log
+- Classified ESTALE as warning with user-friendly message
+- Only logged refresh summary when data actually changes
+- Rechecked daemon lock on each refresh tick
+- Derived running state from launchctl pid for service status
+- Warned when service binary path differs from installed path
+- Avoided invalid future relative time labels
+- Widened AGE column to fit "future" label
+- Removed extra argument in doRefresh call after thin
+- Showed positional-arg placeholders in usage template
+- Combined usage line for commands with subcommands
+- Used "service" instead of "daemon" in TUI status label
+
+### Changed
+
+- Extracted getDiskutilInfo to deduplicate plist parsing
+- Replaced math.Log in FormatBytes with loop
+- Removed mount point configuration
+- Separated log Level from event Category in logger
+- Migrated logger calls to Level + Category API
+- Delegated dualLog to logLine for writer output
+- Used howett.net/plist for readBinaryFromPlist
+- Extracted inline Update cases to reduce cyclomatic complexity
+
+### Performance
+
+- Skipped UI tick when auto-snapshot is disabled and idle
+- Cached default log entry style
+
 ## [0.6.0] - 2026-03-06
 
 ### Added
@@ -177,7 +230,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add shellcheckrc with all checks enabled
 
-[unreleased]: https://github.com/cboone/snappy/compare/v0.6.0...HEAD
+[unreleased]: https://github.com/cboone/snappy/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/cboone/snappy/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/cboone/snappy/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/cboone/snappy/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/cboone/snappy/compare/v0.4.0...v0.4.1

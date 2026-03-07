@@ -81,7 +81,7 @@ func TestRunIterationSuccess(t *testing.T) {
 
 	output := buf.String()
 	if !strings.Contains(output, "CREATED") {
-		t.Errorf("output missing SNAPSHOT log line, got:\n%s", output)
+		t.Errorf("output missing CREATED log line, got:\n%s", output)
 	}
 	if !strings.Contains(output, "REFRESH") {
 		t.Errorf("output missing REFRESH log line, got:\n%s", output)
@@ -121,7 +121,7 @@ func TestRunIterationLogsPostThinCount(t *testing.T) {
 
 	output := buf.String()
 	if !strings.Contains(output, "THINNED") {
-		t.Fatalf("output missing THIN log line, got:\n%s", output)
+		t.Fatalf("output missing THINNED log line, got:\n%s", output)
 	}
 	if !strings.Contains(output, "Thinned 1 snapshot(s)") {
 		t.Fatalf("output missing thin count, got:\n%s", output)
