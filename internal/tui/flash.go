@@ -139,7 +139,7 @@ func renderFlashBorders(content, titlePrefix, titleLabel, titleSuffix string, co
 	// Compute full title width for truncation and centering.
 	prefixW := lipgloss.Width(titlePrefix)
 	suffixW := lipgloss.Width(titleSuffix)
-	fullTitleWidth := prefixW + len(titleLabel) + suffixW
+	fullTitleWidth := prefixW + lipgloss.Width(titleLabel) + suffixW
 
 	// Truncate label if necessary, matching borderTitle behavior.
 	if maxTitle := ctx.totalWidth - 4; maxTitle > 0 && fullTitleWidth > maxTitle {
@@ -149,7 +149,7 @@ func renderFlashBorders(content, titlePrefix, titleLabel, titleSuffix string, co
 		} else {
 			titleLabel = ""
 		}
-		fullTitleWidth = prefixW + len(titleLabel) + suffixW
+		fullTitleWidth = prefixW + lipgloss.Width(titleLabel) + suffixW
 	}
 
 	border := lipgloss.RoundedBorder()
