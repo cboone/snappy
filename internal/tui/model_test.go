@@ -1998,3 +1998,91 @@ func TestAutoSnapshotSkippedWhenLockHeld(t *testing.T) {
 		t.Error("snapshotting should be false after skipped result")
 	}
 }
+
+func TestRefreshResultTidemarkFormatted(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: []snapshot.Snapshot{{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)}},
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+		Tidemark:  50_000_000_000, // ~46.6 GiB
+	})
+	model := updated.(Model)
+
+	if model.tidemark == "" {
+		t.Error("tidemark should be formatted when Tidemark > 0")
+	}
+}
+
+func TestRefreshResultTidemarkEmpty(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: []snapshot.Snapshot{{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)}},
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+		Tidemark:  0,
+	})
+	model := updated.(Model)
+
+	if model.tidemark != "" {
+		t.Errorf("tidemark = %q, want empty when Tidemark is 0", model.tidemark)
+	}
+}
+
+func TestInfoPanelIncludesTidemark(t *testing.T) {
+	m := testModel()
+	m.tidemark = "46.6 GiB"
+	view := viewContent(m)
+	if !strings.Contains(view, "Tidemark:") {
+		t.Error("view should contain 'Tidemark:' when tidemark is set")
+	}
+}
+
+func TestInfoPanelOmitsTidemark(t *testing.T) {
+	m := testModel()
+	m.tidemark = ""
+	view := viewContent(m)
+	if strings.Contains(view, "Tidemark:") {
+		t.Error("view should not contain 'Tidemark:' when tidemark is empty")
+	}
+}
+
+func TestXIDDeltaInSnapTable(t *testing.T) {
+	m := testModel()
+	m.width = 120
+	m.snapTable.SetWidth(contentWidth(120))
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+	m.snapshots = []snapshot.Snapshot{
+		{
+			Date: "2026-03-01-140000",
+			Time: now.Add(-60 * time.Minute),
+			UUID: "AAAA-BBBB",
+			XID:  1000,
+		},
+		{
+			Date: "2026-03-01-143000",
+			Time: now.Add(-30 * time.Minute),
+			UUID: "CCCC-DDDD",
+			XID:  1050,
+		},
+	}
+	m.updateSnapViewContent()
+
+	rows := m.snapTable.Rows()
+	// Newest first: row 0 = 143000, row 1 = 140000.
+	// Row 0 (snapshot at index 1) has predecessor at index 0, so delta = 1050-1000 = 50.
+	if rows[0][3] != "50" {
+		t.Errorf("XID delta for newest row = %q, want %q", rows[0][3], "50")
+	}
+	// Row 1 (snapshot at index 0) has no predecessor, so delta should be empty.
+	if rows[1][3] != "" {
+		t.Errorf("XID delta for oldest row = %q, want empty", rows[1][3])
+	}
+}

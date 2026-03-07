@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/spf13/viper"
 
@@ -152,5 +153,14 @@ func TestListError(t *testing.T) {
 	err := runList(listCmd, nil)
 	if err == nil {
 		t.Error("expected error, got nil")
+	}
+}
+
+func TestFormatRelativeAgoFuture(t *testing.T) {
+	now := time.Now()
+	future := now.Add(10 * time.Minute)
+	got := formatRelativeAgo(future, now)
+	if got != "future" {
+		t.Errorf("formatRelativeAgo(future) = %q, want %q", got, "future")
 	}
 }
