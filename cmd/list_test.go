@@ -285,6 +285,44 @@ func TestListJSONWithAPFSDetails(t *testing.T) {
 	}
 }
 
+func TestListJSONXIDDeltaOmittedForFirst(t *testing.T) {
+	viper.Reset()
+	defer viper.Reset()
+	config.SetDefaults()
+
+	origNewRunner := newRunner
+	origRequire := requireTmutil
+	defer func() { newRunner = origNewRunner; requireTmutil = origRequire }()
+	requireTmutil = func() error { return nil }
+	newRunner = func() platform.CommandRunner { return apfsListRunner() }
+
+	var buf bytes.Buffer
+	listCmd.SetOut(&buf)
+	setFlag(t, listCmd, "json", "true")
+	defer setFlag(t, listCmd, "json", "false")
+
+	setTestContext(listCmd)
+	if err := runList(listCmd, nil); err != nil {
+		t.Fatalf("runList() error = %v", err)
+	}
+
+	var result struct {
+		Snapshots []struct {
+			XIDDelta *int `json:"xid_delta"`
+		} `json:"snapshots"`
+	}
+	if err := json.Unmarshal(buf.Bytes(), &result); err != nil {
+		t.Fatalf("invalid JSON: %v\noutput: %s", err, buf.String())
+	}
+
+	if len(result.Snapshots) < 1 {
+		t.Fatal("expected at least 1 snapshot")
+	}
+	if result.Snapshots[0].XIDDelta != nil {
+		t.Errorf("first snapshot xid_delta = %v, want nil (no predecessor)", *result.Snapshots[0].XIDDelta)
+	}
+}
+
 func TestListHumanWithAPFSDetails(t *testing.T) {
 	viper.Reset()
 	defer viper.Reset()
