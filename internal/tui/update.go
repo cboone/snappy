@@ -528,8 +528,16 @@ func (m *Model) logDiffChanges(prev, current []snapshot.Snapshot) {
 	diff := snapshot.ComputeDiff(prev, current)
 
 	if !m.hadFirstRefresh && len(diff.Added) > 0 {
-		m.log.Log(logger.LevelInfo, logger.CatFound, fmt.Sprintf(
-			"Found %d existing snapshots", len(diff.Added)))
+		foundCount := 0
+		for _, s := range diff.Added {
+			if _, ok := m.recentCreated[s.Date]; !ok {
+				foundCount++
+			}
+		}
+		if foundCount > 0 {
+			m.log.Log(logger.LevelInfo, logger.CatFound, fmt.Sprintf(
+				"Found %d existing snapshots", foundCount))
+		}
 	} else {
 		for _, s := range diff.Added {
 			if _, ok := m.recentCreated[s.Date]; ok {

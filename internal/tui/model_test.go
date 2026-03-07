@@ -1790,3 +1790,39 @@ func TestFlashTickAdvancesMatchingAnimationID(t *testing.T) {
 		t.Error("expected follow-up flash tick command for active animation")
 	}
 }
+
+func TestFirstRefreshFoundCountExcludesRecentCreated(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	// Simulate user creating a snapshot before the first refresh returns.
+	updated, _ := m.Update(SnapshotCreatedMsg{Date: "2026-03-01-150000"})
+	model := updated.(Model)
+
+	// First refresh includes both pre-existing and just-created snapshots.
+	snaps := []snapshot.Snapshot{
+		{Date: "2026-03-01-140000", Time: now.Add(-60 * time.Minute)},
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
+		{Date: "2026-03-01-150000", Time: now},
+	}
+	updated, _ = model.Update(RefreshResultMsg{
+		Snapshots: snaps,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model = updated.(Model)
+
+	entries := model.log.Entries()
+	var foundMsg string
+	for _, e := range entries {
+		if e.Category == logger.CatFound {
+			foundMsg = e.Message
+		}
+	}
+
+	want := "Found 2 existing snapshots"
+	if foundMsg != want {
+		t.Errorf("FOUND log = %q, want %q", foundMsg, want)
+	}
+}
