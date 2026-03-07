@@ -133,6 +133,7 @@ type Model struct {
 	styles        modelStyles
 	loading       bool
 	focusPanel    int
+	flash         flashState
 	hasDarkBG     bool
 
 	snapPanelY       int

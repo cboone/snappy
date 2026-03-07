@@ -1728,3 +1728,38 @@ func TestRefreshSummaryLoggedOnDiskChange(t *testing.T) {
 		t.Errorf("REFRESH summary entries = %d, want 2 (disk changed between refreshes)", refreshCount)
 	}
 }
+
+func TestFlashTickIgnoresStaleAnimationID(t *testing.T) {
+	m := testModel()
+
+	_ = m.setFocusPanel(panelLog)
+	staleID := m.flash.id
+	_ = m.setFocusPanel(panelInfo)
+
+	updated, cmd := m.Update(FlashTickMsg{ID: staleID})
+	model := updated.(Model)
+
+	if model.flash.frame != 0 {
+		t.Errorf("flash frame = %d, want 0 when tick ID is stale", model.flash.frame)
+	}
+	if cmd != nil {
+		t.Error("expected nil command for stale flash tick")
+	}
+}
+
+func TestFlashTickAdvancesMatchingAnimationID(t *testing.T) {
+	m := testModel()
+
+	_ = m.setFocusPanel(panelLog)
+	currentID := m.flash.id
+
+	updated, cmd := m.Update(FlashTickMsg{ID: currentID})
+	model := updated.(Model)
+
+	if model.flash.frame != 1 {
+		t.Errorf("flash frame = %d, want 1 for matching tick ID", model.flash.frame)
+	}
+	if cmd == nil {
+		t.Error("expected follow-up flash tick command for active animation")
+	}
+}

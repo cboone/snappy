@@ -51,9 +51,9 @@ Then start the background service so snapshots are taken automatically:
 snappy service install
 ```
 
-That's it. Snappy will run in the background, taking a snapshot every minute and thinning old ones. It starts automatically at login and restarts if it exits unexpectedly.
+That installs the `snappy` command, along with shell completions and a man page, and sets up Snappy to run every minute. Until something goes wrong, that's really all you need to do.
 
-To open Snappy's TUI, just run `snappy`. You'll see what snapshots have been taken and information about them, logs of all Snappy's and macOS's snapshot management activities. You can delete or thin snapshots to clear up space. Most importantly, you can mount snapshots as read-only local drives to browse and restore files. The TUI detects the background service and defers auto-snapshots to it, so there's no conflict.
+To open Snappy's TUI, just run `snappy`. You'll see what snapshots have been taken and information about them, logs of all Snappy's and macOS's snapshot management activities. You can delete or thin snapshots to clear up space. Most importantly, you can mount snapshots as read-only local drives to browse and restore files.
 
 All of this can be done non-interactively as well via various [commands and options](#commands-and-options). Read more below, or run `snappy help` or `man snappy`. Also, see below for more on [How Snappy Works](#how-snappy-works), [How to Configure Snapshot Frequency](#configuration), and [How to Restore Files and Snapshots](#restoring-files-and-snapshots).
 
