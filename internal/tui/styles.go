@@ -35,10 +35,11 @@ type modelStyles struct {
 	statusOff        lipgloss.Style
 	spinnerStyle     lipgloss.Style
 	tableStyles      table.Styles
-	flashBase        colorful.Color
-	flashHighlight   colorful.Color
-	flashTitleDim    colorful.Color
-	flashTitleBright colorful.Color
+	flashDim         colorful.Color // unfocused border color
+	flashBright      colorful.Color // focused border color
+	flashGlint       colorful.Color // bright peak swept across
+	flashTitleDim    colorful.Color // unfocused title color
+	flashTitleBright colorful.Color // focused title color
 }
 
 func newModelStyles(hasDarkBG bool) modelStyles {
@@ -57,15 +58,18 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 	cyan := lipgloss.Cyan
 	magenta := lipgloss.Magenta
 
-	var flashBase, flashHighlight, flashTitleDim, flashTitleBright colorful.Color
+	var flashDim, flashBright, flashGlint colorful.Color
+	var flashTitleDim, flashTitleBright colorful.Color
 	if hasDarkBG {
-		flashBase, _ = colorful.Hex("#555555")
-		flashHighlight, _ = colorful.Hex("#ffffff")
+		flashDim, _ = colorful.Hex("#555555")
+		flashBright, _ = colorful.Hex("#ffffff")
+		flashGlint, _ = colorful.Hex("#ffd700")       // gold glint (sunlight on glass)
 		flashTitleDim, _ = colorful.Hex("#949494")    // ANSI 246
 		flashTitleBright, _ = colorful.Hex("#ffffff") // default fg
 	} else {
-		flashBase, _ = colorful.Hex("#aaaaaa")
-		flashHighlight, _ = colorful.Hex("#000000")
+		flashDim, _ = colorful.Hex("#bcbcbc")         // match unfocused border (ANSI 250)
+		flashBright, _ = colorful.Hex("#000000")      // focused border color
+		flashGlint, _ = colorful.Hex("#ffd700")       // gold glint (sunlight on glass)
 		flashTitleDim, _ = colorful.Hex("#9e9e9e")    // ANSI 247
 		flashTitleBright, _ = colorful.Hex("#000000") // default fg
 	}
@@ -110,8 +114,9 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 			Cell:     lipgloss.NewStyle().Padding(0, 3, 0, 0),
 			Selected: lipgloss.NewStyle().Bold(true).Foreground(colorHighlight).Padding(0, 3, 0, 0),
 		},
-		flashBase:        flashBase,
-		flashHighlight:   flashHighlight,
+		flashDim:         flashDim,
+		flashBright:      flashBright,
+		flashGlint:       flashGlint,
 		flashTitleDim:    flashTitleDim,
 		flashTitleBright: flashTitleBright,
 	}
