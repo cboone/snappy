@@ -1423,6 +1423,76 @@ func TestLogEntryAtVisualLine(t *testing.T) {
 	}
 }
 
+func TestViewPinnedIndicator(t *testing.T) {
+	m := testModel()
+	m.width = 120
+	m.snapTable.SetWidth(contentWidth(120))
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+	m.snapshots = []snapshot.Snapshot{
+		{
+			Date: "2026-03-01-145000",
+			Time: now.Add(-10 * time.Minute),
+			UUID: "B7C83E91-4A5D-4F12-9E68-1D3F7A2B8C04",
+			XID:  1547356,
+		},
+		{
+			Date: "2026-03-01-144000",
+			Time: now.Add(-20 * time.Minute),
+			UUID: "9A1D4F83-2E7B-4C05-B8F6-3D6A9E2C71F5",
+			XID:  1547289,
+		},
+	}
+	m.thinPinned["2026-03-01-144000"] = struct{}{}
+	m.updateSnapViewContent()
+
+	v := viewContent(m)
+
+	if !strings.Contains(v, "pinned") {
+		t.Error("view missing pinned indicator for snapshot in thinPinned")
+	}
+	// The non-pinned snapshot should not show "pinned".
+	rows := m.snapTable.Rows()
+	for _, row := range rows {
+		if strings.Contains(row[0], "14:50:05") && strings.Contains(row[5], "pinned") {
+			t.Error("non-pinned snapshot should not show pinned indicator")
+		}
+	}
+}
+
+func TestViewPinnedAndLimitsShrink(t *testing.T) {
+	m := testModel()
+	m.width = 120
+	m.snapTable.SetWidth(contentWidth(120))
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+	m.snapshots = []snapshot.Snapshot{
+		{
+			Date:         "2026-03-01-144000",
+			Time:         now.Add(-20 * time.Minute),
+			UUID:         "9A1D4F83-2E7B-4C05-B8F6-3D6A9E2C71F5",
+			XID:          1547289,
+			LimitsShrink: true,
+		},
+	}
+	m.thinPinned["2026-03-01-144000"] = struct{}{}
+	m.updateSnapViewContent()
+
+	// Check row data directly; the rendered view may truncate the combined
+	// status string at narrow terminal widths.
+	rows := m.snapTable.Rows()
+	if len(rows) != 1 {
+		t.Fatalf("rows = %d, want 1", len(rows))
+	}
+	status := rows[0][5]
+	if !strings.Contains(status, "pinned") {
+		t.Errorf("status = %q, want to contain 'pinned'", status)
+	}
+	if !strings.Contains(status, "limits shrink") {
+		t.Errorf("status = %q, want to contain 'limits shrink'", status)
+	}
+}
+
 func TestRefreshSummaryLoggedOnDiskChange(t *testing.T) {
 	m := testModel()
 	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
