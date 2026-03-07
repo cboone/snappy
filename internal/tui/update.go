@@ -617,7 +617,7 @@ func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd
 	}
 	switch {
 	case msg.Skipped:
-		m.log.Log(logger.LevelInfo, logger.CatAuto, "Auto-snapshot skipped: daemon holds lock")
+		m.log.Log(logger.LevelInfo, logger.CatAuto, "Auto-snapshot skipped: another process holds the lock")
 	case msg.Err != nil:
 		m.log.Log(logger.LevelError, logger.CatSnapshot, fmt.Sprintf("Failed to create snapshot: %v", msg.Err))
 	case msg.Date != "":
@@ -849,9 +849,8 @@ func (m *Model) updateLogViewContent() {
 	w := m.logView.Width()
 	msgW := max(w-prefixW, 10)
 	indent := strings.Repeat(" ", prefixW)
-	prependedLines := countPrependedLogLines(entries, prevLastSeq, msgW)
-
 	m.logEntryY = make([]int, m.logCount)
+	prependedLines := 0
 	var b strings.Builder
 	visualLine := 0
 	displayIdx := 0
@@ -885,6 +884,9 @@ func (m *Model) updateLogViewContent() {
 			}
 		}
 		visualLine += len(msgLines)
+		if e.Seq > prevLastSeq {
+			prependedLines += len(msgLines)
+		}
 		displayIdx++
 	}
 	prevOffset := m.logView.YOffset()
@@ -902,17 +904,6 @@ func (m *Model) updateLogViewContent() {
 		}
 		m.logView.SetYOffset(newOffset)
 	}
-}
-
-func countPrependedLogLines(entries []logger.Entry, prevLastSeq uint64, msgW int) int {
-	prependedLines := 0
-	for i := len(entries) - 1; i >= 0; i-- {
-		if entries[i].Seq <= prevLastSeq {
-			break
-		}
-		prependedLines += strings.Count(ansi.Wordwrap(entries[i].Message, msgW, ""), "\n") + 1
-	}
-	return prependedLines
 }
 
 // logEntryAtVisualLine returns the entry index whose visual line range

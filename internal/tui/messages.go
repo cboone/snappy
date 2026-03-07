@@ -25,8 +25,8 @@ type RefreshResultMsg struct {
 }
 
 // SnapshotCreatedMsg signals that a snapshot creation attempt completed.
-// Skipped is true when an auto-snapshot was skipped because the daemon
-// already holds the lock.
+// Skipped is true when an auto-snapshot was skipped because another
+// process already holds the lock.
 type SnapshotCreatedMsg struct {
 	Date    string
 	Err     error

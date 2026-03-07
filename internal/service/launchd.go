@@ -60,7 +60,7 @@ func PlistPath(label string) (string, error) {
 // GeneratePlist serializes the launchd plist XML for the given configuration.
 // Values are properly XML-escaped via howett.net/plist.
 func GeneratePlist(cfg PlistConfig) ([]byte, error) {
-	logPath := filepath.Join(cfg.LogDir, "snappy-service.log")
+	logPath := LogPath(cfg.LogDir)
 	args := []string{cfg.BinaryPath, "run"}
 	if cfg.ConfigFile != "" {
 		args = append(args, "--config", cfg.ConfigFile)
