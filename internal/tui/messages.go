@@ -29,9 +29,16 @@ type SnapshotCreatedMsg struct {
 	Err  error
 }
 
+// OpenLogDirResultMsg reports the result of attempting to open the log directory.
+type OpenLogDirResultMsg struct {
+	Err error
+}
+
 // ThinResultMsg signals that a thinning operation completed.
 type ThinResultMsg struct {
-	Deleted     int
-	FailedDates []string
-	Err         error
+	Deleted      int
+	ThinnedDates []string
+	FailedDates  []string
+	EstaleCount  int
+	Err          error
 }

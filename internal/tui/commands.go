@@ -2,7 +2,9 @@ package tui
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -97,6 +99,8 @@ func doCreateSnapshot(runner platform.CommandRunner) tea.Cmd {
 func doThinSnapshots(runner platform.CommandRunner, targets []string) tea.Cmd {
 	return func() tea.Msg {
 		deleted := 0
+		estaleCount := 0
+		var thinnedDates []string
 		var failedDates []string
 		var failedDetails []string
 		for _, date := range targets {
@@ -105,10 +109,17 @@ func doThinSnapshots(runner platform.CommandRunner, targets []string) tea.Cmd {
 			cancel()
 			if err != nil {
 				failedDates = append(failedDates, date)
-				failedDetails = append(failedDetails, fmt.Sprintf("%s (%v)", date, err))
+				var exitErr *exec.ExitError
+				if errors.As(err, &exitErr) && exitErr.ExitCode() == 70 {
+					estaleCount++
+					failedDetails = append(failedDetails, fmt.Sprintf("%s (stale handle, skipped)", date))
+				} else {
+					failedDetails = append(failedDetails, fmt.Sprintf("%s (%v)", date, err))
+				}
 				continue
 			}
 			deleted++
+			thinnedDates = append(thinnedDates, date)
 		}
 
 		var err error
@@ -116,7 +127,13 @@ func doThinSnapshots(runner platform.CommandRunner, targets []string) tea.Cmd {
 			err = fmt.Errorf("%d snapshot deletion(s) failed: %s", len(failedDetails), strings.Join(failedDetails, "; "))
 		}
 
-		return ThinResultMsg{Deleted: deleted, FailedDates: failedDates, Err: err}
+		return ThinResultMsg{
+			Deleted:      deleted,
+			ThinnedDates: thinnedDates,
+			FailedDates:  failedDates,
+			EstaleCount:  estaleCount,
+			Err:          err,
+		}
 	}
 }
 
@@ -130,4 +147,18 @@ func uiTick() tea.Cmd {
 	return tea.Tick(time.Second, func(_ time.Time) tea.Msg {
 		return UITickMsg{}
 	})
+}
+
+func doOpenLogDir(dir string) tea.Cmd {
+	return func() tea.Msg {
+		if dir == "" {
+			return OpenLogDirResultMsg{Err: fmt.Errorf("log directory path is empty")}
+		}
+
+		if err := exec.Command("open", dir).Run(); err != nil {
+			return OpenLogDirResultMsg{Err: err}
+		}
+
+		return OpenLogDirResultMsg{}
+	}
 }

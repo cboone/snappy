@@ -89,9 +89,9 @@ func TestViewWithSnapshots(t *testing.T) {
 		{Date: "2026-03-01-144000", Time: now.Add(-20 * time.Minute), UUID: "9A1D4F83-2E7B-4C05-B8F6-3D6A9E2C71F5", XID: 1547289, Purgeable: true},
 		{Date: "2026-03-01-145000", Time: now.Add(-10 * time.Minute), UUID: "B7C83E91-4A5D-4F12-9E68-1D3F7A2B8C04", XID: 1547356, Purgeable: true},
 	}
-	m.log.Log(logger.Startup, "version=dev apfs-volume=disk3s5")
-	m.log.Log(logger.Info, "3 snapshots, 0 other APFS snapshots")
-	m.log.Log(logger.Info, "disk: 460Gi total, 215Gi used (48%)")
+	m.log.Log(logger.LevelInfo, logger.CatStartup, "version=dev apfs-volume=disk3s5")
+	m.log.Log(logger.LevelInfo, logger.CatRefresh, "3 snapshots, 0 other APFS snapshots")
+	m.log.Log(logger.LevelInfo, logger.CatRefresh, "disk: 460Gi total, 215Gi used (48%)")
 	m.updateSnapViewContent()
 	m.updateLogViewContent()
 
@@ -249,10 +249,10 @@ func TestRefreshResultMsgSnapshotErrorKeepsExistingSnapshots(t *testing.T) {
 	var removedCount int
 	var sawError bool
 	for _, e := range entries {
-		if e.Type == logger.Removed {
+		if e.Category == logger.CatRemoved {
 			removedCount++
 		}
-		if e.Type == logger.Error && strings.Contains(e.Message, "Failed to list snapshots") {
+		if e.Level == logger.LevelError && strings.Contains(e.Message, "Failed to list snapshots") {
 			sawError = true
 		}
 	}
@@ -335,7 +335,7 @@ func TestSnapshotCreatedMsgError(t *testing.T) {
 	entries := m.log.Entries()
 	found := false
 	for _, e := range entries {
-		if e.Type == logger.Error {
+		if e.Level == logger.LevelError {
 			found = true
 			break
 		}
@@ -647,7 +647,7 @@ func TestLogViewShowsNewestFirst(t *testing.T) {
 	m.logView.SetHeight(3)
 
 	for i := range 8 {
-		m.log.Log(logger.Info, fmt.Sprintf("entry-%d", i))
+		m.log.Log(logger.LevelInfo, logger.CatRefresh, fmt.Sprintf("entry-%d", i))
 	}
 	m.updateLogViewContent()
 
@@ -991,5 +991,469 @@ func TestSuccessfulThinClearsThinPinned(t *testing.T) {
 
 	if len(model.thinPinned) != 0 {
 		t.Errorf("thinPinned = %v, want empty after successful thin", model.thinPinned)
+	}
+}
+
+func TestFirstRefreshLogsSummaryNotIndividualAdded(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	snaps := []snapshot.Snapshot{
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
+		{Date: "2026-03-01-144000", Time: now.Add(-20 * time.Minute)},
+		{Date: "2026-03-01-145000", Time: now.Add(-10 * time.Minute)},
+	}
+
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: snaps,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	entries := model.log.Entries()
+	var foundCount, addedCount int
+	for _, e := range entries {
+		if e.Category == logger.CatFound {
+			foundCount++
+			if !strings.Contains(e.Message, "3 existing snapshots") {
+				t.Errorf("FOUND message = %q, want to contain '3 existing snapshots'", e.Message)
+			}
+		}
+		if e.Category == logger.CatAdded {
+			addedCount++
+		}
+	}
+	if foundCount != 1 {
+		t.Errorf("FOUND entries = %d, want 1", foundCount)
+	}
+	if addedCount != 0 {
+		t.Errorf("ADDED entries = %d, want 0 on first refresh", addedCount)
+	}
+}
+
+func TestSecondRefreshLogsIndividualAdded(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	// First refresh: establishes baseline.
+	initial := []snapshot.Snapshot{
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
+	}
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: initial,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	// Second refresh: new snapshot appears.
+	withNew := []snapshot.Snapshot{
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
+		{Date: "2026-03-01-145000", Time: now.Add(-10 * time.Minute)},
+	}
+	updated, _ = model.Update(RefreshResultMsg{
+		Snapshots: withNew,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model = updated.(Model)
+
+	entries := model.log.Entries()
+	var addedCount int
+	for _, e := range entries {
+		if e.Category == logger.CatAdded {
+			addedCount++
+		}
+	}
+	if addedCount != 1 {
+		t.Errorf("ADDED entries = %d, want 1 for new snapshot on second refresh", addedCount)
+	}
+}
+
+func TestCreatedSnapshotNotDuplicatedAsAdded(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	// First refresh: establishes baseline.
+	initial := []snapshot.Snapshot{
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
+	}
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: initial,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	// Snapshot created: records date in recentCreated.
+	updated, _ = model.Update(SnapshotCreatedMsg{Date: "2026-03-01-150000"})
+	model = updated.(Model)
+
+	// Refresh includes the new snapshot.
+	withNew := []snapshot.Snapshot{
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
+		{Date: "2026-03-01-150000", Time: now},
+	}
+	updated, _ = model.Update(RefreshResultMsg{
+		Snapshots: withNew,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model = updated.(Model)
+
+	entries := model.log.Entries()
+	var addedCount int
+	for _, e := range entries {
+		if e.Category == logger.CatAdded && strings.Contains(e.Message, "2026-03-01-150000") {
+			addedCount++
+		}
+	}
+	if addedCount != 0 {
+		t.Errorf("ADDED entries for created snapshot = %d, want 0 (suppressed by recentCreated)", addedCount)
+	}
+}
+
+func TestThinnedSnapshotsNotDuplicatedAsRemoved(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	// First refresh: establishes baseline with two snapshots.
+	initial := []snapshot.Snapshot{
+		{Date: "2026-03-01-130000", Time: now.Add(-2 * time.Hour)},
+		{Date: "2026-03-01-130100", Time: now.Add(-119 * time.Minute)},
+	}
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: initial,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	// Thinning result: one snapshot thinned.
+	updated, _ = model.Update(ThinResultMsg{
+		Deleted:      1,
+		ThinnedDates: []string{"2026-03-01-130100"},
+	})
+	model = updated.(Model)
+
+	// Refresh: missing thinned snapshot.
+	remaining := []snapshot.Snapshot{
+		{Date: "2026-03-01-130000", Time: now.Add(-2 * time.Hour)},
+	}
+	updated, _ = model.Update(RefreshResultMsg{
+		Snapshots: remaining,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model = updated.(Model)
+
+	entries := model.log.Entries()
+	var removedCount int
+	for _, e := range entries {
+		if e.Category == logger.CatRemoved && strings.Contains(e.Message, "2026-03-01-130100") {
+			removedCount++
+		}
+	}
+	if removedCount != 0 {
+		t.Errorf("REMOVED entries for thinned snapshot = %d, want 0 (suppressed by recentThinned)", removedCount)
+	}
+}
+
+func TestMaybeThinLogsThinningStart(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	// Set up snapshots old enough to trigger thinning.
+	snaps := []snapshot.Snapshot{
+		{Date: "2026-03-01-130000", Time: now.Add(-2 * time.Hour)},
+		{Date: "2026-03-01-130100", Time: now.Add(-119 * time.Minute)},
+	}
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: snaps,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	entries := model.log.Entries()
+	var thinStartCount int
+	for _, e := range entries {
+		if e.Category == logger.CatAuto && strings.Contains(e.Message, "Thinning") {
+			thinStartCount++
+		}
+	}
+	if thinStartCount != 1 {
+		t.Errorf("AUTO 'Thinning' entries = %d, want 1", thinStartCount)
+	}
+}
+
+func TestDoThinSnapshotsReturnsThinnedDates(t *testing.T) {
+	runner := &mockRunner{responses: map[string]mockResponse{
+		"tmutil deletelocalsnapshots 2026-03-01-140000": {output: []byte("Deleted\n")},
+		"tmutil deletelocalsnapshots 2026-03-01-140100": {err: fmt.Errorf("permission denied")},
+	}}
+
+	msg := doThinSnapshots(runner, []string{"2026-03-01-140000", "2026-03-01-140100"})()
+	result, ok := msg.(ThinResultMsg)
+	if !ok {
+		t.Fatalf("msg type = %T, want ThinResultMsg", msg)
+	}
+
+	if len(result.ThinnedDates) != 1 || result.ThinnedDates[0] != "2026-03-01-140000" {
+		t.Fatalf("ThinnedDates = %v, want [2026-03-01-140000]", result.ThinnedDates)
+	}
+}
+
+func TestAllEstaleFailuresLogAsWarn(t *testing.T) {
+	m := testModel()
+	m.thinning = true
+	m.loading = true
+	m.refreshing = false
+
+	updated, _ := m.Update(ThinResultMsg{
+		Deleted:     0,
+		FailedDates: []string{"2026-03-01-140100"},
+		EstaleCount: 1,
+		Err:         fmt.Errorf("1 snapshot deletion(s) failed: 2026-03-01-140100 (stale handle, skipped)"),
+	})
+	model := updated.(Model)
+
+	entries := model.log.Entries()
+	var warnCount, errorCount int
+	for _, e := range entries {
+		if e.Category == logger.CatThinned && e.Level == logger.LevelWarn {
+			warnCount++
+		}
+		if e.Category == logger.CatThinned && e.Level == logger.LevelError {
+			errorCount++
+		}
+	}
+	if warnCount != 1 {
+		t.Errorf("WARN THINNED entries = %d, want 1", warnCount)
+	}
+	if errorCount != 0 {
+		t.Errorf("ERROR THINNED entries = %d, want 0 for all-ESTALE failures", errorCount)
+	}
+}
+
+func TestMixedEstaleAndRealErrorLogsAsError(t *testing.T) {
+	m := testModel()
+	m.thinning = true
+	m.loading = true
+	m.refreshing = false
+
+	updated, _ := m.Update(ThinResultMsg{
+		Deleted:     0,
+		FailedDates: []string{"2026-03-01-140100", "2026-03-01-140200"},
+		EstaleCount: 1,
+		Err:         fmt.Errorf("2 snapshot deletion(s) failed"),
+	})
+	model := updated.(Model)
+
+	entries := model.log.Entries()
+	var errorCount int
+	for _, e := range entries {
+		if e.Category == logger.CatThinned && e.Level == logger.LevelError {
+			errorCount++
+		}
+	}
+	if errorCount != 1 {
+		t.Errorf("ERROR THINNED entries = %d, want 1 for mixed failures", errorCount)
+	}
+}
+
+func TestOpenLogKeyBinding(t *testing.T) {
+	m := testModel()
+	m.cfg.LogDir = t.TempDir()
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'l', Text: "l"})
+	model := updated.(Model)
+
+	if cmd == nil {
+		t.Error("expected command from 'l' key press")
+	}
+
+	entries := model.log.Entries()
+	var found bool
+	for _, e := range entries {
+		if e.Category == logger.CatOpen && strings.Contains(e.Message, "Opening log directory") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected OPEN log entry for 'l' key press")
+	}
+}
+
+func TestOpenLogKeyBindingEmptyDir(t *testing.T) {
+	m := testModel()
+	// LogDir is "" by default in testConfig.
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'l', Text: "l"})
+	model := updated.(Model)
+
+	if cmd != nil {
+		t.Error("expected nil command when LogDir is empty")
+	}
+
+	entries := model.log.Entries()
+	var found bool
+	for _, e := range entries {
+		if e.Category == logger.CatOpen && e.Level == logger.LevelWarn {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected WARN OPEN log entry when LogDir is empty")
+	}
+}
+
+func TestRefreshSummaryOnlyLoggedOnChange(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	disk := platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"}
+	snaps := []snapshot.Snapshot{
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
+	}
+
+	// First refresh: should log the summary.
+	updated, _ := m.Update(RefreshResultMsg{Snapshots: snaps, TMStatus: "Configured", DiskInfo: disk})
+	model := updated.(Model)
+
+	// Second refresh: same data, should not log again.
+	updated, _ = model.Update(RefreshResultMsg{Snapshots: snaps, TMStatus: "Configured", DiskInfo: disk})
+	model = updated.(Model)
+
+	entries := model.log.Entries()
+	var refreshCount int
+	for _, e := range entries {
+		if e.Category == logger.CatRefresh && strings.Contains(e.Message, "Refresh:") {
+			refreshCount++
+		}
+	}
+	if refreshCount != 1 {
+		t.Errorf("REFRESH summary entries = %d, want 1 (second identical refresh should be suppressed)", refreshCount)
+	}
+}
+
+func TestLogEntryAtVisualLine(t *testing.T) {
+	tests := []struct {
+		name       string
+		entryY     []int
+		totalLines int
+		line       int
+		want       int
+	}{
+		{
+			name:       "first entry",
+			entryY:     []int{0, 1, 2},
+			totalLines: 3,
+			line:       0,
+			want:       0,
+		},
+		{
+			name:       "last entry",
+			entryY:     []int{0, 1, 2},
+			totalLines: 3,
+			line:       2,
+			want:       2,
+		},
+		{
+			name:       "wrapped entry second visual line",
+			entryY:     []int{0, 3, 5},
+			totalLines: 7,
+			line:       4,
+			want:       1,
+		},
+		{
+			name:       "wrapped entry first visual line",
+			entryY:     []int{0, 3, 5},
+			totalLines: 7,
+			line:       3,
+			want:       1,
+		},
+		{
+			name:       "out of range negative",
+			entryY:     []int{0, 1, 2},
+			totalLines: 3,
+			line:       -1,
+			want:       -1,
+		},
+		{
+			name:       "out of range beyond total",
+			entryY:     []int{0, 1, 2},
+			totalLines: 3,
+			line:       3,
+			want:       -1,
+		},
+		{
+			name:       "empty entries",
+			entryY:     nil,
+			totalLines: 0,
+			line:       0,
+			want:       -1,
+		},
+		{
+			name:       "single entry multiple lines",
+			entryY:     []int{0},
+			totalLines: 4,
+			line:       3,
+			want:       0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := logEntryAtVisualLine(tt.entryY, tt.totalLines, tt.line)
+			if got != tt.want {
+				t.Errorf("logEntryAtVisualLine(%v, %d, %d) = %d, want %d",
+					tt.entryY, tt.totalLines, tt.line, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRefreshSummaryLoggedOnDiskChange(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	snaps := []snapshot.Snapshot{
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
+	}
+
+	// First refresh.
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: snaps, TMStatus: "Configured",
+		DiskInfo: platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	// Second refresh: different disk info.
+	updated, _ = model.Update(RefreshResultMsg{
+		Snapshots: snaps, TMStatus: "Configured",
+		DiskInfo: platform.DiskInfo{Total: "460Gi", Used: "220Gi", Available: "237Gi", Percent: "49%"},
+	})
+	model = updated.(Model)
+
+	entries := model.log.Entries()
+	var refreshCount int
+	for _, e := range entries {
+		if e.Category == logger.CatRefresh && strings.Contains(e.Message, "Refresh:") {
+			refreshCount++
+		}
+	}
+	if refreshCount != 2 {
+		t.Errorf("REFRESH summary entries = %d, want 2 (disk changed between refreshes)", refreshCount)
 	}
 }

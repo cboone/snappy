@@ -153,6 +153,7 @@ func runTUI(_ *cobra.Command, _ []string) error {
 		MaxFiles:   cfg.LogMaxFiles,
 	})
 	defer log.Close()
+	log.LoadTail()
 
 	runner := platform.OSRunner{}
 	startupCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -161,7 +162,7 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	// One-time startup: discover APFS volume and check TM status
 	apfsVolume, err := platform.FindAPFSVolume(startupCtx, runner, config.DefaultMount)
 	if err != nil {
-		log.Log(logger.Startup, fmt.Sprintf("Warning: failed to discover APFS volume for %s: %v", config.DefaultMount, err))
+		log.Log(logger.LevelWarn, logger.CatStartup, fmt.Sprintf("Failed to discover APFS volume for %s: %v", config.DefaultMount, err))
 	}
 	tmStatus := platform.CheckStatus(startupCtx, runner)
 
@@ -174,12 +175,12 @@ func runTUI(_ *cobra.Command, _ []string) error {
 		apfsContainer = mountInfo.APFSContainerReference
 	}
 
-	log.Log(logger.Startup, startupSummary(version, volumeName, cfg.RefreshInterval))
+	log.Log(logger.LevelInfo, logger.CatStartup, startupSummary(version, volumeName, cfg.RefreshInterval))
 	if apfsVolume != "" {
-		log.Log(logger.Startup, fmt.Sprintf("apfs-volume=%s", apfsVolume))
+		log.Log(logger.LevelInfo, logger.CatStartup, fmt.Sprintf("apfs-volume=%s", apfsVolume))
 	}
 	if apfsContainer != "" {
-		log.Log(logger.Startup, fmt.Sprintf("apfs-container=%s", apfsContainer))
+		log.Log(logger.LevelInfo, logger.CatStartup, fmt.Sprintf("apfs-container=%s", apfsContainer))
 	}
 	// Check if a background daemon holds the auto-snapshot lock.
 	lockPath := service.DefaultLockPath(cfg.LogDir)
@@ -188,7 +189,7 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	if daemonActive {
 		log.Log(logger.Startup, "Background service detected; TUI auto-snapshots disabled")
 	}
-	log.Log(logger.Startup, fmt.Sprintf("auto-snapshot=%v | every %ds | thin >%ds to %ds",
+	log.Log(logger.LevelInfo, logger.CatStartup, fmt.Sprintf("auto-snapshot=%v | every %ds | thin >%ds to %ds",
 		cfg.AutoEnabled, int(cfg.AutoSnapshotInterval.Seconds()),
 		int(cfg.ThinAgeThreshold.Seconds()), int(cfg.ThinCadence.Seconds())))
 
