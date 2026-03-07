@@ -220,9 +220,9 @@ Edit the constants at the top of the script:
 
 ## Background
 
-TODO: Write.
+I began building it to replicate the functionality of [`zsh-auto-snapshot`](https://manpages.debian.org/trixie/zfs-auto-snapshot/zfs-auto-snapshot.8.en.html), which allows Linux users (who are using [the zfs filesystem](https://en.wikipedia.org/wiki/ZFS)) to...
 
-I began building it to replicate the functionality of [`zsh-auto-snapshot`](https://manpages.debian.org/trixie/zfs-auto-snapshot/zfs-auto-snapshot.8.en.html), which allows Linux users (who are using [the zfs filesystem](https://en.wikipedia.org/wiki/ZFS)) to
+TODO: Write.
 
 ## Limitations
 
@@ -230,9 +230,9 @@ TODO: Write.
 
 ## Comparison
 
-TODO: Write.
-
 There are other good tools that provide similar functionality.
+
+TODO: Write.
 
 ## Open Questions
 
