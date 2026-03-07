@@ -905,10 +905,6 @@ func (m *Model) updateLogViewContent() {
 }
 
 func countPrependedLogLines(entries []logger.Entry, prevLastSeq uint64, msgW int) int {
-	if prevLastSeq == 0 {
-		return 0
-	}
-
 	prependedLines := 0
 	for i := len(entries) - 1; i >= 0; i-- {
 		if entries[i].Seq <= prevLastSeq {
