@@ -171,7 +171,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 	case key.Matches(msg, m.keys.AutoSnap):
 		if m.daemonActive {
-			m.log.Log(logger.Info, "Auto-snapshots managed by background service (snappy service stop to take over)")
+			m.log.Log(logger.LevelInfo, logger.CatAuto, "Auto-snapshots managed by background service (snappy service stop to take over)")
 			m.updateLogViewContent()
 			return m, nil
 		}
@@ -359,12 +359,12 @@ func (m *Model) syncDaemonState(now time.Time) {
 		if m.auto.Enabled() {
 			m.auto.Toggle(now)
 		}
-		m.log.Log(logger.Info, "Background service detected; TUI auto-snapshots disabled")
+		m.log.Log(logger.LevelInfo, logger.CatAuto, "Background service detected; TUI auto-snapshots disabled")
 		m.updateLogViewContent()
 
 	case !lockHeld && m.daemonActive:
 		m.daemonActive = false
-		m.log.Log(logger.Info, "Background service no longer detected; press 'a' to enable auto-snapshots")
+		m.log.Log(logger.LevelInfo, logger.CatAuto, "Background service no longer detected; press 'a' to enable auto-snapshots")
 		m.updateLogViewContent()
 	}
 }

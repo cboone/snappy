@@ -41,14 +41,14 @@ func TestRunIterationLogsAndContinues(t *testing.T) {
 	}
 
 	output := buf.String()
-	if !strings.Contains(output, "ERROR") {
-		t.Errorf("output missing ERROR log line, got:\n%s", output)
+	if !strings.Contains(output, "SNAPSHOT") {
+		t.Errorf("output missing SNAPSHOT log line, got:\n%s", output)
 	}
 	if !strings.Contains(output, "permission denied") {
 		t.Errorf("output missing error details, got:\n%s", output)
 	}
-	if !strings.Contains(output, "INFO") {
-		t.Errorf("output missing INFO log line (should continue after error), got:\n%s", output)
+	if !strings.Contains(output, "REFRESH") {
+		t.Errorf("output missing REFRESH log line (should continue after error), got:\n%s", output)
 	}
 }
 
@@ -83,11 +83,8 @@ func TestRunIterationSuccess(t *testing.T) {
 	if !strings.Contains(output, "CREATED") {
 		t.Errorf("output missing SNAPSHOT log line, got:\n%s", output)
 	}
-	if !strings.Contains(output, "INFO") {
-		t.Errorf("output missing INFO log line, got:\n%s", output)
-	}
-	if strings.Contains(output, "ERROR") {
-		t.Errorf("unexpected ERROR in output:\n%s", output)
+	if !strings.Contains(output, "REFRESH") {
+		t.Errorf("output missing REFRESH log line, got:\n%s", output)
 	}
 }
 
@@ -129,7 +126,7 @@ func TestRunIterationLogsPostThinCount(t *testing.T) {
 	if !strings.Contains(output, "Thinned 1 snapshot(s)") {
 		t.Fatalf("output missing thin count, got:\n%s", output)
 	}
-	if !strings.Contains(output, "INFO") || !strings.Contains(output, "1 snapshot(s)") {
+	if !strings.Contains(output, "REFRESH") || !strings.Contains(output, "1 snapshot(s)") {
 		t.Fatalf("output missing post-thin list count, got:\n%s", output)
 	}
 }
@@ -208,14 +205,14 @@ func TestDualLogWritesToBothDestinations(t *testing.T) {
 	defer log.Close()
 	var buf bytes.Buffer
 
-	if err := dualLog(&buf, log, logger.Info, "test message %d", 99); err != nil {
+	if err := dualLog(&buf, log, logger.LevelInfo, logger.CatRefresh, "test message %d", 99); err != nil {
 		t.Fatalf("dualLog returned unexpected error: %v", err)
 	}
 
 	// Verify writer output.
 	output := buf.String()
-	if !strings.Contains(output, "INFO") {
-		t.Errorf("writer output missing event type, got: %s", output)
+	if !strings.Contains(output, "REFRESH") {
+		t.Errorf("writer output missing category, got: %s", output)
 	}
 	if !strings.Contains(output, "test message 99") {
 		t.Errorf("writer output missing message, got: %s", output)
@@ -227,8 +224,11 @@ func TestDualLogWritesToBothDestinations(t *testing.T) {
 		t.Fatal("logger has no entries after dualLog")
 	}
 	last := entries[len(entries)-1]
-	if last.Type != logger.Info {
-		t.Errorf("logger entry type = %q, want %q", last.Type, logger.Info)
+	if last.Level != logger.LevelInfo {
+		t.Errorf("logger entry level = %q, want %q", last.Level, logger.LevelInfo)
+	}
+	if last.Category != logger.CatRefresh {
+		t.Errorf("logger entry category = %q, want %q", last.Category, logger.CatRefresh)
 	}
 	if !strings.Contains(last.Message, "test message 99") {
 		t.Errorf("logger entry message = %q, want to contain %q", last.Message, "test message 99")

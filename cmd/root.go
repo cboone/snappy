@@ -187,7 +187,7 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	daemonActive := service.IsHeld(lockPath)
 
 	if daemonActive {
-		log.Log(logger.Startup, "Background service detected; TUI auto-snapshots disabled")
+		log.Log(logger.LevelInfo, logger.CatStartup, "Background service detected; TUI auto-snapshots disabled")
 	}
 	log.Log(logger.LevelInfo, logger.CatStartup, fmt.Sprintf("auto-snapshot=%v | every %ds | thin >%ds to %ds",
 		cfg.AutoEnabled, int(cfg.AutoSnapshotInterval.Seconds()),

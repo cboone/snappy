@@ -59,7 +59,7 @@ func runDaemon(cmd *cobra.Command, _ []string) error {
 	runner := newRunner()
 	w := cmd.OutOrStdout()
 
-	if err := dualLog(w, log, logger.Startup, "snappy run (interval=%s, thin >%s to %s)",
+	if err := dualLog(w, log, logger.LevelInfo, logger.CatStartup, "snappy run (interval=%s, thin >%s to %s)",
 		cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence); err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func runDaemon(cmd *cobra.Command, _ []string) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return dualLog(w, log, logger.Info, "signal received, exiting")
+			return dualLog(w, log, logger.LevelInfo, logger.CatShutdown, "signal received, exiting")
 		case <-ticker.C:
 			if err := runIteration(ctx, w, log, runner, cfg); err != nil {
 				return err
@@ -95,15 +95,15 @@ func runIteration(ctx context.Context, w io.Writer, log *logger.Logger, runner p
 
 	switch {
 	case err != nil:
-		if err := dualLog(w, log, logger.Error, "create snapshot: %v", err); err != nil {
+		if err := dualLog(w, log, logger.LevelError, logger.CatSnapshot, "create snapshot: %v", err); err != nil {
 			return err
 		}
 	case date == "":
-		if err := dualLog(w, log, logger.Created, "Created: <unknown date>"); err != nil {
+		if err := dualLog(w, log, logger.LevelInfo, logger.CatCreated, "Created: <unknown date>"); err != nil {
 			return err
 		}
 	default:
-		if err := dualLog(w, log, logger.Created, "Created: %s", date); err != nil {
+		if err := dualLog(w, log, logger.LevelInfo, logger.CatCreated, "Created: %s", date); err != nil {
 			return err
 		}
 	}
@@ -114,7 +114,7 @@ func runIteration(ctx context.Context, w io.Writer, log *logger.Logger, runner p
 	loadCancel()
 
 	if err != nil {
-		return dualLog(w, log, logger.Error, "list snapshots: %v", err)
+		return dualLog(w, log, logger.LevelError, logger.CatRefresh, "list snapshots: %v", err)
 	}
 
 	// Thin old snapshots.
@@ -126,7 +126,7 @@ func runIteration(ctx context.Context, w io.Writer, log *logger.Logger, runner p
 	if len(targets) > 0 {
 		deleted, deleteErr := deleteSnapshots(ctx, runner, targets)
 		if deleteErr != nil {
-			if err := dualLog(w, log, logger.Error, "thin: %v", deleteErr); err != nil {
+			if err := dualLog(w, log, logger.LevelError, logger.CatThinned, "thin: %v", deleteErr); err != nil {
 				return err
 			}
 		}
@@ -134,20 +134,20 @@ func runIteration(ctx context.Context, w io.Writer, log *logger.Logger, runner p
 		if currentCount < 0 {
 			currentCount = 0
 		}
-		if err := dualLog(w, log, logger.Thinned, "Thinned %d snapshot(s)", deleted); err != nil {
+		if err := dualLog(w, log, logger.LevelInfo, logger.CatThinned, "Thinned %d snapshot(s)", deleted); err != nil {
 			return err
 		}
 	}
 
-	return dualLog(w, log, logger.Info, "%d snapshot(s)", currentCount)
+	return dualLog(w, log, logger.LevelInfo, logger.CatRefresh, "%d snapshot(s)", currentCount)
 }
 
 // dualLog writes a log entry to both stdout (for terminal/launchd capture)
 // and the shared logger (for the snappy.log file).
-func dualLog(w io.Writer, log *logger.Logger, eventType logger.EventType, format string, args ...any) error {
+func dualLog(w io.Writer, log *logger.Logger, level logger.Level, cat logger.Category, format string, args ...any) error {
 	msg := fmt.Sprintf(format, args...)
-	log.Log(eventType, msg)
-	return logLine(w, string(eventType), "%s", msg)
+	log.Log(level, cat, msg)
+	return logLine(w, string(cat), "%s", msg)
 }
 
 // logLine writes a timestamped log line to the given writer.
