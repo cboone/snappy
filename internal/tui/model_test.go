@@ -1453,10 +1453,18 @@ func TestViewPinnedIndicator(t *testing.T) {
 	}
 	// The non-pinned snapshot should not show "pinned".
 	rows := m.snapTable.Rows()
+	nonPinnedChecked := false
 	for _, row := range rows {
-		if strings.Contains(row[0], "14:50:05") && strings.Contains(row[5], "pinned") {
+		if row[0] != "2026-03-01 14:50:00" {
+			continue
+		}
+		nonPinnedChecked = true
+		if strings.Contains(row[5], "pinned") {
 			t.Error("non-pinned snapshot should not show pinned indicator")
 		}
+	}
+	if !nonPinnedChecked {
+		t.Fatal("failed to find non-pinned snapshot row")
 	}
 }
 
