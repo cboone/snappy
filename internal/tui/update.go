@@ -626,9 +626,15 @@ func (m *Model) updateSnapViewContent() {
 		if snap.UUID != "" {
 			xid = fmt.Sprintf("%d", snap.XID)
 			uuid = snap.UUID
-			if snap.LimitsShrink {
-				status = indicatorWarning + " limits shrink"
+
+			var parts []string
+			if _, pinned := m.thinPinned[snap.Date]; pinned {
+				parts = append(parts, indicatorPinned+" pinned")
 			}
+			if snap.LimitsShrink {
+				parts = append(parts, indicatorWarning+" limits shrink")
+			}
+			status = strings.Join(parts, " ")
 			// Compute XID delta from the predecessor in ascending order.
 			if i > 0 && m.snapshots[i-1].UUID != "" {
 				delta = fmt.Sprintf("%d", snap.XID-m.snapshots[i-1].XID)
