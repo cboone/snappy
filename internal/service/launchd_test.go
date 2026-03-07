@@ -280,6 +280,37 @@ func TestReadBinaryFromPlistRoundTrip(t *testing.T) {
 	}
 }
 
+func TestReadLogPathFromPlistRoundTrip(t *testing.T) {
+	cfg := PlistConfig{
+		Label:      "com.cboone.snappy",
+		BinaryPath: "/opt/homebrew/bin/snappy",
+		LogDir:     "/Users/test/.local/share/snappy",
+	}
+
+	data, err := GeneratePlist(cfg)
+	if err != nil {
+		t.Fatalf("GeneratePlist() error = %v", err)
+	}
+
+	path := filepath.Join(t.TempDir(), "roundtrip.plist")
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := ReadLogPathFromPlist(path)
+	want := "/Users/test/.local/share/snappy/snappy-service.log"
+	if got != want {
+		t.Errorf("ReadLogPathFromPlist() = %q, want %q", got, want)
+	}
+}
+
+func TestReadLogPathFromPlistMissing(t *testing.T) {
+	got := ReadLogPathFromPlist("/nonexistent/path.plist")
+	if got != "" {
+		t.Errorf("ReadLogPathFromPlist() = %q, want empty for nonexistent file", got)
+	}
+}
+
 func TestLogPath(t *testing.T) {
 	got := LogPath("/some/dir")
 	want := "/some/dir/snappy-service.log"

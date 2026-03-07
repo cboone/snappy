@@ -292,9 +292,10 @@ func parseRuntimeFromPrint(output string) (running bool, pid int) {
 }
 
 // launchdPlist is the subset of a launchd plist we need for reading back
-// the binary path.
+// the binary path and log path.
 type launchdPlist struct {
 	ProgramArguments []string `plist:"ProgramArguments"`
+	StandardOutPath  string   `plist:"StandardOutPath"`
 }
 
 // readBinaryFromPlist reads the first ProgramArguments string from a plist
@@ -318,6 +319,21 @@ func readBinaryFromPlist(path string) string {
 // LogPath returns the path to the service's stdout/stderr log file.
 func LogPath(logDir string) string {
 	return filepath.Join(logDir, "snappy-service.log")
+}
+
+// ReadLogPathFromPlist reads the StandardOutPath from an installed plist file.
+// Returns an empty string if the file cannot be read or parsed.
+func ReadLogPathFromPlist(path string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+
+	var pl launchdPlist
+	if _, err := plist.Unmarshal(data, &pl); err != nil {
+		return ""
+	}
+	return pl.StandardOutPath
 }
 
 // ErrNotInstalled is returned when a service operation requires an installed
