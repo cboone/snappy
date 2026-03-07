@@ -73,7 +73,7 @@ jobs:
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
-          version: v2.10.1
+          version: v2.11.1
 
       - name: Lint Markdown
         run: make lint-md
