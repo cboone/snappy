@@ -36,30 +36,35 @@ func (m Model) View() tea.View {
 	return v
 }
 
-func (m Model) renderInfoPanel(width int) string {
-	cw := contentWidth(width)
-
-	// Build the dot indicator.
+func (m Model) buildDotIndicator() string {
 	dot := indicatorOff
 	if m.auto.Enabled() {
 		dot = indicatorOn
 	}
 	if m.loading {
-		dot = m.styles.textYellow.Render(dot)
-	} else {
-		dot = m.styles.textGreen.Render(dot)
+		return m.styles.textYellow.Render(dot)
 	}
+	return m.styles.textGreen.Render(dot)
+}
 
-	// Build the spinner suffix (if any activity is in progress).
-	var spinnerSuffix string
+func (m Model) buildSpinnerSuffix() string {
 	switch {
 	case m.snapshotting:
-		spinnerSuffix = "  Snapshotting " + m.spinner.View()
+		return "  Snapshotting " + m.spinner.View()
 	case m.thinning:
-		spinnerSuffix = "  Thinning " + m.spinner.View()
+		return "  Thinning " + m.spinner.View()
 	case m.loading:
-		spinnerSuffix = "  Refreshing " + m.spinner.View()
+		return "  Refreshing " + m.spinner.View()
+	default:
+		return ""
 	}
+}
+
+func (m Model) renderInfoPanel(width int) string {
+	cw := contentWidth(width)
+
+	dot := m.buildDotIndicator()
+	spinnerSuffix := m.buildSpinnerSuffix()
 
 	// Build the info panel body.
 	lastRefresh := "never"
