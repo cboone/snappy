@@ -211,6 +211,10 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.setFocusPanel((m.focusPanel + 1) % 3)
 		return m, nil
 
+	case key.Matches(msg, m.keys.ShiftTab):
+		m.setFocusPanel((m.focusPanel + 2) % 3)
+		return m, nil
+
 	case key.Matches(msg, m.keys.ScrollUp, m.keys.ScrollDown):
 		return m.handleScroll(msg)
 	}

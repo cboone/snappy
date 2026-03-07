@@ -25,6 +25,7 @@ type keyMap struct {
 	ScrollUp   key.Binding
 	ScrollDown key.Binding
 	Tab        key.Binding
+	ShiftTab   key.Binding
 }
 
 func (k keyMap) ShortHelp() []key.Binding {
@@ -34,7 +35,7 @@ func (k keyMap) ShortHelp() []key.Binding {
 func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Snapshot, k.Refresh, k.AutoSnap, k.OpenLog, k.Quit},
-		{k.ScrollUp, k.ScrollDown, k.Tab},
+		{k.ScrollUp, k.ScrollDown, k.Tab, k.ShiftTab},
 	}
 }
 
@@ -70,7 +71,11 @@ func defaultKeyMap() keyMap {
 		),
 		Tab: key.NewBinding(
 			key.WithKeys("tab"),
-			key.WithHelp("tab", "focus"),
+			key.WithHelp("tab", "next panel"),
+		),
+		ShiftTab: key.NewBinding(
+			key.WithKeys("shift+tab"),
+			key.WithHelp("shift+tab", "prev panel"),
 		),
 	}
 }
