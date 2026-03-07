@@ -1862,3 +1862,35 @@ func TestLogCursorStableWhenRingBufferAtCapacity(t *testing.T) {
 		}
 	}
 }
+
+func TestLogViewportOffsetPreservedWhenNewEntriesArrive(t *testing.T) {
+	m := testModel()
+	m.width = 80
+	m.height = 40
+
+	// Add enough entries to fill the viewport and allow scrolling.
+	for i := range 20 {
+		m.log.Log(logger.LevelInfo, logger.CatRefresh, fmt.Sprintf("line-%d", i))
+	}
+	m.updateLogViewContent()
+
+	// Scroll viewport down so YOffset > 0.
+	m.logView.SetYOffset(5)
+	initialOffset := m.logView.YOffset()
+	if initialOffset != 5 {
+		t.Fatalf("setup: YOffset = %d, want 5", initialOffset)
+	}
+
+	// Add 3 more entries, which prepend in newest-first display.
+	for i := range 3 {
+		m.log.Log(logger.LevelInfo, logger.CatRefresh, fmt.Sprintf("new-line-%d", i))
+	}
+	m.updateLogViewContent()
+
+	// The offset should increase by the number of new visual lines (3 single-line entries).
+	got := m.logView.YOffset()
+	want := initialOffset + 3
+	if got != want {
+		t.Errorf("YOffset after new entries = %d, want %d", got, want)
+	}
+}

@@ -843,8 +843,22 @@ func (m *Model) updateLogViewContent() {
 		visualLine += len(msgLines)
 		displayIdx++
 	}
+	prevOffset := m.logView.YOffset()
+	prevTotalLines := m.logTotalLines
+
 	m.logTotalLines = visualLine
 	m.logView.SetContent(b.String())
+
+	// Preserve viewport position when the user has scrolled away from the top.
+	// New entries prepend to the newest-first display, shifting everything down.
+	if prevOffset > 0 && m.logTotalLines > prevTotalLines {
+		newOffset := prevOffset + (m.logTotalLines - prevTotalLines)
+		maxOffset := max(m.logTotalLines-m.logView.Height(), 0)
+		if newOffset > maxOffset {
+			newOffset = maxOffset
+		}
+		m.logView.SetYOffset(newOffset)
+	}
 }
 
 // logEntryAtVisualLine returns the entry index whose visual line range
