@@ -41,7 +41,7 @@ func (m Model) renderInfoPanel(width int) string {
 
 	// Build the title string for embedding in the border.
 	dot := indicatorOff
-	if m.auto.Enabled() {
+	if m.auto.Enabled() || m.daemonActive {
 		dot = indicatorOn
 	}
 	if m.loading {

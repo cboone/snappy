@@ -6,7 +6,7 @@ Addresses: [#8](https://github.com/cboone/snappy/issues/8) (set up launchd), [#2
 
 Snappy's auto-snapshot loop currently only runs when the TUI is open. If the user
 closes the terminal, snapshots stop. This defeats the purpose of "automatically
-increase your Time Machine snapshot frequency." The `snappy run` foreground daemon
+increase your Time Machine snapshot frequency." The `snappy run` foreground service
 exists but has no way to start at login, no integration with the shared logger,
 and no protection against multiple instances running simultaneously.
 
@@ -15,7 +15,7 @@ This plan adds:
 - A launchd LaunchAgent so `snappy run` starts at login and persists in the background
 - File-based locking so only one auto-snapshot routine runs at a time
 - `snappy service` commands for full lifecycle management
-- TUI awareness of the running daemon
+- TUI awareness of the running service
 - Shared logger integration for `snappy run`
 - Homebrew caveats and install.sh instructions
 
@@ -34,8 +34,8 @@ Runs as the current user, has access to the home directory. Label: `com.cboone.s
 `snappy service install`. No auto-start. The GoReleaser `homebrew_casks` config
 gets `caveats` and `uninstall.launchctl` fields added.
 
-**TUI coexistence**: When the daemon holds the lock, the TUI disables auto-snapshots
-and shows "daemon active" in the info panel. Manual snapshot creation ('s') still
+**TUI coexistence**: When the service holds the lock, the TUI disables auto-snapshots
+and shows "service active" in the info panel. Manual snapshot creation ('s') still
 works. The auto-snap toggle ('a') logs a message instead of toggling.
 
 ## Implementation
@@ -139,10 +139,10 @@ At the start of `runDaemon`:
 3. Acquire lock; exit with clear message if `ErrLocked`
 4. Create a `logger.Logger` (file logging, no ring buffer needed)
 5. Replace `logLine(w, ...)` calls with a helper that writes to both stdout and
-   the shared logger, so daemon entries appear in `snappy.log`
+   the shared logger, so service entries appear in `snappy.log`
 6. Defer `lock.Release()` and `log.Close()`
 
-The logger already handles directory creation and file rotation. The daemon's
+The logger already handles directory creation and file rotation. The service's
 entries will be interleaved with TUI entries in the same log file (safe via
 `O_APPEND` atomicity for small writes).
 
@@ -193,7 +193,7 @@ Log:       ~/.local/share/snappy/snappy-service.log
 
 Tests using the existing `mockRunner` pattern from `cmd/mock_test.go`.
 
-### Step 5: TUI daemon awareness
+### Step 5: TUI service awareness
 
 **Modified: `cmd/root.go`**
 
@@ -222,11 +222,11 @@ In `formatAutoStatus()`, add a third branch:
 ```go
 if m.daemonActive {
     return label("Auto-snapshot:") + " " + indicatorOn + " " +
-        m.styles.statusOn.Render("daemon") + ...
+        m.styles.textCyan.Render("service") + ...
 }
 ```
 
-Show the daemon's config (interval, thin settings) so the user sees what's configured.
+Show the service's config (interval, thin settings) so the user sees what's configured.
 
 **Modified: `internal/tui/update.go`**
 
@@ -311,10 +311,10 @@ Add `internal/service/` to the structure listing.
 | `cmd/service.go`                   | New    | `snappy service` command group         |
 | `cmd/service_test.go`              | New    | Service command tests                  |
 | `cmd/run.go`                       | Modify | Add lock acquisition, shared logger    |
-| `cmd/root.go`                      | Modify | Detect daemon, pass to TUI             |
+| `cmd/root.go`                      | Modify | Detect service, pass to TUI            |
 | `internal/tui/model.go`            | Modify | Add `daemonActive` field               |
-| `internal/tui/view.go`             | Modify | Show daemon status in info panel       |
-| `internal/tui/update.go`           | Modify | Handle 'a' key when daemon active      |
+| `internal/tui/view.go`             | Modify | Show service status in info panel      |
+| `internal/tui/update.go`           | Modify | Handle 'a' key when service active     |
 | `install.sh`                       | Modify | Print service setup instructions       |
 | `.goreleaser.yml`                  | Modify | Add caveats and uninstall.launchctl    |
 | `README.md`                        | Modify | Document background service            |
@@ -327,14 +327,14 @@ Add `internal/service/` to the structure listing.
   warns. Fix: `snappy service install` again.
 - **Two `snappy run` instances**: Second one exits immediately with
   "another snappy auto-snapshot process is already running."
-- **TUI + daemon**: TUI detects lock, disables auto-snapshots, shows daemon indicator.
+- **TUI + service**: TUI detects lock, disables auto-snapshots, shows service indicator.
   Manual snapshot ('s') still works.
 - **Stale lock after crash**: `flock` is kernel-managed; automatically released
   on process exit. No cleanup needed.
 - **Log directory missing**: Both logger and lock `Acquire` call `os.MkdirAll`.
-- **Config changes while daemon runs**: Daemon must be restarted to pick up changes
+- **Config changes while service runs**: Service must be restarted to pick up changes
   (`snappy service stop && snappy service start`). Note this in docs.
-- **Homebrew upgrade**: Binary is replaced in-place; next daemon restart uses new
+- **Homebrew upgrade**: Binary is replaced in-place; next service restart uses new
   version. `KeepAlive` in the plist handles the restart.
 
 ## Verification
@@ -344,13 +344,13 @@ Add `internal/service/` to the structure listing.
 3. `make test-scrut` passes (updated help output, new service tests)
 4. `make lint` clean
 5. Manual testing:
-   - `snappy service install` creates plist, starts daemon
+   - `snappy service install` creates plist, starts service
    - `snappy service status` shows running + PID
    - `snappy run` (manual) fails with "already running"
-   - `snappy` (TUI) shows "daemon" indicator, 'a' key shows message
-   - `snappy service stop` stops daemon
+   - `snappy` (TUI) shows "service" indicator, 'a' key shows message
+   - `snappy service stop` stops service
    - `snappy run` (manual) succeeds, acquires lock
-   - `snappy` (TUI) while manual `run` is active shows daemon indicator
+   - `snappy` (TUI) while manual `run` is active shows service indicator
    - `snappy service uninstall` removes plist
    - Reboot: agent starts automatically (RunAtLoad)
    - Agent crash: launchd restarts (KeepAlive + ThrottleInterval)
