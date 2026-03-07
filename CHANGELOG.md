@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-03-07
+
+### Added
+
+- Diagonal flash border effect on panel focus change
+- Lock around TUI auto-snapshots to prevent race with daemon
+- Tidemark fetch failure logging in TUI refresh
+- Decoupled mouse wheel scroll from selection in TUI panels
+- Derived service log path from installed plist instead of config
+
+### Fixed
+
+- Addressed Copilot review feedback
+- Corrected IsHeld comment and removed premature guard in log viewport
+- Kept log viewport stable on resize
+- Ignored TUI autosnapshot lock in daemon sync
+- Resolved lint issues from prior commits
+- Used shared lock in IsHeld to eliminate race with Acquire
+- Preserved log viewport position when new entries arrive
+- Prevented log cursor drift when ring buffer is at capacity
+- Excluded user-created snapshots from first-refresh FOUND count
+- Used clipped snapshot content in flash path to prevent layout jump
+- Used lipgloss.Width for consistent display-width measurement in flash title
+- Updated stale comment and simplified constant expression
+- Returned flash tick command from shift-tab handler
+- Ignored stale flash ticks during focus changes
+- Cached snapshot table render output for repaint performance
+
+### Changed
+
+- Used plist serializer instead of text/template for GeneratePlist
+- Replaced NewModel parameter list with ModelParams struct
+- Extracted helpers from renderInfoPanel to reduce cyclomatic complexity
+- Derived snapVisibleRows default from table height constant
+- Added gold glint shimmer effect on panel focus change
+- Tuned flash animation speed per color scheme
+- Reversed flash shimmer direction for shift-tab navigation
+- Sped up flash animation tick from 30ms to 25ms
+- Increased dark-mode contrast for unfocused panels and help bar
+
+### Performance
+
+- Only update AGE column on UI tick instead of full table rebuild
+
 ## [0.7.0] - 2026-03-06
 
 ### Added
@@ -230,7 +274,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add shellcheckrc with all checks enabled
 
-[unreleased]: https://github.com/cboone/snappy/compare/v0.7.0...HEAD
+[unreleased]: https://github.com/cboone/snappy/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/cboone/snappy/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/cboone/snappy/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/cboone/snappy/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/cboone/snappy/compare/v0.4.1...v0.5.0
