@@ -146,12 +146,12 @@ rendered := style.Width(sw).Render(clipped)
 
 ## Files to Modify
 
-| File | Summary |
-|------|---------|
-| `internal/tui/model.go` | Add `snapScrollOffset`, `snapVisibleRows` fields |
-| `internal/tui/update.go` | Modify `handleMouseWheel`, `handleScroll`, `handleMouseClick`, `handleWindowSize`, `updateSnapViewContent`; add `clampSnapScroll`, `ensureSnapCursorVisible`, `scrollLogView`; remove `snapRowAtVisualLine` |
-| `internal/tui/view.go` | Modify `renderSnapshotPanel` to split and clip table output |
-| `internal/tui/model_test.go` | Update existing scroll/click tests; add new tests |
+| File                         | Summary                                                                                                                                                                                                     |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `internal/tui/model.go`      | Add `snapScrollOffset`, `snapVisibleRows` fields                                                                                                                                                            |
+| `internal/tui/update.go`     | Modify `handleMouseWheel`, `handleScroll`, `handleMouseClick`, `handleWindowSize`, `updateSnapViewContent`; add `clampSnapScroll`, `ensureSnapCursorVisible`, `scrollLogView`; remove `snapRowAtVisualLine` |
+| `internal/tui/view.go`       | Modify `renderSnapshotPanel` to split and clip table output                                                                                                                                                 |
+| `internal/tui/model_test.go` | Update existing scroll/click tests; add new tests                                                                                                                                                           |
 
 ## Tests
 
