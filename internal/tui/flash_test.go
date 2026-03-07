@@ -85,20 +85,53 @@ func TestFlashDiagonalValue(t *testing.T) {
 	}
 }
 
+func TestGlintPeak(t *testing.T) {
+	tests := []struct {
+		name   string
+		d      float64
+		center float64
+		radius float64
+		want   float64
+	}{
+		{"at center", 1.0, 1.0, 0.25, 1.0},
+		{"at left edge", 0.75, 1.0, 0.25, 0},
+		{"at right edge", 1.25, 1.0, 0.25, 0},
+		{"outside left", 0.5, 1.0, 0.25, 0},
+		{"outside right", 1.5, 1.0, 0.25, 0},
+		{"halfway left", 0.875, 1.0, 0.25, 0.5625}, // t=-0.5, v=1-t*t=0.75, result=v*v=0.5625
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := glintPeak(tt.d, tt.center, tt.radius)
+			if math.Abs(got-tt.want) > 1e-9 {
+				t.Errorf("glintPeak(%g, %g, %g) = %g, want %g", tt.d, tt.center, tt.radius, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestFlashCharColor(t *testing.T) {
 	dim := colorful.Color{R: 0, G: 0, B: 0}
 	bright := colorful.Color{R: 1, G: 1, B: 1}
+	glint := colorful.Color{R: 1, G: 0.84, B: 0} // gold
 
 	tests := []struct {
 		name    string
 		d       float64
 		gaining bool
+		reverse bool
 		wantR   float64
 	}{
-		{"gaining, far left of beam", 0, true, 1},  // bright
-		{"gaining, far right of beam", 2, true, 0}, // dim
-		{"losing, far left of beam", 0, false, 0},  // dim
-		{"losing, far right of beam", 2, false, 1}, // bright
+		// Far from beam: no glint, pure transition.
+		{"gaining, far left of beam", 0, true, false, 1},         // bright
+		{"gaining, far right of beam", 2, true, false, 0},        // dim
+		{"losing, far left of beam", 0, false, false, 0},         // dim
+		{"losing, far right of beam", 2, false, false, 1},        // bright
+		{"reverse gaining, far left of beam", 0, true, true, 0},  // dim
+		{"reverse gaining, far right of beam", 2, true, true, 1}, // bright
+		{"reverse losing, far left of beam", 0, false, true, 1},  // bright
+		{"reverse losing, far right of beam", 2, false, true, 0}, // dim
 	}
 
 	for _, tt := range tests {
@@ -107,30 +140,59 @@ func TestFlashCharColor(t *testing.T) {
 				beamCenter: 1.0,
 				dim:        dim,
 				bright:     bright,
+				glint:      glint,
 				gaining:    tt.gaining,
+				reverse:    tt.reverse,
 			}
 			got := flashCharColor(tt.d, ctx)
 			if math.Abs(got.R-tt.wantR) > 0.01 {
-				t.Errorf("flashCharColor(%g, gaining=%v).R = %g, want %g", tt.d, tt.gaining, got.R, tt.wantR)
+				t.Errorf("flashCharColor(%g, gaining=%v, reverse=%v).R = %g, want %g", tt.d, tt.gaining, tt.reverse, got.R, tt.wantR)
 			}
 		})
+	}
+}
+
+func TestFlashCharColorGlintAtBeamCenter(t *testing.T) {
+	dim := colorful.Color{R: 0, G: 0, B: 0}
+	bright := colorful.Color{R: 0.5, G: 0.5, B: 0.5}
+	glint := colorful.Color{R: 1, G: 1, B: 0} // yellow
+
+	ctx := flashCtx{
+		beamCenter: 1.0,
+		dim:        dim,
+		bright:     bright,
+		glint:      glint,
+		gaining:    true,
+	}
+	got := flashCharColor(1.0, ctx)
+
+	// At beam center the glint peaks at full intensity, so the color
+	// should be very close to the glint color, not the transition base.
+	if got.R < 0.9 {
+		t.Errorf("at beam center, R = %g, want >= 0.9 (glint dominant)", got.R)
 	}
 }
 
 func TestFlashTitleColor(t *testing.T) {
 	dim := colorful.Color{R: 0, G: 0, B: 0}
 	bright := colorful.Color{R: 1, G: 1, B: 1}
+	glint := colorful.Color{R: 1, G: 0.84, B: 0}
 
 	tests := []struct {
 		name    string
 		d       float64
 		gaining bool
+		reverse bool
 		wantR   float64
 	}{
-		{"gaining, far left of beam", 0, true, 1},
-		{"gaining, far right of beam", 2, true, 0},
-		{"losing, far left of beam", 0, false, 0},
-		{"losing, far right of beam", 2, false, 1},
+		{"gaining, far left of beam", 0, true, false, 1},
+		{"gaining, far right of beam", 2, true, false, 0},
+		{"losing, far left of beam", 0, false, false, 0},
+		{"losing, far right of beam", 2, false, false, 1},
+		{"reverse gaining, far left of beam", 0, true, true, 0},
+		{"reverse gaining, far right of beam", 2, true, true, 1},
+		{"reverse losing, far left of beam", 0, false, true, 1},
+		{"reverse losing, far right of beam", 2, false, true, 0},
 	}
 
 	for _, tt := range tests {
@@ -139,11 +201,13 @@ func TestFlashTitleColor(t *testing.T) {
 				beamCenter:  1.0,
 				titleDim:    dim,
 				titleBright: bright,
+				glint:       glint,
 				gaining:     tt.gaining,
+				reverse:     tt.reverse,
 			}
 			got := flashTitleColor(tt.d, ctx)
 			if math.Abs(got.R-tt.wantR) > 0.01 {
-				t.Errorf("flashTitleColor(%g, gaining=%v).R = %g, want %g", tt.d, tt.gaining, got.R, tt.wantR)
+				t.Errorf("flashTitleColor(%g, gaining=%v, reverse=%v).R = %g, want %g", tt.d, tt.gaining, tt.reverse, got.R, tt.wantR)
 			}
 		})
 	}

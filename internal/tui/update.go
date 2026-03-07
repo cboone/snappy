@@ -215,8 +215,9 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case key.Matches(msg, m.keys.ShiftTab):
-		m.setFocusPanel((m.focusPanel + 2) % 3)
-		return m, nil
+		cmd := m.setFocusPanel((m.focusPanel + 2) % 3)
+		m.flash.reverse = true
+		return m, cmd
 
 	case key.Matches(msg, m.keys.ScrollUp, m.keys.ScrollDown):
 		return m.handleScroll(msg)
@@ -306,6 +307,13 @@ func (m Model) handleScroll(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m Model) flashFrames() int {
+	if m.hasDarkBG {
+		return flashFramesDark
+	}
+	return flashFramesLight
+}
+
 func (m *Model) setFocusPanel(panel int) tea.Cmd {
 	if panel == m.focusPanel {
 		return nil
@@ -324,7 +332,7 @@ func (m *Model) setFocusPanel(panel int) tea.Cmd {
 		gainPanel:   panel,
 		losePanel:   prev,
 		frame:       0,
-		totalFrames: flashTotalFrames,
+		totalFrames: m.flashFrames(),
 		id:          nextID,
 	}
 	return flashTick(nextID)

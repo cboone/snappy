@@ -158,7 +158,7 @@ func doThinSnapshots(runner platform.CommandRunner, targets []string) tea.Cmd {
 }
 
 func flashTick(id uint64) tea.Cmd {
-	return tea.Tick(25*time.Millisecond, func(_ time.Time) tea.Msg {
+	return tea.Tick(16*time.Millisecond, func(_ time.Time) tea.Msg {
 		return FlashTickMsg{ID: id}
 	})
 }
