@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	flashTotalFrames = 10
+	flashTotalFrames = 20
 )
 
 // flashState tracks the border flash animation when focus changes.
@@ -34,6 +34,7 @@ type flashCtx struct {
 	beamCenter  float64
 	dim         colorful.Color // unfocused border color
 	bright      colorful.Color // focused border color
+	glint       colorful.Color // bright peak swept across (sunlight on glass)
 	titleDim    colorful.Color // unfocused title foreground
 	titleBright colorful.Color // focused title foreground
 	gaining     bool           // true = dim-to-bright wipe, false = bright-to-dim
@@ -78,35 +79,70 @@ func smoothstep(edge0, edge1, x float64) float64 {
 	return t * t * (3 - 2*t)
 }
 
-// flashCharColor computes the color for a border character using a smoothstep
-// wipe. For a gaining panel, characters left of the beam are bright (focused)
-// and characters right of the beam are dim (unfocused). For a losing panel,
-// the wipe direction is reversed.
+// glintPeak returns the intensity of the glint highlight at diagonal position
+// d, given a beam center and radius. Uses a quartic bump kernel for a smooth
+// peak that reaches 1.0 at the center and 0.0 at the edges.
+func glintPeak(d, center, radius float64) float64 {
+	t := (d - center) / radius
+	if t < -1 || t > 1 {
+		return 0
+	}
+	v := 1 - t*t
+	return v * v
+}
+
+// flashCharColor computes the color for a border character. The base
+// transition sweeps between dim (unfocused) and bright (focused) colors.
+// A narrow glint highlight is overlaid at the beam center, creating a
+// sunlight-on-glass shimmer effect.
 func flashCharColor(d float64, ctx flashCtx) colorful.Color {
-	const halfWidth = 0.15
-	t := smoothstep(ctx.beamCenter-halfWidth, ctx.beamCenter+halfWidth, d)
+	const (
+		transitionHW = 0.15
+		glintRadius  = 0.25
+	)
+	t := smoothstep(ctx.beamCenter-transitionHW, ctx.beamCenter+transitionHW, d)
 	if ctx.reverse {
 		t = 1 - t
 	}
+
+	var base colorful.Color
 	if ctx.gaining {
-		return ctx.bright.BlendLab(ctx.dim, t)
+		base = ctx.bright.BlendLab(ctx.dim, t)
+	} else {
+		base = ctx.dim.BlendLab(ctx.bright, t)
 	}
-	return ctx.dim.BlendLab(ctx.bright, t)
+
+	g := glintPeak(d, ctx.beamCenter, glintRadius)
+	if g > 0 {
+		return base.BlendRgb(ctx.glint, g)
+	}
+	return base
 }
 
 // flashTitleColor computes the foreground color for a title character using
-// the same smoothstep wipe as border characters, blending between the dim
-// and bright title colors.
+// the same transition and glint logic as border characters.
 func flashTitleColor(d float64, ctx flashCtx) colorful.Color {
-	const halfWidth = 0.15
-	t := smoothstep(ctx.beamCenter-halfWidth, ctx.beamCenter+halfWidth, d)
+	const (
+		transitionHW = 0.15
+		glintRadius  = 0.25
+	)
+	t := smoothstep(ctx.beamCenter-transitionHW, ctx.beamCenter+transitionHW, d)
 	if ctx.reverse {
 		t = 1 - t
 	}
+
+	var base colorful.Color
 	if ctx.gaining {
-		return ctx.titleBright.BlendLab(ctx.titleDim, t)
+		base = ctx.titleBright.BlendLab(ctx.titleDim, t)
+	} else {
+		base = ctx.titleDim.BlendLab(ctx.titleBright, t)
 	}
-	return ctx.titleDim.BlendLab(ctx.titleBright, t)
+
+	g := glintPeak(d, ctx.beamCenter, glintRadius)
+	if g > 0 {
+		return base.BlendRgb(ctx.glint, g)
+	}
+	return base
 }
 
 // flashColor converts a go-colorful color to a Lipgloss-compatible color
@@ -140,8 +176,9 @@ func renderFlashBorders(content, titlePrefix, titleLabel, titleSuffix string, co
 		totalWidth:  contentWidth + 4,
 		totalHeight: len(bodyLines) + 2,
 		beamCenter:  beamCenter,
-		dim:         s.flashBase,
-		bright:      s.flashHighlight,
+		dim:         s.flashDim,
+		bright:      s.flashBright,
+		glint:       s.flashGlint,
 		titleDim:    s.flashTitleDim,
 		titleBright: s.flashTitleBright,
 		gaining:     gaining,
