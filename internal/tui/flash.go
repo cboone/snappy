@@ -22,6 +22,7 @@ type flashState struct {
 	losePanel   int // panel losing focus (wipe: bright -> dim)
 	frame       int
 	totalFrames int
+	id          uint64
 }
 
 // flashCtx holds precomputed values for rendering a single flash frame,

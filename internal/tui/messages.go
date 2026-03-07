@@ -35,7 +35,9 @@ type OpenLogDirResultMsg struct {
 }
 
 // FlashTickMsg advances the border flash animation by one frame.
-type FlashTickMsg struct{}
+type FlashTickMsg struct {
+	ID uint64
+}
 
 // ThinResultMsg signals that a thinning operation completed.
 type ThinResultMsg struct {

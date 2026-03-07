@@ -54,7 +54,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleSnapshotCreated(msg)
 
 	case FlashTickMsg:
-		return m.handleFlashTick()
+		return m.handleFlashTick(msg)
 
 	case ThinResultMsg:
 		return m.handleThinResult(msg)
@@ -301,6 +301,7 @@ func (m *Model) setFocusPanel(panel int) tea.Cmd {
 		return nil
 	}
 	prev := m.focusPanel
+	nextID := m.flash.id + 1
 	m.focusPanel = panel
 	if panel == panelSnap {
 		m.snapTable.Focus()
@@ -313,12 +314,13 @@ func (m *Model) setFocusPanel(panel int) tea.Cmd {
 		losePanel:   prev,
 		frame:       0,
 		totalFrames: flashTotalFrames,
+		id:          nextID,
 	}
-	return flashTick()
+	return flashTick(nextID)
 }
 
-func (m Model) handleFlashTick() (tea.Model, tea.Cmd) {
-	if !m.flash.active {
+func (m Model) handleFlashTick(msg FlashTickMsg) (tea.Model, tea.Cmd) {
+	if !m.flash.active || msg.ID != m.flash.id {
 		return m, nil
 	}
 	m.flash.frame++
@@ -326,7 +328,7 @@ func (m Model) handleFlashTick() (tea.Model, tea.Cmd) {
 		m.flash.active = false
 		return m, nil
 	}
-	return m, flashTick()
+	return m, flashTick(m.flash.id)
 }
 
 func (m *Model) moveLogCursor(delta int) {
