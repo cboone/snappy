@@ -119,7 +119,7 @@ This generates a launchd plist, loads it, and starts the service immediately. Yo
 
 ### TUI and service coexistence
 
-Only one auto-snapshot routine runs at a time. When the background service is active, the TUI detects it and disables its own auto-snapshot loop. The TUI header shows "daemon" next to the auto-snapshot indicator so you know the service is handling it. You can still use the TUI to create manual snapshots, browse snapshot history, mount snapshots, and manage thinning.
+Only one auto-snapshot routine runs at a time. When the background service is active, the TUI detects it and disables its own auto-snapshot loop. The TUI header shows "service" next to the auto-snapshot indicator so you know the background service is handling it. You can still use the TUI to create manual snapshots, browse snapshot history, mount snapshots, and manage thinning.
 
 ### Service details
 
