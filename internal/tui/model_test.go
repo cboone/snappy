@@ -1576,7 +1576,7 @@ func TestFlashTickAdvancesMatchingAnimationID(t *testing.T) {
 	}
 }
 
-func TestShiftTabTriggersFlash(t *testing.T) {
+func TestShiftTabTriggersReverseFlash(t *testing.T) {
 	m := testModel()
 	m.focusPanel = panelSnap
 
@@ -1589,7 +1589,31 @@ func TestShiftTabTriggersFlash(t *testing.T) {
 	if !model.flash.active {
 		t.Error("flash should be active after shift-tab")
 	}
+	if !model.flash.reverse {
+		t.Error("flash.reverse should be true for shift-tab")
+	}
 	if cmd == nil {
 		t.Error("expected flash tick command from shift-tab")
+	}
+}
+
+func TestTabTriggersForwardFlash(t *testing.T) {
+	m := testModel()
+	m.focusPanel = panelSnap
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyTab})
+	model := updated.(Model)
+
+	if model.focusPanel != panelLog {
+		t.Errorf("focusPanel = %d, want %d (panelLog)", model.focusPanel, panelLog)
+	}
+	if !model.flash.active {
+		t.Error("flash should be active after tab")
+	}
+	if model.flash.reverse {
+		t.Error("flash.reverse should be false for tab")
+	}
+	if cmd == nil {
+		t.Error("expected flash tick command from tab")
 	}
 }

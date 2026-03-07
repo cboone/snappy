@@ -216,6 +216,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 	case key.Matches(msg, m.keys.ShiftTab):
 		cmd := m.setFocusPanel((m.focusPanel + 2) % 3)
+		m.flash.reverse = true
 		return m, cmd
 
 	case key.Matches(msg, m.keys.ScrollUp, m.keys.ScrollDown):

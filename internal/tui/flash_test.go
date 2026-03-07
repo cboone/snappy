@@ -93,12 +93,17 @@ func TestFlashCharColor(t *testing.T) {
 		name    string
 		d       float64
 		gaining bool
+		reverse bool
 		wantR   float64
 	}{
-		{"gaining, far left of beam", 0, true, 1},  // bright
-		{"gaining, far right of beam", 2, true, 0}, // dim
-		{"losing, far left of beam", 0, false, 0},  // dim
-		{"losing, far right of beam", 2, false, 1}, // bright
+		{"gaining, far left of beam", 0, true, false, 1},         // bright
+		{"gaining, far right of beam", 2, true, false, 0},        // dim
+		{"losing, far left of beam", 0, false, false, 0},         // dim
+		{"losing, far right of beam", 2, false, false, 1},        // bright
+		{"reverse gaining, far left of beam", 0, true, true, 0},  // dim (not yet swept)
+		{"reverse gaining, far right of beam", 2, true, true, 1}, // bright (already swept)
+		{"reverse losing, far left of beam", 0, false, true, 1},  // bright (not yet swept)
+		{"reverse losing, far right of beam", 2, false, true, 0}, // dim (already swept)
 	}
 
 	for _, tt := range tests {
@@ -108,10 +113,11 @@ func TestFlashCharColor(t *testing.T) {
 				dim:        dim,
 				bright:     bright,
 				gaining:    tt.gaining,
+				reverse:    tt.reverse,
 			}
 			got := flashCharColor(tt.d, ctx)
 			if math.Abs(got.R-tt.wantR) > 0.01 {
-				t.Errorf("flashCharColor(%g, gaining=%v).R = %g, want %g", tt.d, tt.gaining, got.R, tt.wantR)
+				t.Errorf("flashCharColor(%g, gaining=%v, reverse=%v).R = %g, want %g", tt.d, tt.gaining, tt.reverse, got.R, tt.wantR)
 			}
 		})
 	}
@@ -125,12 +131,17 @@ func TestFlashTitleColor(t *testing.T) {
 		name    string
 		d       float64
 		gaining bool
+		reverse bool
 		wantR   float64
 	}{
-		{"gaining, far left of beam", 0, true, 1},
-		{"gaining, far right of beam", 2, true, 0},
-		{"losing, far left of beam", 0, false, 0},
-		{"losing, far right of beam", 2, false, 1},
+		{"gaining, far left of beam", 0, true, false, 1},
+		{"gaining, far right of beam", 2, true, false, 0},
+		{"losing, far left of beam", 0, false, false, 0},
+		{"losing, far right of beam", 2, false, false, 1},
+		{"reverse gaining, far left of beam", 0, true, true, 0},
+		{"reverse gaining, far right of beam", 2, true, true, 1},
+		{"reverse losing, far left of beam", 0, false, true, 1},
+		{"reverse losing, far right of beam", 2, false, true, 0},
 	}
 
 	for _, tt := range tests {
@@ -140,10 +151,11 @@ func TestFlashTitleColor(t *testing.T) {
 				titleDim:    dim,
 				titleBright: bright,
 				gaining:     tt.gaining,
+				reverse:     tt.reverse,
 			}
 			got := flashTitleColor(tt.d, ctx)
 			if math.Abs(got.R-tt.wantR) > 0.01 {
-				t.Errorf("flashTitleColor(%g, gaining=%v).R = %g, want %g", tt.d, tt.gaining, got.R, tt.wantR)
+				t.Errorf("flashTitleColor(%g, gaining=%v, reverse=%v).R = %g, want %g", tt.d, tt.gaining, tt.reverse, got.R, tt.wantR)
 			}
 		})
 	}

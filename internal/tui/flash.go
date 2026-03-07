@@ -23,6 +23,7 @@ type flashState struct {
 	frame       int
 	totalFrames int
 	id          uint64
+	reverse     bool // sweep bottom-right to top-left (shift-tab)
 }
 
 // flashCtx holds precomputed values for rendering a single flash frame,
@@ -36,6 +37,7 @@ type flashCtx struct {
 	titleDim    colorful.Color // unfocused title foreground
 	titleBright colorful.Color // focused title foreground
 	gaining     bool           // true = dim-to-bright wipe, false = bright-to-dim
+	reverse     bool           // sweep bottom-right to top-left
 }
 
 // flashBeamCenter returns the beam center position in diagonal-space for the
@@ -83,6 +85,9 @@ func smoothstep(edge0, edge1, x float64) float64 {
 func flashCharColor(d float64, ctx flashCtx) colorful.Color {
 	const halfWidth = 0.15
 	t := smoothstep(ctx.beamCenter-halfWidth, ctx.beamCenter+halfWidth, d)
+	if ctx.reverse {
+		t = 1 - t
+	}
 	if ctx.gaining {
 		return ctx.bright.BlendLab(ctx.dim, t)
 	}
@@ -95,6 +100,9 @@ func flashCharColor(d float64, ctx flashCtx) colorful.Color {
 func flashTitleColor(d float64, ctx flashCtx) colorful.Color {
 	const halfWidth = 0.15
 	t := smoothstep(ctx.beamCenter-halfWidth, ctx.beamCenter+halfWidth, d)
+	if ctx.reverse {
+		t = 1 - t
+	}
 	if ctx.gaining {
 		return ctx.titleBright.BlendLab(ctx.titleDim, t)
 	}
@@ -124,6 +132,9 @@ func renderFlashBorders(content, titlePrefix, titleLabel, titleSuffix string, co
 	if !gaining {
 		beamCenter -= 0.3 // losing panel trails behind
 	}
+	if flash.reverse {
+		beamCenter = 2.3 - beamCenter
+	}
 
 	ctx := flashCtx{
 		totalWidth:  contentWidth + 4,
@@ -134,6 +145,7 @@ func renderFlashBorders(content, titlePrefix, titleLabel, titleSuffix string, co
 		titleDim:    s.flashTitleDim,
 		titleBright: s.flashTitleBright,
 		gaining:     gaining,
+		reverse:     flash.reverse,
 	}
 
 	// Compute full title width for truncation and centering.
