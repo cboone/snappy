@@ -38,11 +38,11 @@ type modelStyles struct {
 func newModelStyles(hasDarkBG bool) modelStyles {
 	lightDark := lipgloss.LightDark(hasDarkBG)
 
-	colorBorder := lightDark(lipgloss.Color("250"), lipgloss.Color("235"))
+	colorBorder := lightDark(lipgloss.Color("250"), lipgloss.Color("240"))
 	colorFocus := lightDark(lipgloss.Black, lipgloss.White)
 	colorHighlight := lightDark(lipgloss.Color("26"), lipgloss.Color("110"))
-	colorTitleDim := lightDark(lipgloss.Color("247"), lipgloss.Color("240"))
-	colorSubtle := lightDark(lipgloss.Color("243"), lipgloss.Color("241"))
+	colorTitleDim := lightDark(lipgloss.Color("247"), lipgloss.Color("246"))
+	colorSubtle := lightDark(lipgloss.Color("243"), lipgloss.Color("245"))
 	colorLabel := lightDark(lipgloss.Color("240"), lipgloss.Color("248"))
 	colorHeading := lightDark(lipgloss.Color("245"), lipgloss.Color("243"))
 	green := lipgloss.Green
