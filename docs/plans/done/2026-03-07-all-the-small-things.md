@@ -47,6 +47,7 @@ destination, which is outside the scope of this branch.
 strings. Easy to swap arguments without a compile error.
 
 **Files:**
+
 - `internal/tui/model.go` - add `ModelParams` struct, update `NewModel` signature
 - `cmd/root.go` - update call site (line ~196)
 - `internal/tui/model_test.go` - update `testModel()` helper (line ~50)
@@ -101,9 +102,10 @@ if !m.hadFirstRefresh && len(diff.Added) > 0 {
 ```
 
 **Tests:** Add a unit test in `model_test.go` that:
+
 1. Creates a model, adds a date to `recentCreated`
-2. Sends a `RefreshResultMsg` containing that date plus others
-3. Asserts the log says "Found N existing" with the reduced count
+1. Sends a `RefreshResultMsg` containing that date plus others
+1. Asserts the log says "Found N existing" with the reduced count
 
 ---
 
@@ -115,6 +117,7 @@ ones without changing `len(entries)`. The cursor adjustment in
 cursor silently drifts.
 
 **Files:**
+
 - `internal/logger/logger.go` - add `Seq uint64` to `Entry`, add `seq uint64`
   counter to `Logger`, increment in `Log()`
 - `internal/tui/model.go` - add `logLastSeq uint64` field to `Model`
@@ -150,10 +153,11 @@ if m.logCursor >= m.logCount {
 ```
 
 **Tests:** Add a test in `model_test.go` that:
+
 1. Fills the ring buffer to capacity (50 entries)
-2. Moves the cursor to a non-zero position
-3. Adds more entries (triggering the at-capacity path)
-4. Asserts the cursor still points at the same logical entry
+1. Moves the cursor to a non-zero position
+1. Adds more entries (triggering the at-capacity path)
+1. Asserts the cursor still points at the same logical entry
 
 ---
 
@@ -239,6 +243,7 @@ and that column widths remain stable.
 `apfsContainer` is set.
 
 **Files:**
+
 - `internal/tui/messages.go` - add `TidemarkErr error` to `RefreshResultMsg`
 - `internal/tui/commands.go` - populate `TidemarkErr` in `doRefresh()`
 - `internal/tui/update.go` - in `handleRefreshResult()`, log when
@@ -300,6 +305,7 @@ auto-snapshots, but the lock state could change between the check and the
 actual snapshot execution.
 
 **Files:**
+
 - `internal/tui/commands.go` - in `doAutoSnapshot()` (or wherever
   auto-snapshots are triggered), attempt to acquire the lock before creating
   the snapshot
@@ -385,6 +391,7 @@ and that values containing `&` are properly escaped.
 different `LogDir`.
 
 **Files:**
+
 - `internal/service/launchd.go` - add `StandardOutPath string` to
   `launchdPlist` struct; add `ReadLogPathFromPlist(path string) string` function
 - `cmd/service.go` - in `runServiceStatus()` and `runServiceLog()`, try to
@@ -434,20 +441,21 @@ the plist-derived path is used when available and the config fallback when not.
 **File:** `internal/tui/model_test.go`
 
 **Tests to add:**
+
 1. `TestRefreshResultTidemarkFormatted` - send `RefreshResultMsg` with
    `Tidemark: 50000000000`, assert `m.tidemark` contains formatted bytes string
-2. `TestRefreshResultTidemarkEmpty` - send with `Tidemark: 0`, assert
+1. `TestRefreshResultTidemarkEmpty` - send with `Tidemark: 0`, assert
    `m.tidemark` is empty
-3. `TestInfoPanelIncludesTidemark` - assert rendered view contains "Tidemark:"
+1. `TestInfoPanelIncludesTidemark` - assert rendered view contains "Tidemark:"
    when tidemark is set
-4. `TestInfoPanelOmitsTidemark` - assert rendered view omits "Tidemark:" when
+1. `TestInfoPanelOmitsTidemark` - assert rendered view omits "Tidemark:" when
    empty
-5. `TestXIDDeltaInSnapTable` - verify XID delta column is populated correctly
+1. `TestXIDDeltaInSnapTable` - verify XID delta column is populated correctly
    for snapshots with UUID data
 
 **File:** `cmd/list_test.go`
 
-6. `TestFormatRelativeAgoFuture` - assert `formatRelativeAgo` returns "future"
+1. `TestFormatRelativeAgoFuture` - assert `formatRelativeAgo` returns "future"
    for a future timestamp
 
 ---
@@ -460,11 +468,12 @@ the plist-derived path is used when available and the config fallback when not.
 `diskutil info` and `diskutil apfs listSnapshots` plist responses.
 
 **Tests to add:**
+
 1. `TestListJSONWithAPFSDetails` - mock returns APFS snapshot details; assert
    JSON output includes `uuid`, `xid_delta`, `purgeable`, `limits_shrink`
-2. `TestListJSONXIDDeltaOmittedForFirst` - assert first snapshot has no
+1. `TestListJSONXIDDeltaOmittedForFirst` - assert first snapshot has no
    `xid_delta`
-3. `TestListHumanWithAPFSDetails` - assert human output includes `delta:N`
+1. `TestListHumanWithAPFSDetails` - assert human output includes `delta:N`
    suffix, purgeable/pinned flags, and limits-shrink warning
 
 This requires adding mock responses for both `tmutil listlocalsnapshotdates`
