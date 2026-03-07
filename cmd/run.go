@@ -20,7 +20,7 @@ import (
 
 var runCmd = &cobra.Command{
 	Use:   "run",
-	Short: "Run the auto-snapshot loop (foreground daemon)",
+	Short: "Run the auto-snapshot loop as a foreground service",
 	Args:  cobra.NoArgs,
 	RunE:  runDaemon,
 }

@@ -214,6 +214,10 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		cmd := m.setFocusPanel((m.focusPanel + 1) % 3)
 		return m, cmd
 
+	case key.Matches(msg, m.keys.ShiftTab):
+		m.setFocusPanel((m.focusPanel + 2) % 3)
+		return m, nil
+
 	case key.Matches(msg, m.keys.ScrollUp, m.keys.ScrollDown):
 		return m.handleScroll(msg)
 	}
@@ -381,6 +385,9 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 }
 
 func (m *Model) syncDaemonState(now time.Time) {
+	if m.cfg.LogDir == "" {
+		return
+	}
 	lockPath := service.DefaultLockPath(m.cfg.LogDir)
 	lockHeld := service.IsHeld(lockPath)
 
@@ -650,9 +657,15 @@ func (m *Model) updateSnapViewContent() {
 		if snap.UUID != "" {
 			xid = fmt.Sprintf("%d", snap.XID)
 			uuid = snap.UUID
-			if snap.LimitsShrink {
-				status = indicatorWarning + " limits shrink"
+
+			var parts []string
+			if _, pinned := m.thinPinned[snap.Date]; pinned {
+				parts = append(parts, indicatorPinned+" pinned")
 			}
+			if snap.LimitsShrink {
+				parts = append(parts, indicatorWarning+" limits shrink")
+			}
+			status = strings.Join(parts, " ")
 			// Compute XID delta from the predecessor in ascending order.
 			if i > 0 && m.snapshots[i-1].UUID != "" {
 				delta = fmt.Sprintf("%d", snap.XID-m.snapshots[i-1].XID)

@@ -11,6 +11,7 @@ const (
 	indicatorOn      = "●"
 	indicatorOff     = "○"
 	indicatorWarning = "⚠"
+	indicatorPinned  = "📌"
 )
 
 // modelStyles holds all precomputed Lipgloss styles for the TUI.

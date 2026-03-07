@@ -6,7 +6,7 @@ Tests for `snappy run` subcommand.
 
 ```scrut
 $ "${SNAPPY_BIN}" run --help
-Run the auto-snapshot loop (foreground daemon)
+Run the auto-snapshot loop as a foreground service
 
 Usage:
   snappy run [flags]
