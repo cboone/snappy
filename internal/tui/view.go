@@ -39,7 +39,7 @@ func (m Model) View() tea.View {
 func (m Model) renderInfoPanel(width int) string {
 	cw := contentWidth(width)
 
-	// Build the title string for embedding in the border.
+	// Build the dot indicator.
 	dot := indicatorOff
 	if m.auto.Enabled() {
 		dot = indicatorOn
@@ -50,19 +50,15 @@ func (m Model) renderInfoPanel(width int) string {
 		dot = m.styles.textGreen.Render(dot)
 	}
 
-	titleStyle := m.styles.sectionTitle
-	if m.focusPanel != panelInfo {
-		titleStyle = m.styles.sectionTitleDim
-	}
-	title := dot + " " + titleStyle.Render("snappy")
-
+	// Build the spinner suffix (if any activity is in progress).
+	var spinnerSuffix string
 	switch {
 	case m.snapshotting:
-		title += "  Snapshotting " + m.spinner.View()
+		spinnerSuffix = "  Snapshotting " + m.spinner.View()
 	case m.thinning:
-		title += "  Thinning " + m.spinner.View()
+		spinnerSuffix = "  Thinning " + m.spinner.View()
 	case m.loading:
-		title += "  Refreshing " + m.spinner.View()
+		spinnerSuffix = "  Refreshing " + m.spinner.View()
 	}
 
 	// Build the info panel body.
@@ -92,12 +88,24 @@ func (m Model) renderInfoPanel(width int) string {
 		lines[i] = ansi.Truncate(line, cw, "")
 	}
 
+	body := strings.Join(lines, "\n")
+
+	if m.flash.active && (m.flash.gainPanel == panelInfo || m.flash.losePanel == panelInfo) {
+		gaining := m.flash.gainPanel == panelInfo
+		return renderFlashBorders(body, dot+" ", "snappy", spinnerSuffix, cw, m.flash, gaining, m.styles)
+	}
+
+	titleStyle := m.styles.sectionTitle
+	if m.focusPanel != panelInfo {
+		titleStyle = m.styles.sectionTitleDim
+	}
+	title := dot + " " + titleStyle.Render("snappy") + spinnerSuffix
+
 	style := m.styles.section
 	if m.focusPanel == panelInfo {
 		style = m.styles.sectionFocus
 	}
 
-	body := strings.Join(lines, "\n")
 	rendered := style.Width(cw + 4).Render(body)
 
 	borderFg := lipgloss.NewStyle().Foreground(style.GetBorderTopForeground())
@@ -105,39 +113,52 @@ func (m Model) renderInfoPanel(width int) string {
 }
 
 func (m Model) renderSnapshotPanel(width int) string {
-	sw := contentWidth(width) + 4
+	cw := contentWidth(width)
 	count := len(m.snapshots)
+	titleLabel := fmt.Sprintf("local snapshots (%d)", count)
+
+	if m.flash.active && (m.flash.gainPanel == panelSnap || m.flash.losePanel == panelSnap) {
+		gaining := m.flash.gainPanel == panelSnap
+		return renderFlashBorders(m.snapTable.View(), "", titleLabel, "", cw, m.flash, gaining, m.styles)
+	}
 
 	titleStyle := m.styles.sectionTitle
 	if m.focusPanel != panelSnap {
 		titleStyle = m.styles.sectionTitleDim
 	}
-	title := titleStyle.Render(fmt.Sprintf("local snapshots (%d)", count))
+	title := titleStyle.Render(titleLabel)
 
 	style := m.styles.section
 	if m.focusPanel == panelSnap {
 		style = m.styles.sectionFocus
 	}
 
-	rendered := style.Width(sw).Render(m.snapTable.View())
+	rendered := style.Width(cw + 4).Render(m.snapTable.View())
 	borderFg := lipgloss.NewStyle().Foreground(style.GetBorderTopForeground())
 	return borderTitle(rendered, title, borderFg)
 }
 
 func (m Model) renderLogPanel(width int) string {
-	sw := contentWidth(width) + 4
+	cw := contentWidth(width)
+	titleLabel := "recent log"
+
+	if m.flash.active && (m.flash.gainPanel == panelLog || m.flash.losePanel == panelLog) {
+		gaining := m.flash.gainPanel == panelLog
+		return renderFlashBorders(m.logView.View(), "", titleLabel, "", cw, m.flash, gaining, m.styles)
+	}
+
 	titleStyle := m.styles.sectionTitle
 	if m.focusPanel != panelLog {
 		titleStyle = m.styles.sectionTitleDim
 	}
-	title := titleStyle.Render("recent log")
+	title := titleStyle.Render(titleLabel)
 
 	style := m.styles.section
 	if m.focusPanel == panelLog {
 		style = m.styles.sectionFocus
 	}
 
-	rendered := style.Width(sw).Render(m.logView.View())
+	rendered := style.Width(cw + 4).Render(m.logView.View())
 	borderFg := lipgloss.NewStyle().Foreground(style.GetBorderTopForeground())
 	return borderTitle(rendered, title, borderFg)
 }

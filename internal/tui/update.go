@@ -53,6 +53,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case SnapshotCreatedMsg:
 		return m.handleSnapshotCreated(msg)
 
+	case FlashTickMsg:
+		return m.handleFlashTick()
+
 	case ThinResultMsg:
 		return m.handleThinResult(msg)
 
@@ -208,8 +211,8 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 
 	case key.Matches(msg, m.keys.Tab):
-		m.setFocusPanel((m.focusPanel + 1) % 3)
-		return m, nil
+		cmd := m.setFocusPanel((m.focusPanel + 1) % 3)
+		return m, cmd
 
 	case key.Matches(msg, m.keys.ScrollUp, m.keys.ScrollDown):
 		return m.handleScroll(msg)
@@ -222,11 +225,12 @@ func (m Model) handleMouseClick(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 	if msg.Button != tea.MouseLeft {
 		return m, nil
 	}
+	var cmd tea.Cmd
 	switch {
 	case msg.Y >= m.helpBarY:
 		// Click is on the help bar; ignore.
 	case msg.Y >= m.logPanelY:
-		m.setFocusPanel(panelLog)
+		cmd = m.setFocusPanel(panelLog)
 		// Only select entries for clicks inside the content area (not borders).
 		contentY := msg.Y - m.logPanelY - 1
 		if contentY >= 0 && contentY < m.logView.Height() {
@@ -238,7 +242,7 @@ func (m Model) handleMouseClick(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case msg.Y >= m.snapPanelY:
-		m.setFocusPanel(panelSnap)
+		cmd = m.setFocusPanel(panelSnap)
 		// Translate click Y to a visible table line. The table has a 1-line
 		// header inside the bordered panel (+1 border top, +1 header).
 		line := msg.Y - m.snapPanelY - 2
@@ -246,30 +250,31 @@ func (m Model) handleMouseClick(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 			m.snapTable.SetCursor(row)
 		}
 	default:
-		m.setFocusPanel(panelInfo)
+		cmd = m.setFocusPanel(panelInfo)
 	}
-	return m, nil
+	return m, cmd
 }
 
 func (m Model) handleMouseWheel(msg tea.MouseWheelMsg) (tea.Model, tea.Cmd) {
 	if msg.Y >= m.logPanelY && msg.Y < m.helpBarY {
-		m.setFocusPanel(panelLog)
+		cmd := m.setFocusPanel(panelLog)
 		switch msg.Button {
 		case tea.MouseWheelUp:
 			m.moveLogCursor(-1)
 		case tea.MouseWheelDown:
 			m.moveLogCursor(1)
 		}
-		return m, nil
+		return m, cmd
 	}
 	if msg.Y >= m.snapPanelY && msg.Y < m.logPanelY {
-		m.setFocusPanel(panelSnap)
+		cmd := m.setFocusPanel(panelSnap)
 		switch msg.Button {
 		case tea.MouseWheelUp:
 			m.snapTable.MoveUp(1)
 		case tea.MouseWheelDown:
 			m.snapTable.MoveDown(1)
 		}
+		return m, cmd
 	}
 	return m, nil
 }
@@ -291,13 +296,37 @@ func (m Model) handleScroll(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m *Model) setFocusPanel(panel int) {
+func (m *Model) setFocusPanel(panel int) tea.Cmd {
+	if panel == m.focusPanel {
+		return nil
+	}
+	prev := m.focusPanel
 	m.focusPanel = panel
 	if panel == panelSnap {
 		m.snapTable.Focus()
 	} else {
 		m.snapTable.Blur()
 	}
+	m.flash = flashState{
+		active:      true,
+		gainPanel:   panel,
+		losePanel:   prev,
+		frame:       0,
+		totalFrames: flashTotalFrames,
+	}
+	return flashTick()
+}
+
+func (m Model) handleFlashTick() (tea.Model, tea.Cmd) {
+	if !m.flash.active {
+		return m, nil
+	}
+	m.flash.frame++
+	if m.flash.frame >= m.flash.totalFrames {
+		m.flash.active = false
+		return m, nil
+	}
+	return m, flashTick()
 }
 
 func (m *Model) moveLogCursor(delta int) {

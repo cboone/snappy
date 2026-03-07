@@ -4,6 +4,7 @@ package tui
 import (
 	"charm.land/bubbles/v2/table"
 	"charm.land/lipgloss/v2"
+	"github.com/lucasb-eyer/go-colorful"
 )
 
 const (
@@ -24,15 +25,19 @@ type modelStyles struct {
 
 	infoLabel lipgloss.Style
 
-	section         lipgloss.Style
-	sectionFocus    lipgloss.Style
-	sectionTitle    lipgloss.Style
-	sectionTitleDim lipgloss.Style
-	helpBar         lipgloss.Style
-	statusOn        lipgloss.Style
-	statusOff       lipgloss.Style
-	spinnerStyle    lipgloss.Style
-	tableStyles     table.Styles
+	section          lipgloss.Style
+	sectionFocus     lipgloss.Style
+	sectionTitle     lipgloss.Style
+	sectionTitleDim  lipgloss.Style
+	helpBar          lipgloss.Style
+	statusOn         lipgloss.Style
+	statusOff        lipgloss.Style
+	spinnerStyle     lipgloss.Style
+	tableStyles      table.Styles
+	flashBase        colorful.Color
+	flashHighlight   colorful.Color
+	flashTitleDim    colorful.Color
+	flashTitleBright colorful.Color
 }
 
 func newModelStyles(hasDarkBG bool) modelStyles {
@@ -50,6 +55,19 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 	red := lipgloss.Red
 	cyan := lipgloss.Cyan
 	magenta := lipgloss.Magenta
+
+	var flashBase, flashHighlight, flashTitleDim, flashTitleBright colorful.Color
+	if hasDarkBG {
+		flashBase, _ = colorful.Hex("#555555")
+		flashHighlight, _ = colorful.Hex("#ffffff")
+		flashTitleDim, _ = colorful.Hex("#949494")    // ANSI 246
+		flashTitleBright, _ = colorful.Hex("#ffffff") // default fg
+	} else {
+		flashBase, _ = colorful.Hex("#aaaaaa")
+		flashHighlight, _ = colorful.Hex("#000000")
+		flashTitleDim, _ = colorful.Hex("#9e9e9e")    // ANSI 247
+		flashTitleBright, _ = colorful.Hex("#000000") // default fg
+	}
 
 	return modelStyles{
 		textDefault: lipgloss.NewStyle(),
@@ -91,6 +109,10 @@ func newModelStyles(hasDarkBG bool) modelStyles {
 			Cell:     lipgloss.NewStyle().Padding(0, 3, 0, 0),
 			Selected: lipgloss.NewStyle().Bold(true).Foreground(colorHighlight).Padding(0, 3, 0, 0),
 		},
+		flashBase:        flashBase,
+		flashHighlight:   flashHighlight,
+		flashTitleDim:    flashTitleDim,
+		flashTitleBright: flashTitleBright,
 	}
 }
 

@@ -137,6 +137,12 @@ func doThinSnapshots(runner platform.CommandRunner, targets []string) tea.Cmd {
 	}
 }
 
+func flashTick() tea.Cmd {
+	return tea.Tick(30*time.Millisecond, func(_ time.Time) tea.Msg {
+		return FlashTickMsg{}
+	})
+}
+
 func refreshTick(interval time.Duration) tea.Cmd {
 	return tea.Tick(interval, func(_ time.Time) tea.Msg {
 		return RefreshTickMsg{}
