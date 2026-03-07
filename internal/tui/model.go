@@ -113,6 +113,7 @@ type Model struct {
 	refreshing         bool
 	refreshPending     bool
 	snapshotting       bool
+	autoSnapshotting   bool
 	thinning           bool
 	thinPinned         map[string]struct{}
 	recentCreated      map[string]struct{}

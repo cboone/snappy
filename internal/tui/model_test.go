@@ -498,6 +498,50 @@ func TestRefreshTickClearsDaemonActiveWhenLockReleased(t *testing.T) {
 	}
 }
 
+func TestRefreshTickIgnoresTUIAutoSnapshotLock(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+	m.cfg.LogDir = t.TempDir()
+	m.autoSnapshotting = true
+	m.snapshotting = true
+
+	lockPath := service.DefaultLockPath(m.cfg.LogDir)
+	lock, err := service.Acquire(lockPath)
+	if err != nil {
+		t.Fatalf("Acquire() error = %v", err)
+	}
+	defer func() { _ = lock.Release() }()
+
+	updated, _ := m.Update(RefreshTickMsg{})
+	model := updated.(Model)
+
+	if model.daemonActive {
+		t.Error("expected daemonActive = false while TUI auto-snapshot holds the lock")
+	}
+	if !model.auto.Enabled() {
+		t.Error("expected auto-snapshots to remain enabled while TUI auto-snapshot is in flight")
+	}
+
+	for _, e := range model.log.Entries() {
+		if strings.Contains(e.Message, "Background service detected") {
+			t.Fatal("unexpected daemon detection log while TUI auto-snapshot holds the lock")
+		}
+	}
+
+	updated, _ = model.Update(SnapshotCreatedMsg{Date: "2026-03-01-150000"})
+	model = updated.(Model)
+	if model.autoSnapshotting {
+		t.Error("expected autoSnapshotting cleared after auto-snapshot completes")
+	}
+	if model.daemonActive {
+		t.Error("expected daemonActive to remain false after auto-snapshot completes")
+	}
+	if !model.auto.Enabled() {
+		t.Error("expected auto-snapshots to remain enabled after auto-snapshot completes")
+	}
+}
+
 func TestViewAPFSDetails(t *testing.T) {
 	m := testModel()
 	m.width = 120

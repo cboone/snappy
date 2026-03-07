@@ -393,6 +393,7 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 	snapshotDue := m.auto.ShouldSnapshot(now) && !m.snapshotting
 	if snapshotDue {
 		m.snapshotting = true
+		m.autoSnapshotting = true
 		m.loading = true
 		m.auto.RecordSnapshot(now)
 		m.log.Log(logger.LevelInfo, logger.CatAuto, "Creating auto-snapshot...")
@@ -415,6 +416,9 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 
 func (m *Model) syncDaemonState(now time.Time) {
 	if m.cfg.LogDir == "" {
+		return
+	}
+	if m.autoSnapshotting {
 		return
 	}
 	lockPath := service.DefaultLockPath(m.cfg.LogDir)
@@ -599,6 +603,7 @@ func (m *Model) maybeThin(cmds []tea.Cmd) []tea.Cmd {
 
 func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd) {
 	m.snapshotting = false
+	m.autoSnapshotting = false
 	if !m.thinning {
 		m.loading = false
 	}
