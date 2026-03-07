@@ -1947,3 +1947,29 @@ func TestUITickOnlyUpdatesAgeColumn(t *testing.T) {
 		}
 	}
 }
+
+func TestTidemarkFetchFailureLogged(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots:   []snapshot.Snapshot{{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)}},
+		TMStatus:    "Configured",
+		DiskInfo:    platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+		TidemarkErr: fmt.Errorf("container not found"),
+	})
+	model := updated.(Model)
+
+	entries := model.log.Entries()
+	var found bool
+	for _, e := range entries {
+		if e.Level == logger.LevelWarn && strings.Contains(e.Message, "Tidemark fetch failed") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected WARN log for tidemark fetch failure")
+	}
+}

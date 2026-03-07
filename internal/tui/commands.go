@@ -67,11 +67,9 @@ func doRefresh(runner platform.CommandRunner, apfsVolume, apfsContainer string) 
 		diskInfo, diskErr := platform.GetDiskInfo(ctx, runner, config.DefaultMount)
 
 		var tidemark int64
+		var tidemarkErr error
 		if apfsContainer != "" {
-			tm, tmErr := platform.GetContainerTidemark(ctx, runner, apfsContainer)
-			if tmErr == nil {
-				tidemark = tm
-			}
+			tidemark, tidemarkErr = platform.GetContainerTidemark(ctx, runner, apfsContainer)
 		}
 
 		return RefreshResultMsg{
@@ -83,6 +81,7 @@ func doRefresh(runner platform.CommandRunner, apfsVolume, apfsContainer string) 
 			SnapshotErr: nil,
 			APFSErr:     apfsErr,
 			Tidemark:    tidemark,
+			TidemarkErr: tidemarkErr,
 		}
 	}
 }

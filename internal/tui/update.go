@@ -499,6 +499,10 @@ func (m *Model) applyAPFSInfo(msg RefreshResultMsg) {
 
 // applyTidemark updates the tidemark display from a refresh result.
 func (m *Model) applyTidemark(msg RefreshResultMsg) {
+	if msg.TidemarkErr != nil {
+		m.log.Log(logger.LevelWarn, logger.CatRefresh,
+			"Tidemark fetch failed: "+msg.TidemarkErr.Error())
+	}
 	if msg.Tidemark > 0 {
 		m.tidemark = platform.FormatBytes(msg.Tidemark)
 	} else {
