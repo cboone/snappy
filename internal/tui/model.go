@@ -135,6 +135,8 @@ type Model struct {
 	helpBarY         int
 	snapScrollOffset int
 	snapVisibleRows  int
+	snapHeaderLine   string
+	snapBodyLines    []string
 
 	now func() time.Time
 }

@@ -119,16 +119,15 @@ func (m Model) renderSnapshotPanel(width int) string {
 		style = m.styles.sectionFocus
 	}
 
-	tableOut := m.snapTable.View()
-	parts := strings.SplitN(tableOut, "\n", 2)
-	header := parts[0]
+	header := m.snapHeaderLine
+	bodyLines := m.snapBodyLines
 
 	var clipped string
-	if len(parts) > 1 {
-		bodyLines := strings.Split(parts[1], "\n")
+	if len(bodyLines) > 0 {
 		end := min(m.snapScrollOffset+m.snapVisibleRows, len(bodyLines))
 		start := min(m.snapScrollOffset, end)
-		visible := bodyLines[start:end]
+		visible := make([]string, 0, m.snapVisibleRows)
+		visible = append(visible, bodyLines[start:end]...)
 		for len(visible) < m.snapVisibleRows {
 			visible = append(visible, "")
 		}

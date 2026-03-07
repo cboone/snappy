@@ -245,6 +245,7 @@ func (m Model) handleMouseClick(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 			row := line + m.snapScrollOffset
 			if row >= 0 && row < len(m.snapTable.Rows()) {
 				m.snapTable.SetCursor(row)
+				m.updateSnapRenderCache()
 			}
 		}
 	default:
@@ -290,18 +291,23 @@ func (m Model) handleScroll(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		m.snapTable, cmd = m.snapTable.Update(msg)
 		m.ensureSnapCursorVisible()
+		m.updateSnapRenderCache()
 		return m, cmd
 	}
 	return m, nil
 }
 
 func (m *Model) setFocusPanel(panel int) {
+	if m.focusPanel == panel {
+		return
+	}
 	m.focusPanel = panel
 	if panel == panelSnap {
 		m.snapTable.Focus()
 	} else {
 		m.snapTable.Blur()
 	}
+	m.updateSnapRenderCache()
 }
 
 func (m *Model) moveLogCursor(delta int) {
@@ -634,6 +640,7 @@ func (m *Model) updateSnapViewContent() {
 		row[0] = "(none, press 's' to create the first snapshot)"
 		m.snapTable.SetRows([]table.Row{row})
 		m.snapTable.SetHeight(max(1+1, 2))
+		m.updateSnapRenderCache()
 		m.clampSnapScroll()
 		return
 	}
@@ -661,7 +668,19 @@ func (m *Model) updateSnapViewContent() {
 	}
 	m.snapTable.SetRows(rows)
 	m.snapTable.SetHeight(max(len(rows)+1, 2))
+	m.updateSnapRenderCache()
 	m.clampSnapScroll()
+}
+
+func (m *Model) updateSnapRenderCache() {
+	tableOut := m.snapTable.View()
+	parts := strings.SplitN(tableOut, "\n", 2)
+	m.snapHeaderLine = parts[0]
+	if len(parts) > 1 {
+		m.snapBodyLines = strings.Split(parts[1], "\n")
+		return
+	}
+	m.snapBodyLines = nil
 }
 
 // snapTableColumns returns the column definitions for the snapshot table,
