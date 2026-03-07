@@ -1826,3 +1826,39 @@ func TestFirstRefreshFoundCountExcludesRecentCreated(t *testing.T) {
 		t.Errorf("FOUND log = %q, want %q", foundMsg, want)
 	}
 }
+
+func TestLogCursorStableWhenRingBufferAtCapacity(t *testing.T) {
+	m := testModel()
+
+	// Fill the ring buffer to capacity (50 entries).
+	for i := range 50 {
+		m.log.Log(logger.LevelInfo, logger.CatRefresh, fmt.Sprintf("entry-%d", i))
+	}
+	m.updateLogViewContent()
+
+	// Move cursor to entry index 10 (which is entry-39 in newest-first display).
+	m.logCursor = 10
+	targetEntry := m.log.Entries()[49-10] // newest-first: index 10 = entry at position len-1-10
+
+	// Add 3 more entries while buffer is at capacity.
+	for i := range 3 {
+		m.log.Log(logger.LevelInfo, logger.CatRefresh, fmt.Sprintf("new-entry-%d", i))
+	}
+	m.updateLogViewContent()
+
+	// The cursor should have shifted by 3 to track the same logical entry.
+	wantCursor := 13
+	if m.logCursor != wantCursor {
+		t.Errorf("logCursor = %d, want %d", m.logCursor, wantCursor)
+	}
+
+	// Verify the entry at the cursor position still has the same message.
+	entries := m.log.Entries()
+	// In newest-first display, cursor index maps to entries[len-1-cursor].
+	gotIdx := len(entries) - 1 - m.logCursor
+	if gotIdx >= 0 && gotIdx < len(entries) {
+		if entries[gotIdx].Message != targetEntry.Message {
+			t.Errorf("entry at cursor = %q, want %q", entries[gotIdx].Message, targetEntry.Message)
+		}
+	}
+}

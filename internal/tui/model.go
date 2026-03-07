@@ -127,6 +127,7 @@ type Model struct {
 	logView       viewport.Model
 	logCursor     int
 	logCount      int
+	logLastSeq    uint64
 	logEntryY     []int
 	logTotalLines int
 	spinner       spinner.Model

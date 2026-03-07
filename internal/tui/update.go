@@ -771,12 +771,25 @@ func (m *Model) snapTableColumns() []table.Column {
 func (m *Model) updateLogViewContent() {
 	entries := m.log.Entries()
 	newCount := len(entries)
-	// When new entries arrive, existing entries shift down in the
-	// newest-first display. Adjust cursor so it tracks the same entry.
-	// If the cursor is at 0 (following newest), keep it there.
-	if m.logCursor > 0 && newCount > m.logCount {
-		m.logCursor += newCount - m.logCount
+
+	// Detect genuinely new entries using sequence numbers so we can
+	// adjust the cursor even when the ring buffer is at capacity
+	// (where newCount == m.logCount but entries have shifted).
+	var newestSeq uint64
+	if newCount > 0 {
+		newestSeq = entries[newCount-1].Seq
 	}
+
+	if m.logCursor > 0 {
+		if newCount > m.logCount {
+			// Buffer grew: shift cursor by the number of new entries.
+			m.logCursor += newCount - m.logCount
+		} else if newCount == m.logCount && newestSeq > m.logLastSeq {
+			// Buffer at capacity: each new entry shifts existing ones down.
+			m.logCursor += int(newestSeq - m.logLastSeq)
+		}
+	}
+	m.logLastSeq = newestSeq
 	m.logCount = newCount
 	if m.logCursor >= m.logCount {
 		m.logCursor = max(m.logCount-1, 0)

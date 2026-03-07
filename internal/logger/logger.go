@@ -68,6 +68,7 @@ type Entry struct {
 	Category  Category
 	Message   string
 	Formatted string
+	Seq       uint64 // monotonic sequence number assigned by the logger
 }
 
 // Options configures a Logger.
@@ -83,6 +84,7 @@ type Options struct {
 type Logger struct {
 	entries  []Entry
 	maxSize  int
+	seq      uint64 // monotonic counter for entry identity
 	file     *os.File
 	filePath string // full path to snappy.log
 	maxBytes int64  // max file size before rotation; 0 = no rotation
@@ -139,12 +141,14 @@ func (l *Logger) Log(level Level, cat Category, message string) {
 	now := l.now()
 	formatted := fmt.Sprintf("[%s] %-5s %-8s %s", now.Format("15:04:05"), level, cat, message)
 
+	l.seq++
 	entry := Entry{
 		Timestamp: now,
 		Level:     level,
 		Category:  cat,
 		Message:   message,
 		Formatted: formatted,
+		Seq:       l.seq,
 	}
 
 	if l.maxSize > 0 {
