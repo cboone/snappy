@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/cboone/snappy/internal/logger"
 	"github.com/cboone/snappy/internal/platform"
+	"github.com/cboone/snappy/internal/service"
 	"github.com/cboone/snappy/internal/snapshot"
 )
 
@@ -168,6 +170,11 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(doRefresh(m.runner, m.apfsVolume, m.apfsContainer), m.spinner.Tick)
 
 	case key.Matches(msg, m.keys.AutoSnap):
+		if m.daemonActive {
+			m.log.Log(logger.LevelInfo, logger.CatAuto, "Auto-snapshots managed by background service (snappy service stop to take over)")
+			m.updateLogViewContent()
+			return m, nil
+		}
 		now := m.now()
 		enabled := m.auto.Toggle(now)
 		if enabled {
@@ -316,6 +323,7 @@ func (m *Model) moveLogCursor(delta int) {
 
 func (m Model) handleTick() (tea.Model, tea.Cmd) {
 	now := m.now()
+	m.syncDaemonState(now)
 
 	var cmds []tea.Cmd
 
@@ -339,6 +347,29 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 	cmds = append(cmds, refreshTick(m.cfg.RefreshInterval))
 
 	return m, tea.Batch(cmds...)
+}
+
+func (m *Model) syncDaemonState(now time.Time) {
+	if m.cfg.LogDir == "" {
+		return
+	}
+	lockPath := service.DefaultLockPath(m.cfg.LogDir)
+	lockHeld := service.IsHeld(lockPath)
+
+	switch {
+	case lockHeld && !m.daemonActive:
+		m.daemonActive = true
+		if m.auto.Enabled() {
+			m.auto.Toggle(now)
+		}
+		m.log.Log(logger.LevelInfo, logger.CatAuto, "Background service detected; TUI auto-snapshots disabled")
+		m.updateLogViewContent()
+
+	case !lockHeld && m.daemonActive:
+		m.daemonActive = false
+		m.log.Log(logger.LevelInfo, logger.CatAuto, "Background service no longer detected; press 'a' to enable auto-snapshots")
+		m.updateLogViewContent()
+	}
 }
 
 func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {

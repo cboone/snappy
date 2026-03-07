@@ -4,7 +4,7 @@
 
 [![GitHub branch check runs](https://img.shields.io/github/check-runs/cboone/snappy/main?style=for-the-badge&label=tests&labelColor=f3eecd&color=81834a)](https://github.com/cboone/snappy/actions) [![Go Report Card](https://img.shields.io/badge/go%20report%20card-A+-important?style=for-the-badge&labelColor=f3eecd&color=81834a)](https://goreportcard.com/report/github.com/cboone/snappy) ![macOS 11+](https://img.shields.io/badge/macOS-11+-critical?style=for-the-badge&labelColor=f3eecd&color=b18655) [![MIT License](https://img.shields.io/github/license/cboone/snappy?style=for-the-badge&labelColor=f3eecd&color=b18655&)](./LICENSE)
 
-[**Quick Start**](#quick-start) ・ [**Why Use Snappy?**](#why-use-snappy) ・ [**Usage**](#commands-and-options) ・ [**Restoring Files and Snapshots**](#restoring-files-and-snapshots) ・ [**Limitations**](#limitations) ・ [**Other Tools**](#comparison)
+[**Quick Start**](#quick-start) ・ [**Why Use Snappy?**](#why-use-snappy) ・ [**Usage**](#commands-and-options) ・ [**Background Service**](#background-service) ・ [**Restoring Files and Snapshots**](#restoring-files-and-snapshots) ・ [**Limitations**](#limitations) ・ [**Other Tools**](#comparison)
 
 **Frequent, automatic, super fast, lightweight snapshot backups of your entire drive.** Snappy uses the macOS built-in snapshotting system to allow easy access to and rollbacks of individual files, directories, or the entire disk.
 
@@ -45,9 +45,15 @@ Install Snappy via [Homebrew](https://brew.sh):
 brew install cboone/tap/snappy
 ```
 
-That installs the `snappy` command, along with shell completions and a man page, and sets up Snappy to run every minute. Until something goes wrong, that's really all you need to do.
+Then start the background service so snapshots are taken automatically:
 
-To open Snappy's TUI, just run `snappy`. You'll see what snapshots have been taken and information about them, logs of all Snappy's and macOS's snapshot management activities. You can delete or thin snapshots to clear up space. Most importantly, you can mount snapshots as read-only local drives to browse and restore files.
+```sh
+snappy service install
+```
+
+That's it. Snappy will run in the background, taking a snapshot every minute and thinning old ones. It starts automatically at login and restarts if it exits unexpectedly.
+
+To open Snappy's TUI, just run `snappy`. You'll see what snapshots have been taken and information about them, logs of all Snappy's and macOS's snapshot management activities. You can delete or thin snapshots to clear up space. Most importantly, you can mount snapshots as read-only local drives to browse and restore files. The TUI detects the background service and defers auto-snapshots to it, so there's no conflict.
 
 All of this can be done non-interactively as well via various [commands and options](#commands-and-options). Read more below, or run `snappy help` or `man snappy`. Also, see below for more on [How Snappy Works](#how-snappy-works), [How to Configure Snapshot Frequency](#configuration), and [How to Restore Files and Snapshots](#restoring-files-and-snapshots).
 
@@ -86,6 +92,38 @@ TODO: Document GUI and `asr` procedures.
 ## Commands and Options
 
 TODO: Write.
+
+## Background Service
+
+Snappy can run as a macOS LaunchAgent, taking snapshots and thinning old ones automatically in the background. The service starts at login and restarts if it exits unexpectedly.
+
+### Install the service
+
+```sh
+snappy service install
+```
+
+This generates a launchd plist, loads it, and starts the service immediately. You only need to run this once.
+
+### Manage the service
+
+| Command                    | Description                             |
+| -------------------------- | --------------------------------------- |
+| `snappy service`           | Show service status (default)           |
+| `snappy service status`    | Show service status                     |
+| `snappy service install`   | Install the plist and start the service |
+| `snappy service uninstall` | Stop the service and remove the plist   |
+| `snappy service start`     | Start a stopped service                 |
+| `snappy service stop`      | Stop the running service                |
+| `snappy service log`       | Tail the service log (`Ctrl-C` to exit) |
+
+### TUI and service coexistence
+
+Only one auto-snapshot routine runs at a time. When the background service is active, the TUI detects it and disables its own auto-snapshot loop. The TUI header shows "service" next to the auto-snapshot indicator so you know the background service is handling it. You can still use the TUI to create manual snapshots, browse snapshot history, mount snapshots, and manage thinning.
+
+### Service details
+
+The service installs a standard macOS LaunchAgent plist at `~/Library/LaunchAgents/com.cboone.snappy.plist`. It runs `snappy run` with your configured settings. The LaunchAgent captures stdout/stderr to `~/.local/share/snappy/snappy-service.log`, while `snappy run` also writes log entries into the shared Snappy log file (default: `~/.local/share/snappy/snappy.log`) used by the TUI log panel. A file-based lock prevents duplicate auto-snapshot processes, whether from the service, the TUI, or manual `snappy run` invocations.
 
 ## Installation
 

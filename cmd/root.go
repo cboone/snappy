@@ -17,6 +17,7 @@ import (
 	"github.com/cboone/snappy/internal/config"
 	"github.com/cboone/snappy/internal/logger"
 	"github.com/cboone/snappy/internal/platform"
+	"github.com/cboone/snappy/internal/service"
 	"github.com/cboone/snappy/internal/tui"
 )
 
@@ -181,11 +182,18 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	if apfsContainer != "" {
 		log.Log(logger.LevelInfo, logger.CatStartup, fmt.Sprintf("apfs-container=%s", apfsContainer))
 	}
+	// Check if a background service holds the auto-snapshot lock.
+	lockPath := service.DefaultLockPath(cfg.LogDir)
+	daemonActive := service.IsHeld(lockPath)
+
+	if daemonActive {
+		log.Log(logger.LevelInfo, logger.CatStartup, "Background service detected; TUI auto-snapshots disabled")
+	}
 	log.Log(logger.LevelInfo, logger.CatStartup, fmt.Sprintf("auto-snapshot=%v | every %ds | thin >%ds to %ds",
 		cfg.AutoEnabled, int(cfg.AutoSnapshotInterval.Seconds()),
 		int(cfg.ThinAgeThreshold.Seconds()), int(cfg.ThinCadence.Seconds())))
 
-	model := tui.NewModel(cfg, runner, log, apfsVolume, apfsContainer, tmStatus, volumeName, version)
+	model := tui.NewModel(cfg, runner, log, apfsVolume, apfsContainer, tmStatus, volumeName, version, daemonActive)
 	p := tea.NewProgram(model)
 
 	if _, err := p.Run(); err != nil {

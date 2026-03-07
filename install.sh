@@ -222,6 +222,9 @@ function main() {
       printf 'Add it with: export PATH="%s:${PATH}"\n' "${INSTALL_DIR}"
       ;;
   esac
+
+  printf '\nTo run snappy automatically in the background:\n'
+  printf '  %s/%s service install\n\n' "${INSTALL_DIR}" "${BINARY}"
 }
 
 # Guard lets callers source this file and test individual functions

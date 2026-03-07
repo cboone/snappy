@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/cboone/snappy/internal/config"
+	"github.com/cboone/snappy/internal/logger"
 )
 
 func TestRunIterationLogsAndContinues(t *testing.T) {
@@ -30,22 +31,24 @@ func TestRunIterationLogsAndContinues(t *testing.T) {
 	}}
 
 	cfg := config.Load()
+	log := logger.New(logger.Options{})
+	defer log.Close()
 	var buf bytes.Buffer
 
 	// runIteration should not panic or return an error; it logs and continues.
-	if err := runIteration(context.Background(), &buf, runner, cfg); err != nil {
+	if err := runIteration(context.Background(), &buf, log, runner, cfg); err != nil {
 		t.Fatalf("runIteration returned unexpected error: %v", err)
 	}
 
 	output := buf.String()
-	if !strings.Contains(output, "ERROR") {
-		t.Errorf("output missing ERROR log line, got:\n%s", output)
+	if !strings.Contains(output, "SNAPSHOT") {
+		t.Errorf("output missing SNAPSHOT log line, got:\n%s", output)
 	}
 	if !strings.Contains(output, "permission denied") {
 		t.Errorf("output missing error details, got:\n%s", output)
 	}
-	if !strings.Contains(output, "LIST") {
-		t.Errorf("output missing LIST log line (should continue after error), got:\n%s", output)
+	if !strings.Contains(output, "REFRESH") {
+		t.Errorf("output missing REFRESH log line (should continue after error), got:\n%s", output)
 	}
 }
 
@@ -68,21 +71,20 @@ func TestRunIterationSuccess(t *testing.T) {
 	}}
 
 	cfg := config.Load()
+	log := logger.New(logger.Options{})
+	defer log.Close()
 	var buf bytes.Buffer
 
-	if err := runIteration(context.Background(), &buf, runner, cfg); err != nil {
+	if err := runIteration(context.Background(), &buf, log, runner, cfg); err != nil {
 		t.Fatalf("runIteration returned unexpected error: %v", err)
 	}
 
 	output := buf.String()
-	if !strings.Contains(output, "SNAPSHOT") {
-		t.Errorf("output missing SNAPSHOT log line, got:\n%s", output)
+	if !strings.Contains(output, "CREATED") {
+		t.Errorf("output missing CREATED log line, got:\n%s", output)
 	}
-	if !strings.Contains(output, "LIST") {
-		t.Errorf("output missing LIST log line, got:\n%s", output)
-	}
-	if strings.Contains(output, "ERROR") {
-		t.Errorf("unexpected ERROR in output:\n%s", output)
+	if !strings.Contains(output, "REFRESH") {
+		t.Errorf("output missing REFRESH log line, got:\n%s", output)
 	}
 }
 
@@ -109,20 +111,22 @@ func TestRunIterationLogsPostThinCount(t *testing.T) {
 	}}
 
 	cfg := config.Load()
+	log := logger.New(logger.Options{})
+	defer log.Close()
 	var buf bytes.Buffer
 
-	if err := runIteration(context.Background(), &buf, runner, cfg); err != nil {
+	if err := runIteration(context.Background(), &buf, log, runner, cfg); err != nil {
 		t.Fatalf("runIteration returned unexpected error: %v", err)
 	}
 
 	output := buf.String()
-	if !strings.Contains(output, "THIN") {
-		t.Fatalf("output missing THIN log line, got:\n%s", output)
+	if !strings.Contains(output, "THINNED") {
+		t.Fatalf("output missing THINNED log line, got:\n%s", output)
 	}
 	if !strings.Contains(output, "Thinned 1 snapshot(s)") {
 		t.Fatalf("output missing thin count, got:\n%s", output)
 	}
-	if !strings.Contains(output, "LIST") || !strings.Contains(output, "1 snapshot(s)") {
+	if !strings.Contains(output, "REFRESH") || !strings.Contains(output, "1 snapshot(s)") {
 		t.Fatalf("output missing post-thin list count, got:\n%s", output)
 	}
 }
@@ -146,10 +150,12 @@ func TestRunIterationContextCancelled(t *testing.T) {
 	}}
 
 	cfg := config.Load()
+	log := logger.New(logger.Options{})
+	defer log.Close()
 	var buf bytes.Buffer
 
 	// Should not panic even with cancelled context.
-	if err := runIteration(ctx, &buf, runner, cfg); err != nil {
+	if err := runIteration(ctx, &buf, log, runner, cfg); err != nil {
 		t.Fatalf("runIteration returned unexpected error: %v", err)
 	}
 }
@@ -192,6 +198,41 @@ func TestLogLine(t *testing.T) {
 			t.Fatal("logLine should return error on write failure")
 		}
 	})
+}
+
+func TestDualLogWritesToBothDestinations(t *testing.T) {
+	log := logger.New(logger.Options{MaxEntries: 50})
+	defer log.Close()
+	var buf bytes.Buffer
+
+	if err := dualLog(&buf, log, logger.LevelInfo, logger.CatRefresh, "test message %d", 99); err != nil {
+		t.Fatalf("dualLog returned unexpected error: %v", err)
+	}
+
+	// Verify writer output.
+	output := buf.String()
+	if !strings.Contains(output, "REFRESH") {
+		t.Errorf("writer output missing category, got: %s", output)
+	}
+	if !strings.Contains(output, "test message 99") {
+		t.Errorf("writer output missing message, got: %s", output)
+	}
+
+	// Verify logger received the entry.
+	entries := log.Entries()
+	if len(entries) == 0 {
+		t.Fatal("logger has no entries after dualLog")
+	}
+	last := entries[len(entries)-1]
+	if last.Level != logger.LevelInfo {
+		t.Errorf("logger entry level = %q, want %q", last.Level, logger.LevelInfo)
+	}
+	if last.Category != logger.CatRefresh {
+		t.Errorf("logger entry category = %q, want %q", last.Category, logger.CatRefresh)
+	}
+	if !strings.Contains(last.Message, "test message 99") {
+		t.Errorf("logger entry message = %q, want to contain %q", last.Message, "test message 99")
+	}
 }
 
 // errWriter is an io.Writer that always returns an error.

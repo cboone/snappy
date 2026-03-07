@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os/signal"
@@ -11,13 +12,15 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/cboone/snappy/internal/config"
+	"github.com/cboone/snappy/internal/logger"
 	"github.com/cboone/snappy/internal/platform"
+	"github.com/cboone/snappy/internal/service"
 	"github.com/cboone/snappy/internal/snapshot"
 )
 
 var runCmd = &cobra.Command{
 	Use:   "run",
-	Short: "Run the auto-snapshot loop (foreground daemon)",
+	Short: "Run the auto-snapshot loop as a foreground service",
 	Args:  cobra.NoArgs,
 	RunE:  runDaemon,
 }
@@ -32,10 +35,31 @@ func runDaemon(cmd *cobra.Command, _ []string) error {
 	}
 
 	cfg := config.Load()
+
+	// Acquire exclusive lock to prevent concurrent auto-snapshot processes.
+	lockPath := service.DefaultLockPath(cfg.LogDir)
+	lock, err := service.Acquire(lockPath)
+	if err != nil {
+		if errors.Is(err, service.ErrLocked) {
+			return fmt.Errorf("%w (lock: %s)", err, lockPath)
+		}
+		return fmt.Errorf("acquiring lock: %w", err)
+	}
+	defer func() { _ = lock.Release() }()
+
+	// Create a shared logger that writes to the snappy.log file.
+	log := logger.New(logger.Options{
+		LogDir:     cfg.LogDir,
+		MaxEntries: 0,
+		MaxSize:    cfg.LogMaxSize,
+		MaxFiles:   cfg.LogMaxFiles,
+	})
+	defer log.Close()
+
 	runner := newRunner()
 	w := cmd.OutOrStdout()
 
-	if err := logLine(w, "STARTUP", "snappy run (interval=%s, thin >%s to %s)",
+	if err := dualLog(w, log, logger.LevelInfo, logger.CatStartup, "snappy run (interval=%s, thin >%s to %s)",
 		cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence); err != nil {
 		return err
 	}
@@ -44,7 +68,7 @@ func runDaemon(cmd *cobra.Command, _ []string) error {
 	defer stop()
 
 	// Run first iteration immediately.
-	if err := runIteration(ctx, w, runner, cfg); err != nil {
+	if err := runIteration(ctx, w, log, runner, cfg); err != nil {
 		return err
 	}
 
@@ -54,16 +78,16 @@ func runDaemon(cmd *cobra.Command, _ []string) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return logLine(w, "SHUTDOWN", "signal received, exiting")
+			return dualLog(w, log, logger.LevelInfo, logger.CatShutdown, "signal received, exiting")
 		case <-ticker.C:
-			if err := runIteration(ctx, w, runner, cfg); err != nil {
+			if err := runIteration(ctx, w, log, runner, cfg); err != nil {
 				return err
 			}
 		}
 	}
 }
 
-func runIteration(ctx context.Context, w io.Writer, runner platform.CommandRunner, cfg *config.Config) error {
+func runIteration(ctx context.Context, w io.Writer, log *logger.Logger, runner platform.CommandRunner, cfg *config.Config) error {
 	// Create snapshot.
 	createCtx, createCancel := context.WithTimeout(ctx, time.Minute)
 	date, err := platform.CreateSnapshot(createCtx, runner)
@@ -71,15 +95,15 @@ func runIteration(ctx context.Context, w io.Writer, runner platform.CommandRunne
 
 	switch {
 	case err != nil:
-		if err := logLine(w, "ERROR", "create snapshot: %v", err); err != nil {
+		if err := dualLog(w, log, logger.LevelError, logger.CatSnapshot, "create snapshot: %v", err); err != nil {
 			return err
 		}
 	case date == "":
-		if err := logLine(w, "SNAPSHOT", "Created: <unknown date>"); err != nil {
+		if err := dualLog(w, log, logger.LevelInfo, logger.CatCreated, "Created: <unknown date>"); err != nil {
 			return err
 		}
 	default:
-		if err := logLine(w, "SNAPSHOT", "Created: %s", date); err != nil {
+		if err := dualLog(w, log, logger.LevelInfo, logger.CatCreated, "Created: %s", date); err != nil {
 			return err
 		}
 	}
@@ -90,7 +114,7 @@ func runIteration(ctx context.Context, w io.Writer, runner platform.CommandRunne
 	loadCancel()
 
 	if err != nil {
-		return logLine(w, "ERROR", "list snapshots: %v", err)
+		return dualLog(w, log, logger.LevelError, logger.CatRefresh, "list snapshots: %v", err)
 	}
 
 	// Thin old snapshots.
@@ -102,7 +126,7 @@ func runIteration(ctx context.Context, w io.Writer, runner platform.CommandRunne
 	if len(targets) > 0 {
 		deleted, deleteErr := deleteSnapshots(ctx, runner, targets)
 		if deleteErr != nil {
-			if err := logLine(w, "ERROR", "thin: %v", deleteErr); err != nil {
+			if err := dualLog(w, log, logger.LevelError, logger.CatThinned, "thin: %v", deleteErr); err != nil {
 				return err
 			}
 		}
@@ -110,14 +134,23 @@ func runIteration(ctx context.Context, w io.Writer, runner platform.CommandRunne
 		if currentCount < 0 {
 			currentCount = 0
 		}
-		if err := logLine(w, "THIN", "Thinned %d snapshot(s)", deleted); err != nil {
+		if err := dualLog(w, log, logger.LevelInfo, logger.CatThinned, "Thinned %d snapshot(s)", deleted); err != nil {
 			return err
 		}
 	}
 
-	return logLine(w, "LIST", "%d snapshot(s)", currentCount)
+	return dualLog(w, log, logger.LevelInfo, logger.CatRefresh, "%d snapshot(s)", currentCount)
 }
 
+// dualLog writes a log entry to both stdout (for terminal/launchd capture)
+// and the shared logger (for the snappy.log file).
+func dualLog(w io.Writer, log *logger.Logger, level logger.Level, cat logger.Category, format string, args ...any) error {
+	msg := fmt.Sprintf(format, args...)
+	log.Log(level, cat, msg)
+	return logLine(w, string(cat), "%s", msg)
+}
+
+// logLine writes a timestamped log line to the given writer.
 func logLine(w io.Writer, event, format string, args ...any) error {
 	ts := time.Now().Format("2006-01-02 15:04:05")
 	msg := fmt.Sprintf(format, args...)

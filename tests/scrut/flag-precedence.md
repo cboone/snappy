@@ -18,7 +18,8 @@ Available Commands:
   create      Create a new local Time Machine snapshot
   help        Help about any command
   list        List local snapshots with details
-  run         Run the auto-snapshot loop (foreground daemon)
+  run         Run the auto-snapshot loop as a foreground service
+  service     Manage the snappy background service (launchd)
   status      Show Time Machine and disk status
   thin        Thin old snapshots based on configured cadence
   version     Print the version number of snappy
@@ -47,7 +48,8 @@ Available Commands:
   create      Create a new local Time Machine snapshot
   help        Help about any command
   list        List local snapshots with details
-  run         Run the auto-snapshot loop (foreground daemon)
+  run         Run the auto-snapshot loop as a foreground service
+  service     Manage the snappy background service (launchd)
   status      Show Time Machine and disk status
   thin        Thin old snapshots based on configured cadence
   version     Print the version number of snappy
@@ -74,7 +76,8 @@ Available Commands:
   create      Create a new local Time Machine snapshot
   help        Help about any command
   list        List local snapshots with details
-  run         Run the auto-snapshot loop (foreground daemon)
+  run         Run the auto-snapshot loop as a foreground service
+  service     Manage the snappy background service (launchd)
   status      Show Time Machine and disk status
   thin        Thin old snapshots based on configured cadence
   version     Print the version number of snappy
@@ -103,7 +106,8 @@ Available Commands:
   create      Create a new local Time Machine snapshot
   help        Help about any command
   list        List local snapshots with details
-  run         Run the auto-snapshot loop (foreground daemon)
+  run         Run the auto-snapshot loop as a foreground service
+  service     Manage the snappy background service (launchd)
   status      Show Time Machine and disk status
   thin        Thin old snapshots based on configured cadence
   version     Print the version number of snappy
