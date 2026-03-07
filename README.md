@@ -8,7 +8,7 @@
 
 **Frequent, automatic, super fast, lightweight snapshot backups of your entire drive.** Snappy uses the macOS built-in snapshotting system to allow easy access to and rollbacks of individual files, directories, or the entire disk.
 
-`brew install cboone/tap/snappy` and it's automatically installed and running. Run `snappy` on its own to see the status of your snapshots, view your config, and mount your snapshot backups to restore files.
+`brew install cboone/tap/snappy` then `snappy service install` and it's installed and snapshotting. Run `snappy` on its own to see the status of your snapshots, view your config, and mount your snapshot backups to restore files.
 
 **Snappy only runs on macOS.** It relies on [`tmutil`](https://man.freebsd.org/cgi/man.cgi?query=tmutil&manpath=macOS+26.3) and [APFS snapshots](https://eclecticlight.co/2026/01/31/explainer-snapshots-2/). If you're on Linux, [`zsh-auto-snapshot`](https://manpages.debian.org/trixie/zfs-auto-snapshot/zfs-auto-snapshot.8.en.html) is a good option (and is what inspired Snappy in the first place). AFAICT, it should work on pretty much any macOS version since 11 (macOS Big Sur), when [Time Machine](https://en.wikipedia.org/wiki/Time_Machine_%28macOS%29) began to use APFS snapshotting.
 
@@ -51,9 +51,9 @@ Then start the background service so snapshots are taken automatically:
 snappy service install
 ```
 
-That's it. Snappy will run in the background, taking a snapshot every minute and thinning old ones. It starts automatically at login and restarts if it exits unexpectedly.
+That installs the `snappy` command, along with shell completions and a man page, and sets up Snappy to run every minute. Until something goes wrong, that's really all you need to do.
 
-To open Snappy's TUI, just run `snappy`. You'll see what snapshots have been taken and information about them, logs of all Snappy's and macOS's snapshot management activities. You can delete or thin snapshots to clear up space. Most importantly, you can mount snapshots as read-only local drives to browse and restore files. The TUI detects the background service and defers auto-snapshots to it, so there's no conflict.
+To open Snappy's TUI, just run `snappy`. You'll see what snapshots have been taken and information about them, logs of all Snappy's and macOS's snapshot management activities. You can delete or thin snapshots to clear up space. Most importantly, you can mount snapshots as read-only local drives to browse and restore files.
 
 All of this can be done non-interactively as well via various [commands and options](#commands-and-options). Read more below, or run `snappy help` or `man snappy`. Also, see below for more on [How Snappy Works](#how-snappy-works), [How to Configure Snapshot Frequency](#configuration), and [How to Restore Files and Snapshots](#restoring-files-and-snapshots).
 
