@@ -827,6 +827,7 @@ func (m *Model) adjustLogCursor(entries []logger.Entry) {
 func (m *Model) updateLogViewContent() {
 	entries := m.log.Entries()
 	prevLastSeq := m.logLastSeq
+	// adjustLogCursor also updates m.logLastSeq and m.logCount as side effects.
 	m.adjustLogCursor(entries)
 
 	if m.logCount == 0 {
