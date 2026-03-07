@@ -21,12 +21,16 @@ type RefreshResultMsg struct {
 	SnapshotErr error
 	APFSErr     error
 	Tidemark    int64
+	TidemarkErr error
 }
 
 // SnapshotCreatedMsg signals that a snapshot creation attempt completed.
+// Skipped is true when an auto-snapshot was skipped because another
+// process already holds the lock.
 type SnapshotCreatedMsg struct {
-	Date string
-	Err  error
+	Date    string
+	Err     error
+	Skipped bool
 }
 
 // OpenLogDirResultMsg reports the result of attempting to open the log directory.

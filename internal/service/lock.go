@@ -63,8 +63,12 @@ func (l *LockFile) Release() error {
 }
 
 // IsHeld checks whether the lock at path is currently held by another process.
-// It probes by attempting to acquire the lock; if successful it immediately
-// releases it and returns false. Returns false if the file does not exist.
+// It probes by attempting a shared (LOCK_SH) lock; if the attempt is blocked
+// by an exclusive lock, the lock is held. Using LOCK_SH instead of LOCK_EX
+// prevents concurrent IsHeld probes from interfering with each other.
+// Note: Acquire uses an exclusive flock and may briefly see ErrLocked
+// if it races with an IsHeld probe holding a shared lock.
+// Returns false if the file does not exist.
 func IsHeld(path string) bool {
 	f, err := os.OpenFile(path, os.O_RDONLY, 0)
 	if err != nil {
@@ -72,7 +76,7 @@ func IsHeld(path string) bool {
 	}
 	defer func() { _ = f.Close() }()
 
-	err = syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+	err = syscall.Flock(int(f.Fd()), syscall.LOCK_SH|syscall.LOCK_NB)
 	if err != nil {
 		return errors.Is(err, syscall.EWOULDBLOCK)
 	}

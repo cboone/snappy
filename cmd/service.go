@@ -237,15 +237,18 @@ func runServiceStatus(cmd *cobra.Command, _ []string) error {
 		_, _ = fmt.Fprintf(w, "Status:  stopped\n")
 	}
 
-	cfg := config.Load()
-	_, _ = fmt.Fprintf(w, "Log:     %s\n", service.LogPath(cfg.LogDir))
+	logPath := service.ReadLogPathFromPlist(st.PlistPath)
+	if logPath == "" {
+		cfg := config.Load()
+		logPath = service.LogPath(cfg.LogDir)
+	}
+	_, _ = fmt.Fprintf(w, "Log:     %s\n", logPath)
 
 	return nil
 }
 
 func runServiceLog(cmd *cobra.Command, _ []string) error {
-	cfg := config.Load()
-	logPath := service.LogPath(cfg.LogDir)
+	logPath := resolveServiceLogPath()
 
 	if _, err := os.Stat(logPath); err != nil {
 		if os.IsNotExist(err) {
@@ -261,6 +264,19 @@ func runServiceLog(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 	return syscall.Exec(tailPath, []string{"tail", "-f", logPath}, os.Environ())
+}
+
+// resolveServiceLogPath returns the log path from the installed plist,
+// falling back to the config-derived path if the plist is unavailable.
+func resolveServiceLogPath() string {
+	plistPath, err := service.PlistPath(service.DefaultLabel)
+	if err == nil {
+		if p := service.ReadLogPathFromPlist(plistPath); p != "" {
+			return p
+		}
+	}
+	cfg := config.Load()
+	return service.LogPath(cfg.LogDir)
 }
 
 // findTail locates the tail binary.

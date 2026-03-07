@@ -51,7 +51,13 @@ func testModel() Model {
 	cfg := testConfig()
 	log := logger.New(logger.Options{MaxEntries: 50})
 	runner := &mockRunner{responses: map[string]mockResponse{}}
-	m := NewModel(cfg, runner, log, "disk3s5", "disk3", "Configured", "/", "dev", false)
+	m := NewModel(cfg, runner, log, ModelParams{
+		APFSVolume:    "disk3s5",
+		APFSContainer: "disk3",
+		TMStatus:      "Configured",
+		VolumeName:    "/",
+		Version:       "dev",
+	})
 	m.width = 80
 	m.height = 40
 	return m
@@ -366,7 +372,14 @@ func TestViewAutoStatusDaemon(t *testing.T) {
 	cfg := testConfig()
 	log := logger.New(logger.Options{MaxEntries: 50})
 	runner := &mockRunner{responses: map[string]mockResponse{}}
-	m := NewModel(cfg, runner, log, "disk3s5", "disk3", "Configured", "/", "dev", true)
+	m := NewModel(cfg, runner, log, ModelParams{
+		APFSVolume:    "disk3s5",
+		APFSContainer: "disk3",
+		TMStatus:      "Configured",
+		VolumeName:    "/",
+		Version:       "dev",
+		DaemonActive:  true,
+	})
 	m.width = 80
 	m.height = 40
 
@@ -383,7 +396,14 @@ func TestAutoToggleIgnoredWhenDaemonActive(t *testing.T) {
 	cfg := testConfig()
 	log := logger.New(logger.Options{MaxEntries: 50})
 	runner := &mockRunner{responses: map[string]mockResponse{}}
-	m := NewModel(cfg, runner, log, "disk3s5", "disk3", "Configured", "/", "dev", true)
+	m := NewModel(cfg, runner, log, ModelParams{
+		APFSVolume:    "disk3s5",
+		APFSContainer: "disk3",
+		TMStatus:      "Configured",
+		VolumeName:    "/",
+		Version:       "dev",
+		DaemonActive:  true,
+	})
 	m.width = 80
 	m.height = 40
 
@@ -452,7 +472,14 @@ func TestRefreshTickClearsDaemonActiveWhenLockReleased(t *testing.T) {
 	cfg.LogDir = t.TempDir()
 	log := logger.New(logger.Options{MaxEntries: 50})
 	runner := &mockRunner{responses: map[string]mockResponse{}}
-	m := NewModel(cfg, runner, log, "disk3s5", "disk3", "Configured", "/", "dev", true)
+	m := NewModel(cfg, runner, log, ModelParams{
+		APFSVolume:    "disk3s5",
+		APFSContainer: "disk3",
+		TMStatus:      "Configured",
+		VolumeName:    "/",
+		Version:       "dev",
+		DaemonActive:  true,
+	})
 	m.now = func() time.Time {
 		return time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
 	}
@@ -468,6 +495,50 @@ func TestRefreshTickClearsDaemonActiveWhenLockReleased(t *testing.T) {
 	model = updated.(Model)
 	if !model.auto.Enabled() {
 		t.Error("expected auto-snapshots to be toggleable after daemon lock release")
+	}
+}
+
+func TestRefreshTickIgnoresTUIAutoSnapshotLock(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+	m.cfg.LogDir = t.TempDir()
+	m.autoSnapshotting = true
+	m.snapshotting = true
+
+	lockPath := service.DefaultLockPath(m.cfg.LogDir)
+	lock, err := service.Acquire(lockPath)
+	if err != nil {
+		t.Fatalf("Acquire() error = %v", err)
+	}
+	defer func() { _ = lock.Release() }()
+
+	updated, _ := m.Update(RefreshTickMsg{})
+	model := updated.(Model)
+
+	if model.daemonActive {
+		t.Error("expected daemonActive = false while TUI auto-snapshot holds the lock")
+	}
+	if !model.auto.Enabled() {
+		t.Error("expected auto-snapshots to remain enabled while TUI auto-snapshot is in flight")
+	}
+
+	for _, e := range model.log.Entries() {
+		if strings.Contains(e.Message, "Background service detected") {
+			t.Fatal("unexpected daemon detection log while TUI auto-snapshot holds the lock")
+		}
+	}
+
+	updated, _ = model.Update(SnapshotCreatedMsg{Date: "2026-03-01-150000"})
+	model = updated.(Model)
+	if model.autoSnapshotting {
+		t.Error("expected autoSnapshotting cleared after auto-snapshot completes")
+	}
+	if model.daemonActive {
+		t.Error("expected daemonActive to remain false after auto-snapshot completes")
+	}
+	if !model.auto.Enabled() {
+		t.Error("expected auto-snapshots to remain enabled after auto-snapshot completes")
 	}
 }
 
@@ -1761,6 +1832,332 @@ func TestFlashTickAdvancesMatchingAnimationID(t *testing.T) {
 	}
 	if cmd == nil {
 		t.Error("expected follow-up flash tick command for active animation")
+	}
+}
+
+func TestFirstRefreshFoundCountExcludesRecentCreated(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	// Simulate user creating a snapshot before the first refresh returns.
+	updated, _ := m.Update(SnapshotCreatedMsg{Date: "2026-03-01-150000"})
+	model := updated.(Model)
+
+	// First refresh includes both pre-existing and just-created snapshots.
+	snaps := []snapshot.Snapshot{
+		{Date: "2026-03-01-140000", Time: now.Add(-60 * time.Minute)},
+		{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)},
+		{Date: "2026-03-01-150000", Time: now},
+	}
+	updated, _ = model.Update(RefreshResultMsg{
+		Snapshots: snaps,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model = updated.(Model)
+
+	entries := model.log.Entries()
+	var foundMsg string
+	for _, e := range entries {
+		if e.Category == logger.CatFound {
+			foundMsg = e.Message
+		}
+	}
+
+	want := "Found 2 existing snapshots"
+	if foundMsg != want {
+		t.Errorf("FOUND log = %q, want %q", foundMsg, want)
+	}
+}
+
+func TestLogCursorStableWhenRingBufferAtCapacity(t *testing.T) {
+	m := testModel()
+
+	// Fill the ring buffer to capacity (50 entries).
+	for i := range 50 {
+		m.log.Log(logger.LevelInfo, logger.CatRefresh, fmt.Sprintf("entry-%d", i))
+	}
+	m.updateLogViewContent()
+
+	// Move cursor to entry index 10 (which is entry-39 in newest-first display).
+	m.logCursor = 10
+	targetEntry := m.log.Entries()[49-10] // newest-first: index 10 = entry at position len-1-10
+
+	// Add 3 more entries while buffer is at capacity.
+	for i := range 3 {
+		m.log.Log(logger.LevelInfo, logger.CatRefresh, fmt.Sprintf("new-entry-%d", i))
+	}
+	m.updateLogViewContent()
+
+	// The cursor should have shifted by 3 to track the same logical entry.
+	wantCursor := 13
+	if m.logCursor != wantCursor {
+		t.Errorf("logCursor = %d, want %d", m.logCursor, wantCursor)
+	}
+
+	// Verify the entry at the cursor position still has the same message.
+	entries := m.log.Entries()
+	// In newest-first display, cursor index maps to entries[len-1-cursor].
+	gotIdx := len(entries) - 1 - m.logCursor
+	if gotIdx >= 0 && gotIdx < len(entries) {
+		if entries[gotIdx].Message != targetEntry.Message {
+			t.Errorf("entry at cursor = %q, want %q", entries[gotIdx].Message, targetEntry.Message)
+		}
+	}
+}
+
+func TestLogViewportOffsetPreservedWhenNewEntriesArrive(t *testing.T) {
+	m := testModel()
+	m.width = 80
+	m.height = 40
+
+	// Add enough entries to fill the viewport and allow scrolling.
+	for i := range 20 {
+		m.log.Log(logger.LevelInfo, logger.CatRefresh, fmt.Sprintf("line-%d", i))
+	}
+	m.updateLogViewContent()
+
+	// Scroll viewport down so YOffset > 0.
+	m.logView.SetYOffset(5)
+	initialOffset := m.logView.YOffset()
+	if initialOffset != 5 {
+		t.Fatalf("setup: YOffset = %d, want 5", initialOffset)
+	}
+
+	// Add 3 more entries, which prepend in newest-first display.
+	for i := range 3 {
+		m.log.Log(logger.LevelInfo, logger.CatRefresh, fmt.Sprintf("new-line-%d", i))
+	}
+	m.updateLogViewContent()
+
+	// The offset should increase by the number of new visual lines (3 single-line entries).
+	got := m.logView.YOffset()
+	want := initialOffset + 3
+	if got != want {
+		t.Errorf("YOffset after new entries = %d, want %d", got, want)
+	}
+}
+
+func TestLogViewportOffsetUnchangedOnResizeRewrap(t *testing.T) {
+	m := testModel()
+
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 16})
+	m = updated.(Model)
+
+	msg := strings.Repeat("wrap me ", 16)
+	for i := range 12 {
+		m.log.Log(logger.LevelInfo, logger.CatRefresh, fmt.Sprintf("%02d %s", i, msg))
+	}
+	m.updateLogViewContent()
+
+	m.logView.SetYOffset(4)
+	initialOffset := m.logView.YOffset()
+	if initialOffset != 4 {
+		t.Fatalf("setup: YOffset = %d, want 4", initialOffset)
+	}
+	initialTotalLines := m.logTotalLines
+
+	updated, _ = m.Update(tea.WindowSizeMsg{Width: 80, Height: 16})
+	m = updated.(Model)
+
+	if m.logTotalLines <= initialTotalLines {
+		t.Fatalf("setup: logTotalLines = %d, want > %d after narrower resize", m.logTotalLines, initialTotalLines)
+	}
+	if got := m.logView.YOffset(); got != initialOffset {
+		t.Errorf("YOffset after resize = %d, want %d", got, initialOffset)
+	}
+}
+
+func TestUITickOnlyUpdatesAgeColumn(t *testing.T) {
+	m := testModel()
+	m.width = 120
+	m.snapTable.SetWidth(contentWidth(120))
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+	m.snapshots = []snapshot.Snapshot{
+		{Date: "2026-03-01-145950", Time: now.Add(-10 * time.Second)},
+		{Date: "2026-03-01-145955", Time: now.Add(-5 * time.Second)},
+	}
+	m.updateSnapViewContent()
+
+	rowsBefore := m.snapTable.Rows()
+	colsBefore := m.snapTable.Columns()
+	datesBefore := make([]string, len(rowsBefore))
+	agesBefore := make([]string, len(rowsBefore))
+	for i, r := range rowsBefore {
+		datesBefore[i] = r[0]
+		agesBefore[i] = r[1]
+	}
+
+	// Advance time by 2 seconds so second-level ages change.
+	m.now = func() time.Time { return now.Add(2 * time.Second) }
+	m.updateSnapAges()
+
+	rowsAfter := m.snapTable.Rows()
+	colsAfter := m.snapTable.Columns()
+
+	// Column widths should be unchanged.
+	if len(colsBefore) != len(colsAfter) {
+		t.Fatalf("column count changed: %d -> %d", len(colsBefore), len(colsAfter))
+	}
+	for i := range colsBefore {
+		if colsBefore[i].Width != colsAfter[i].Width {
+			t.Errorf("column %d width changed: %d -> %d", i, colsBefore[i].Width, colsAfter[i].Width)
+		}
+	}
+
+	// DATE column (index 0) should be unchanged.
+	for i, r := range rowsAfter {
+		if r[0] != datesBefore[i] {
+			t.Errorf("row %d DATE changed: %q -> %q", i, datesBefore[i], r[0])
+		}
+	}
+
+	// AGE column (index 1) should have updated values.
+	for i, r := range rowsAfter {
+		if r[1] == agesBefore[i] {
+			t.Errorf("row %d AGE did not update after tick: still %q", i, r[1])
+		}
+	}
+}
+
+func TestTidemarkFetchFailureLogged(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots:   []snapshot.Snapshot{{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)}},
+		TMStatus:    "Configured",
+		DiskInfo:    platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+		TidemarkErr: fmt.Errorf("container not found"),
+	})
+	model := updated.(Model)
+
+	entries := model.log.Entries()
+	var found bool
+	for _, e := range entries {
+		if e.Level == logger.LevelWarn && strings.Contains(e.Message, "Tidemark fetch failed") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected WARN log for tidemark fetch failure")
+	}
+}
+
+func TestAutoSnapshotSkippedWhenLockHeld(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	// Simulate receiving a skipped auto-snapshot result.
+	updated, _ := m.Update(SnapshotCreatedMsg{Skipped: true})
+	model := updated.(Model)
+
+	entries := model.log.Entries()
+	var found bool
+	for _, e := range entries {
+		if e.Category == logger.CatAuto && strings.Contains(e.Message, "skipped") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected log message about auto-snapshot being skipped due to lock")
+	}
+	if model.snapshotting {
+		t.Error("snapshotting should be false after skipped result")
+	}
+}
+
+func TestRefreshResultTidemarkFormatted(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: []snapshot.Snapshot{{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)}},
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+		Tidemark:  50_000_000_000, // ~46.6 GiB
+	})
+	model := updated.(Model)
+
+	if model.tidemark == "" {
+		t.Error("tidemark should be formatted when Tidemark > 0")
+	}
+}
+
+func TestRefreshResultTidemarkEmpty(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: []snapshot.Snapshot{{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)}},
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+		Tidemark:  0,
+	})
+	model := updated.(Model)
+
+	if model.tidemark != "" {
+		t.Errorf("tidemark = %q, want empty when Tidemark is 0", model.tidemark)
+	}
+}
+
+func TestInfoPanelIncludesTidemark(t *testing.T) {
+	m := testModel()
+	m.tidemark = "46.6 GiB"
+	view := viewContent(m)
+	if !strings.Contains(view, "Tidemark:") {
+		t.Error("view should contain 'Tidemark:' when tidemark is set")
+	}
+}
+
+func TestInfoPanelOmitsTidemark(t *testing.T) {
+	m := testModel()
+	m.tidemark = ""
+	view := viewContent(m)
+	if strings.Contains(view, "Tidemark:") {
+		t.Error("view should not contain 'Tidemark:' when tidemark is empty")
+	}
+}
+
+func TestXIDDeltaInSnapTable(t *testing.T) {
+	m := testModel()
+	m.width = 120
+	m.snapTable.SetWidth(contentWidth(120))
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+	m.snapshots = []snapshot.Snapshot{
+		{
+			Date: "2026-03-01-140000",
+			Time: now.Add(-60 * time.Minute),
+			UUID: "AAAA-BBBB",
+			XID:  1000,
+		},
+		{
+			Date: "2026-03-01-143000",
+			Time: now.Add(-30 * time.Minute),
+			UUID: "CCCC-DDDD",
+			XID:  1050,
+		},
+	}
+	m.updateSnapViewContent()
+
+	rows := m.snapTable.Rows()
+	// Newest first: row 0 = 143000, row 1 = 140000.
+	// Row 0 (snapshot at index 1) has predecessor at index 0, so delta = 1050-1000 = 50.
+	if rows[0][3] != "50" {
+		t.Errorf("XID delta for newest row = %q, want %q", rows[0][3], "50")
+	}
+	// Row 1 (snapshot at index 0) has no predecessor, so delta should be empty.
+	if rows[1][3] != "" {
+		t.Errorf("XID delta for oldest row = %q, want empty", rows[1][3])
 	}
 }
 

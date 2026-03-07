@@ -64,6 +64,28 @@ func TestGeneratePlistWithConfigFile(t *testing.T) {
 	}
 }
 
+func TestGeneratePlistEscapesXMLChars(t *testing.T) {
+	cfg := PlistConfig{
+		Label:      "com.cboone.snappy",
+		BinaryPath: "/usr/local/bin/snappy & co",
+		LogDir:     "/Users/test/.local/share/snappy",
+	}
+
+	data, err := GeneratePlist(cfg)
+	if err != nil {
+		t.Fatalf("GeneratePlist() error = %v", err)
+	}
+
+	content := string(data)
+	// The ampersand should be XML-escaped.
+	if !strings.Contains(content, "snappy &amp; co") {
+		t.Error("plist did not XML-escape ampersand in BinaryPath")
+	}
+	if strings.Contains(content, "snappy & co</string>") {
+		t.Error("plist contains unescaped ampersand")
+	}
+}
+
 func TestPlistPath(t *testing.T) {
 	path, err := PlistPath("com.cboone.snappy")
 	if err != nil {
@@ -255,6 +277,37 @@ func TestReadBinaryFromPlistRoundTrip(t *testing.T) {
 	got := readBinaryFromPlist(path)
 	if got != cfg.BinaryPath {
 		t.Errorf("readBinaryFromPlist() = %q, want %q", got, cfg.BinaryPath)
+	}
+}
+
+func TestReadLogPathFromPlistRoundTrip(t *testing.T) {
+	cfg := PlistConfig{
+		Label:      "com.cboone.snappy",
+		BinaryPath: "/opt/homebrew/bin/snappy",
+		LogDir:     "/Users/test/.local/share/snappy",
+	}
+
+	data, err := GeneratePlist(cfg)
+	if err != nil {
+		t.Fatalf("GeneratePlist() error = %v", err)
+	}
+
+	path := filepath.Join(t.TempDir(), "roundtrip.plist")
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := ReadLogPathFromPlist(path)
+	want := "/Users/test/.local/share/snappy/snappy-service.log"
+	if got != want {
+		t.Errorf("ReadLogPathFromPlist() = %q, want %q", got, want)
+	}
+}
+
+func TestReadLogPathFromPlistMissing(t *testing.T) {
+	got := ReadLogPathFromPlist("/nonexistent/path.plist")
+	if got != "" {
+		t.Errorf("ReadLogPathFromPlist() = %q, want empty for nonexistent file", got)
 	}
 }
 

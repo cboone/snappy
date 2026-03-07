@@ -12,6 +12,7 @@ import (
 
 	"github.com/cboone/snappy/internal/config"
 	"github.com/cboone/snappy/internal/platform"
+	"github.com/cboone/snappy/internal/service"
 	"github.com/cboone/snappy/internal/snapshot"
 )
 
@@ -67,11 +68,9 @@ func doRefresh(runner platform.CommandRunner, apfsVolume, apfsContainer string) 
 		diskInfo, diskErr := platform.GetDiskInfo(ctx, runner, config.DefaultMount)
 
 		var tidemark int64
+		var tidemarkErr error
 		if apfsContainer != "" {
-			tm, tmErr := platform.GetContainerTidemark(ctx, runner, apfsContainer)
-			if tmErr == nil {
-				tidemark = tm
-			}
+			tidemark, tidemarkErr = platform.GetContainerTidemark(ctx, runner, apfsContainer)
 		}
 
 		return RefreshResultMsg{
@@ -83,12 +82,33 @@ func doRefresh(runner platform.CommandRunner, apfsVolume, apfsContainer string) 
 			SnapshotErr: nil,
 			APFSErr:     apfsErr,
 			Tidemark:    tidemark,
+			TidemarkErr: tidemarkErr,
 		}
 	}
 }
 
 func doCreateSnapshot(runner platform.CommandRunner) tea.Cmd {
 	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+		date, err := platform.CreateSnapshot(ctx, runner)
+		return SnapshotCreatedMsg{Date: date, Err: err}
+	}
+}
+
+// doAutoCreateSnapshot creates a snapshot while holding the single-instance
+// lock. If the lock is already held by the daemon, the snapshot is skipped.
+func doAutoCreateSnapshot(runner platform.CommandRunner, lockPath string) tea.Cmd {
+	return func() tea.Msg {
+		lock, lockErr := service.Acquire(lockPath)
+		if lockErr != nil {
+			if errors.Is(lockErr, service.ErrLocked) {
+				return SnapshotCreatedMsg{Skipped: true}
+			}
+			return SnapshotCreatedMsg{Err: lockErr}
+		}
+		defer func() { _ = lock.Release() }()
+
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
 		date, err := platform.CreateSnapshot(ctx, runner)

@@ -91,7 +91,7 @@ func (m Model) handleSpinnerTick(msg spinner.TickMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleUITick() (tea.Model, tea.Cmd) {
-	m.updateSnapViewContent()
+	m.updateSnapAges()
 	if m.auto.Enabled() || m.loading {
 		return m, uiTick()
 	}
@@ -401,11 +401,13 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 	snapshotDue := m.auto.ShouldSnapshot(now) && !m.snapshotting
 	if snapshotDue {
 		m.snapshotting = true
+		m.autoSnapshotting = true
 		m.loading = true
 		m.auto.RecordSnapshot(now)
 		m.log.Log(logger.LevelInfo, logger.CatAuto, "Creating auto-snapshot...")
 		m.updateLogViewContent()
-		cmds = append(cmds, doCreateSnapshot(m.runner), m.spinner.Tick)
+		lockPath := service.DefaultLockPath(m.cfg.LogDir)
+		cmds = append(cmds, doAutoCreateSnapshot(m.runner, lockPath), m.spinner.Tick)
 	}
 
 	// Skip refresh when an auto-snapshot is in flight; SnapshotCreatedMsg
@@ -422,6 +424,9 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 
 func (m *Model) syncDaemonState(now time.Time) {
 	if m.cfg.LogDir == "" {
+		return
+	}
+	if m.autoSnapshotting {
 		return
 	}
 	lockPath := service.DefaultLockPath(m.cfg.LogDir)
@@ -507,6 +512,10 @@ func (m *Model) applyAPFSInfo(msg RefreshResultMsg) {
 
 // applyTidemark updates the tidemark display from a refresh result.
 func (m *Model) applyTidemark(msg RefreshResultMsg) {
+	if msg.TidemarkErr != nil {
+		m.log.Log(logger.LevelWarn, logger.CatRefresh,
+			"Tidemark fetch failed: "+msg.TidemarkErr.Error())
+	}
 	if msg.Tidemark > 0 {
 		m.tidemark = platform.FormatBytes(msg.Tidemark)
 	} else {
@@ -536,8 +545,16 @@ func (m *Model) logDiffChanges(prev, current []snapshot.Snapshot) {
 	diff := snapshot.ComputeDiff(prev, current)
 
 	if !m.hadFirstRefresh && len(diff.Added) > 0 {
-		m.log.Log(logger.LevelInfo, logger.CatFound, fmt.Sprintf(
-			"Found %d existing snapshots", len(diff.Added)))
+		foundCount := 0
+		for _, s := range diff.Added {
+			if _, ok := m.recentCreated[s.Date]; !ok {
+				foundCount++
+			}
+		}
+		if foundCount > 0 {
+			m.log.Log(logger.LevelInfo, logger.CatFound, fmt.Sprintf(
+				"Found %d existing snapshots", foundCount))
+		}
 	} else {
 		for _, s := range diff.Added {
 			if _, ok := m.recentCreated[s.Date]; ok {
@@ -594,10 +611,13 @@ func (m *Model) maybeThin(cmds []tea.Cmd) []tea.Cmd {
 
 func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd) {
 	m.snapshotting = false
+	m.autoSnapshotting = false
 	if !m.thinning {
 		m.loading = false
 	}
 	switch {
+	case msg.Skipped:
+		m.log.Log(logger.LevelInfo, logger.CatAuto, "Auto-snapshot skipped: another process holds the lock")
 	case msg.Err != nil:
 		m.log.Log(logger.LevelError, logger.CatSnapshot, fmt.Sprintf("Failed to create snapshot: %v", msg.Err))
 	case msg.Date != "":
@@ -718,6 +738,27 @@ func (m *Model) updateSnapViewContent() {
 	m.clampSnapScroll()
 }
 
+// updateSnapAges updates only the AGE column in existing table rows.
+// Called on UI ticks where only relative times change, avoiding the cost
+// of recomputing column widths and rebuilding all row fields.
+func (m *Model) updateSnapAges() {
+	rows := m.snapTable.Rows()
+	if len(rows) == 0 {
+		return
+	}
+	now := m.now()
+	count := len(m.snapshots)
+	for ri, row := range rows {
+		si := count - 1 - ri // newest-first mapping
+		if si >= 0 && si < count {
+			row[1] = snapshot.FormatRelativeTime(m.snapshots[si].Time, now)
+			rows[ri] = row
+		}
+	}
+	m.snapTable.SetRows(rows)
+	m.updateSnapRenderCache()
+}
+
 func (m *Model) updateSnapRenderCache() {
 	tableOut := m.snapTable.View()
 	parts := strings.SplitN(tableOut, "\n", 2)
@@ -768,19 +809,34 @@ func (m *Model) snapTableColumns() []table.Column {
 // Entries are shown newest first so both panels scroll the same direction.
 // The line at logCursor is rendered bold. Long messages wrap within the
 // message column, with continuation lines indented to align.
-func (m *Model) updateLogViewContent() {
-	entries := m.log.Entries()
+// adjustLogCursor updates the log cursor position when the entry count or
+// sequence numbers indicate new entries have arrived.
+func (m *Model) adjustLogCursor(entries []logger.Entry) {
 	newCount := len(entries)
-	// When new entries arrive, existing entries shift down in the
-	// newest-first display. Adjust cursor so it tracks the same entry.
-	// If the cursor is at 0 (following newest), keep it there.
-	if m.logCursor > 0 && newCount > m.logCount {
-		m.logCursor += newCount - m.logCount
+	var newestSeq uint64
+	if newCount > 0 {
+		newestSeq = entries[newCount-1].Seq
 	}
+
+	if m.logCursor > 0 {
+		if newCount > m.logCount {
+			m.logCursor += newCount - m.logCount
+		} else if newCount == m.logCount && newestSeq > m.logLastSeq {
+			m.logCursor += int(newestSeq - m.logLastSeq)
+		}
+	}
+	m.logLastSeq = newestSeq
 	m.logCount = newCount
 	if m.logCursor >= m.logCount {
 		m.logCursor = max(m.logCount-1, 0)
 	}
+}
+
+func (m *Model) updateLogViewContent() {
+	entries := m.log.Entries()
+	prevLastSeq := m.logLastSeq
+	// adjustLogCursor also updates m.logLastSeq and m.logCount as side effects.
+	m.adjustLogCursor(entries)
 
 	if m.logCount == 0 {
 		m.logEntryY = nil
@@ -793,8 +849,8 @@ func (m *Model) updateLogViewContent() {
 	w := m.logView.Width()
 	msgW := max(w-prefixW, 10)
 	indent := strings.Repeat(" ", prefixW)
-
 	m.logEntryY = make([]int, m.logCount)
+	prependedLines := 0
 	var b strings.Builder
 	visualLine := 0
 	displayIdx := 0
@@ -828,10 +884,26 @@ func (m *Model) updateLogViewContent() {
 			}
 		}
 		visualLine += len(msgLines)
+		if e.Seq > prevLastSeq {
+			prependedLines += len(msgLines)
+		}
 		displayIdx++
 	}
+	prevOffset := m.logView.YOffset()
+
 	m.logTotalLines = visualLine
 	m.logView.SetContent(b.String())
+
+	// Preserve viewport position when the user has scrolled away from the top.
+	// New entries prepend to the newest-first display, shifting everything down.
+	if prevOffset > 0 && prependedLines > 0 {
+		newOffset := prevOffset + prependedLines
+		maxOffset := max(m.logTotalLines-m.logView.Height(), 0)
+		if newOffset > maxOffset {
+			newOffset = maxOffset
+		}
+		m.logView.SetYOffset(newOffset)
+	}
 }
 
 // logEntryAtVisualLine returns the entry index whose visual line range

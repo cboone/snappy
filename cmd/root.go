@@ -193,7 +193,14 @@ func runTUI(_ *cobra.Command, _ []string) error {
 		cfg.AutoEnabled, int(cfg.AutoSnapshotInterval.Seconds()),
 		int(cfg.ThinAgeThreshold.Seconds()), int(cfg.ThinCadence.Seconds())))
 
-	model := tui.NewModel(cfg, runner, log, apfsVolume, apfsContainer, tmStatus, volumeName, version, daemonActive)
+	model := tui.NewModel(cfg, runner, log, tui.ModelParams{
+		APFSVolume:    apfsVolume,
+		APFSContainer: apfsContainer,
+		TMStatus:      tmStatus,
+		VolumeName:    volumeName,
+		Version:       version,
+		DaemonActive:  daemonActive,
+	})
 	p := tea.NewProgram(model)
 
 	if _, err := p.Run(); err != nil {
