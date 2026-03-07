@@ -130,9 +130,11 @@ type Model struct {
 	focusPanel    int
 	hasDarkBG     bool
 
-	snapPanelY int
-	logPanelY  int
-	helpBarY   int
+	snapPanelY       int
+	logPanelY        int
+	helpBarY         int
+	snapScrollOffset int
+	snapVisibleRows  int
 
 	now func() time.Time
 }
@@ -170,31 +172,32 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 	)
 
 	m := Model{
-		cfg:           cfg,
-		runner:        runner,
-		log:           log,
-		auto:          snapshot.NewAutoManager(autoEnabled, cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence, now),
-		apfsVolume:    apfsVolume,
-		tmStatus:      tmStatus,
-		volumeName:    volumeName,
-		daemonActive:  daemonActive,
-		apfsContainer: apfsContainer,
-		refreshing:    true,
-		thinPinned:    make(map[string]struct{}),
-		recentCreated: make(map[string]struct{}),
-		recentThinned: make(map[string]struct{}),
-		version:       version,
-		width:         80,
-		height:        24,
-		keys:          keys,
-		help:          h,
-		snapTable:     st,
-		logView:       lv,
-		spinner:       s,
-		styles:        styles,
-		focusPanel:    panelSnap,
-		hasDarkBG:     hasDarkBG,
-		now:           time.Now,
+		cfg:             cfg,
+		runner:          runner,
+		log:             log,
+		auto:            snapshot.NewAutoManager(autoEnabled, cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence, now),
+		apfsVolume:      apfsVolume,
+		tmStatus:        tmStatus,
+		volumeName:      volumeName,
+		daemonActive:    daemonActive,
+		apfsContainer:   apfsContainer,
+		refreshing:      true,
+		thinPinned:      make(map[string]struct{}),
+		recentCreated:   make(map[string]struct{}),
+		recentThinned:   make(map[string]struct{}),
+		version:         version,
+		width:           80,
+		height:          24,
+		keys:            keys,
+		help:            h,
+		snapTable:       st,
+		snapVisibleRows: 9, // default table height (10) minus header (1)
+		logView:         lv,
+		spinner:         s,
+		styles:          styles,
+		focusPanel:      panelSnap,
+		hasDarkBG:       hasDarkBG,
+		now:             time.Now,
 	}
 
 	m.updateSnapViewContent()
