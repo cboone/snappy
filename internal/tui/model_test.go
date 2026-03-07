@@ -1446,22 +1446,27 @@ func TestViewPinnedIndicator(t *testing.T) {
 	m.thinPinned["2026-03-01-144000"] = struct{}{}
 	m.updateSnapViewContent()
 
-	v := viewContent(m)
+	viewContent(m)
 
-	if !strings.Contains(v, "pinned") {
-		t.Error("view missing pinned indicator for snapshot in thinPinned")
-	}
-	// The non-pinned snapshot should not show "pinned".
 	rows := m.snapTable.Rows()
+	pinnedChecked := false
 	nonPinnedChecked := false
 	for _, row := range rows {
-		if row[0] != "2026-03-01 14:50:00" {
-			continue
+		switch row[0] {
+		case "2026-03-01 14:40:00":
+			pinnedChecked = true
+			if !strings.Contains(row[5], "pinned") {
+				t.Errorf("pinned snapshot status = %q, want to contain 'pinned'", row[5])
+			}
+		case "2026-03-01 14:50:00":
+			nonPinnedChecked = true
+			if strings.Contains(row[5], "pinned") {
+				t.Error("non-pinned snapshot should not show pinned indicator")
+			}
 		}
-		nonPinnedChecked = true
-		if strings.Contains(row[5], "pinned") {
-			t.Error("non-pinned snapshot should not show pinned indicator")
-		}
+	}
+	if !pinnedChecked {
+		t.Fatal("failed to find pinned snapshot row")
 	}
 	if !nonPinnedChecked {
 		t.Fatal("failed to find non-pinned snapshot row")
