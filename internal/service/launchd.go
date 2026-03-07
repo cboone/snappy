@@ -1,7 +1,6 @@
 package service
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -9,7 +8,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"text/template"
 
 	"howett.net/plist"
 )
@@ -35,43 +33,18 @@ type Info struct {
 	Label      string
 }
 
-var plistTemplate = template.Must(template.New("plist").Parse(`<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>{{.Label}}</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>{{.BinaryPath}}</string>
-        <string>run</string>
-{{- if .ConfigFile}}
-        <string>--config</string>
-        <string>{{.ConfigFile}}</string>
-{{- end}}
-    </array>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>KeepAlive</key>
-    <true/>
-    <key>ProcessType</key>
-    <string>Background</string>
-    <key>ThrottleInterval</key>
-    <integer>10</integer>
-    <key>StandardOutPath</key>
-    <string>{{.LogPath}}</string>
-    <key>StandardErrorPath</key>
-    <string>{{.LogPath}}</string>
-</dict>
-</plist>
-`))
-
-type plistData struct {
-	Label      string
-	BinaryPath string
-	ConfigFile string
-	LogPath    string
+// generatedPlist defines the launchd agent plist structure for serialization
+// via howett.net/plist. Using proper plist marshaling ensures XML-safe escaping
+// of all values.
+type generatedPlist struct {
+	Label             string   `plist:"Label"`
+	ProgramArguments  []string `plist:"ProgramArguments"`
+	RunAtLoad         bool     `plist:"RunAtLoad"`
+	KeepAlive         bool     `plist:"KeepAlive"`
+	ProcessType       string   `plist:"ProcessType"`
+	ThrottleInterval  int      `plist:"ThrottleInterval"`
+	StandardOutPath   string   `plist:"StandardOutPath"`
+	StandardErrorPath string   `plist:"StandardErrorPath"`
 }
 
 // PlistPath returns the expected plist file path for the given label:
@@ -84,21 +57,31 @@ func PlistPath(label string) (string, error) {
 	return filepath.Join(home, "Library", "LaunchAgents", label+".plist"), nil
 }
 
-// GeneratePlist renders the launchd plist XML for the given configuration.
+// GeneratePlist serializes the launchd plist XML for the given configuration.
+// Values are properly XML-escaped via howett.net/plist.
 func GeneratePlist(cfg PlistConfig) ([]byte, error) {
 	logPath := filepath.Join(cfg.LogDir, "snappy-service.log")
-	data := plistData{
-		Label:      cfg.Label,
-		BinaryPath: cfg.BinaryPath,
-		ConfigFile: cfg.ConfigFile,
-		LogPath:    logPath,
+	args := []string{cfg.BinaryPath, "run"}
+	if cfg.ConfigFile != "" {
+		args = append(args, "--config", cfg.ConfigFile)
 	}
 
-	var buf bytes.Buffer
-	if err := plistTemplate.Execute(&buf, data); err != nil {
-		return nil, fmt.Errorf("rendering plist template: %w", err)
+	pl := generatedPlist{
+		Label:             cfg.Label,
+		ProgramArguments:  args,
+		RunAtLoad:         true,
+		KeepAlive:         true,
+		ProcessType:       "Background",
+		ThrottleInterval:  10,
+		StandardOutPath:   logPath,
+		StandardErrorPath: logPath,
 	}
-	return buf.Bytes(), nil
+
+	data, err := plist.MarshalIndent(pl, plist.XMLFormat, "\t")
+	if err != nil {
+		return nil, fmt.Errorf("marshaling plist: %w", err)
+	}
+	return data, nil
 }
 
 // ResolveBinaryPath returns the canonical absolute path of the currently
