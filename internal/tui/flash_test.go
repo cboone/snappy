@@ -98,7 +98,7 @@ func TestGlintPeak(t *testing.T) {
 		{"at right edge", 1.25, 1.0, 0.25, 0},
 		{"outside left", 0.5, 1.0, 0.25, 0},
 		{"outside right", 1.5, 1.0, 0.25, 0},
-		{"halfway left", 0.875, 1.0, 0.25, 0.5625}, // expected: (1-0.25) squared equals 0.5625
+		{"halfway left", 0.875, 1.0, 0.25, 0.5625}, // t=-0.5, v=1-t*t=0.75, result=v*v=0.5625
 	}
 
 	for _, tt := range tests {
