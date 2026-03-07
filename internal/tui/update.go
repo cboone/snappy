@@ -796,13 +796,10 @@ func (m *Model) snapTableColumns() []table.Column {
 // Entries are shown newest first so both panels scroll the same direction.
 // The line at logCursor is rendered bold. Long messages wrap within the
 // message column, with continuation lines indented to align.
-func (m *Model) updateLogViewContent() {
-	entries := m.log.Entries()
+// adjustLogCursor updates the log cursor position when the entry count or
+// sequence numbers indicate new entries have arrived.
+func (m *Model) adjustLogCursor(entries []logger.Entry) {
 	newCount := len(entries)
-
-	// Detect genuinely new entries using sequence numbers so we can
-	// adjust the cursor even when the ring buffer is at capacity
-	// (where newCount == m.logCount but entries have shifted).
 	var newestSeq uint64
 	if newCount > 0 {
 		newestSeq = entries[newCount-1].Seq
@@ -810,10 +807,8 @@ func (m *Model) updateLogViewContent() {
 
 	if m.logCursor > 0 {
 		if newCount > m.logCount {
-			// Buffer grew: shift cursor by the number of new entries.
 			m.logCursor += newCount - m.logCount
 		} else if newCount == m.logCount && newestSeq > m.logLastSeq {
-			// Buffer at capacity: each new entry shifts existing ones down.
 			m.logCursor += int(newestSeq - m.logLastSeq)
 		}
 	}
@@ -822,6 +817,11 @@ func (m *Model) updateLogViewContent() {
 	if m.logCursor >= m.logCount {
 		m.logCursor = max(m.logCount-1, 0)
 	}
+}
+
+func (m *Model) updateLogViewContent() {
+	entries := m.log.Entries()
+	m.adjustLogCursor(entries)
 
 	if m.logCount == 0 {
 		m.logEntryY = nil

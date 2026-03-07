@@ -131,7 +131,7 @@ func TestIsHeldDoesNotBlockAcquire(t *testing.T) {
 	if err != nil {
 		t.Fatalf("creating lock file: %v", err)
 	}
-	f.Close()
+	_ = f.Close()
 
 	// IsHeld on an unheld lock should not prevent a subsequent Acquire.
 	if IsHeld(path) {

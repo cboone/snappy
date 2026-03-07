@@ -107,7 +107,7 @@ func doAutoCreateSnapshot(runner platform.CommandRunner, lockPath string) tea.Cm
 			}
 			return SnapshotCreatedMsg{Err: lockErr}
 		}
-		defer lock.Release()
+		defer func() { _ = lock.Release() }()
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
