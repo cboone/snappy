@@ -122,22 +122,6 @@ func (m Model) renderSnapshotPanel(width int) string {
 	count := len(m.snapshots)
 	titleLabel := fmt.Sprintf("local snapshots (%d)", count)
 
-	if m.flash.active && (m.flash.gainPanel == panelSnap || m.flash.losePanel == panelSnap) {
-		gaining := m.flash.gainPanel == panelSnap
-		return renderFlashBorders(m.snapTable.View(), "", titleLabel, "", cw, m.flash, gaining, m.styles)
-	}
-
-	titleStyle := m.styles.sectionTitle
-	if m.focusPanel != panelSnap {
-		titleStyle = m.styles.sectionTitleDim
-	}
-	title := titleStyle.Render(titleLabel)
-
-	style := m.styles.section
-	if m.focusPanel == panelSnap {
-		style = m.styles.sectionFocus
-	}
-
 	header := m.snapHeaderLine
 	bodyLines := m.snapBodyLines
 
@@ -153,6 +137,22 @@ func (m Model) renderSnapshotPanel(width int) string {
 		clipped = header + "\n" + strings.Join(visible, "\n")
 	} else {
 		clipped = header
+	}
+
+	if m.flash.active && (m.flash.gainPanel == panelSnap || m.flash.losePanel == panelSnap) {
+		gaining := m.flash.gainPanel == panelSnap
+		return renderFlashBorders(clipped, "", titleLabel, "", cw, m.flash, gaining, m.styles)
+	}
+
+	titleStyle := m.styles.sectionTitle
+	if m.focusPanel != panelSnap {
+		titleStyle = m.styles.sectionTitleDim
+	}
+	title := titleStyle.Render(titleLabel)
+
+	style := m.styles.section
+	if m.focusPanel == panelSnap {
+		style = m.styles.sectionFocus
 	}
 
 	rendered := style.Width(cw + 4).Render(clipped)
