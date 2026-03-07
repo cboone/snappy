@@ -123,7 +123,7 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 
 	// Fixed-height rows: info panel + snap/log borders + help bar.
 	// Info panel: 3 body lines + 2 borders = 5.
-	// Snap panel: 2 borders (table header is inside SetHeight).
+	// Snap panel: 2 borders (visible rows set via snapVisibleRows).
 	// Log panel: 2 borders.
 	// Help bar: 1.
 	const (
@@ -639,7 +639,7 @@ func (m *Model) updateSnapViewContent() {
 		row := make(table.Row, len(cols))
 		row[0] = "(none, press 's' to create the first snapshot)"
 		m.snapTable.SetRows([]table.Row{row})
-		m.snapTable.SetHeight(max(1+1, 2))
+		m.snapTable.SetHeight(2)
 		m.updateSnapRenderCache()
 		m.clampSnapScroll()
 		return
