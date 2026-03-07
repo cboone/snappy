@@ -150,7 +150,7 @@ func (m Model) formatAutoStatus() string {
 	label := m.styles.infoLabel.Render
 	if m.daemonActive {
 		return label("Auto-snapshot:") + " " + indicatorOn + " " +
-			m.styles.textCyan.Render("daemon") +
+			m.styles.textCyan.Render("service") +
 			fmt.Sprintf("    %s %ds    %s >%dm to %ds",
 				label("every"), int(m.cfg.AutoSnapshotInterval.Seconds()),
 				label("thin"), int(m.cfg.ThinAgeThreshold.Minutes()),

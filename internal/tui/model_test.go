@@ -371,8 +371,8 @@ func TestViewAutoStatusDaemon(t *testing.T) {
 	m.height = 40
 
 	v := viewContent(m)
-	if !strings.Contains(v, "daemon") {
-		t.Error("view should show 'daemon' when daemon is active")
+	if !strings.Contains(v, "service") {
+		t.Error("view should show 'service' when background service is active")
 	}
 	if m.auto.Enabled() {
 		t.Error("auto-snapshots should be disabled when daemon is active")
