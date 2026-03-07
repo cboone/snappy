@@ -1894,3 +1894,56 @@ func TestLogViewportOffsetPreservedWhenNewEntriesArrive(t *testing.T) {
 		t.Errorf("YOffset after new entries = %d, want %d", got, want)
 	}
 }
+
+func TestUITickOnlyUpdatesAgeColumn(t *testing.T) {
+	m := testModel()
+	m.width = 120
+	m.snapTable.SetWidth(contentWidth(120))
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+	m.snapshots = []snapshot.Snapshot{
+		{Date: "2026-03-01-145950", Time: now.Add(-10 * time.Second)},
+		{Date: "2026-03-01-145955", Time: now.Add(-5 * time.Second)},
+	}
+	m.updateSnapViewContent()
+
+	rowsBefore := m.snapTable.Rows()
+	colsBefore := m.snapTable.Columns()
+	datesBefore := make([]string, len(rowsBefore))
+	agesBefore := make([]string, len(rowsBefore))
+	for i, r := range rowsBefore {
+		datesBefore[i] = r[0]
+		agesBefore[i] = r[1]
+	}
+
+	// Advance time by 2 seconds so second-level ages change.
+	m.now = func() time.Time { return now.Add(2 * time.Second) }
+	m.updateSnapAges()
+
+	rowsAfter := m.snapTable.Rows()
+	colsAfter := m.snapTable.Columns()
+
+	// Column widths should be unchanged.
+	if len(colsBefore) != len(colsAfter) {
+		t.Fatalf("column count changed: %d -> %d", len(colsBefore), len(colsAfter))
+	}
+	for i := range colsBefore {
+		if colsBefore[i].Width != colsAfter[i].Width {
+			t.Errorf("column %d width changed: %d -> %d", i, colsBefore[i].Width, colsAfter[i].Width)
+		}
+	}
+
+	// DATE column (index 0) should be unchanged.
+	for i, r := range rowsAfter {
+		if r[0] != datesBefore[i] {
+			t.Errorf("row %d DATE changed: %q -> %q", i, datesBefore[i], r[0])
+		}
+	}
+
+	// AGE column (index 1) should have updated values.
+	for i, r := range rowsAfter {
+		if r[1] == agesBefore[i] {
+			t.Errorf("row %d AGE did not update after tick: still %q", i, r[1])
+		}
+	}
+}

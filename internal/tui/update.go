@@ -91,7 +91,7 @@ func (m Model) handleSpinnerTick(msg spinner.TickMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleUITick() (tea.Model, tea.Cmd) {
-	m.updateSnapViewContent()
+	m.updateSnapAges()
 	if m.auto.Enabled() || m.loading {
 		return m, uiTick()
 	}
@@ -716,6 +716,27 @@ func (m *Model) updateSnapViewContent() {
 	m.snapTable.SetHeight(max(len(rows)+1, 2))
 	m.updateSnapRenderCache()
 	m.clampSnapScroll()
+}
+
+// updateSnapAges updates only the AGE column in existing table rows.
+// Called on UI ticks where only relative times change, avoiding the cost
+// of recomputing column widths and rebuilding all row fields.
+func (m *Model) updateSnapAges() {
+	rows := m.snapTable.Rows()
+	if len(rows) == 0 {
+		return
+	}
+	now := m.now()
+	count := len(m.snapshots)
+	for ri, row := range rows {
+		si := count - 1 - ri // newest-first mapping
+		if si >= 0 && si < count {
+			row[1] = snapshot.FormatRelativeTime(m.snapshots[si].Time, now)
+			rows[ri] = row
+		}
+	}
+	m.snapTable.SetRows(rows)
+	m.updateSnapRenderCache()
 }
 
 func (m *Model) updateSnapRenderCache() {
