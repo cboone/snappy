@@ -59,27 +59,24 @@ func TestFlashBeamCenter(t *testing.T) {
 	}
 }
 
-func TestFlashDiagonalValue(t *testing.T) {
+func TestFlashVerticalValue(t *testing.T) {
 	tests := []struct {
-		name       string
-		x, y, w, h int
-		want       float64
+		name                          string
+		localY, panelY, screenHeight int
+		want                          float64
 	}{
-		{"top-left corner", 0, 0, 10, 10, 0},
-		{"bottom-right corner", 9, 9, 10, 10, 2},
-		{"top-right corner", 9, 0, 10, 10, 1},
-		{"bottom-left corner", 0, 9, 10, 10, 1},
-		{"center", 5, 5, 11, 11, 1},
-		{"width 1", 0, 5, 1, 10, 5.0 / 9.0},
-		{"height 1", 5, 0, 10, 1, 5.0 / 9.0},
-		{"width 1 height 1", 0, 0, 1, 1, 0},
+		{"top of screen", 0, 0, 40, 0},
+		{"bottom of screen", 0, 39, 40, 2},
+		{"mid screen", 0, 20, 41, 1},
+		{"panel offset", 5, 10, 40, 2.0 * 15 / 39},
+		{"screen height 1", 0, 0, 1, 0},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := flashDiagonalValue(tt.x, tt.y, tt.w, tt.h)
+			got := flashVerticalValue(tt.localY, tt.panelY, tt.screenHeight)
 			if math.Abs(got-tt.want) > 1e-9 {
-				t.Errorf("flashDiagonalValue(%d, %d, %d, %d) = %g, want %g", tt.x, tt.y, tt.w, tt.h, got, tt.want)
+				t.Errorf("flashVerticalValue(%d, %d, %d) = %g, want %g", tt.localY, tt.panelY, tt.screenHeight, got, tt.want)
 			}
 		})
 	}

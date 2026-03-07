@@ -29,16 +29,17 @@ type flashState struct {
 // flashCtx holds precomputed values for rendering a single flash frame,
 // reducing parameter threading across border-building functions.
 type flashCtx struct {
-	totalWidth  int
-	totalHeight int
-	beamCenter  float64
-	dim         colorful.Color // unfocused border color
-	bright      colorful.Color // focused border color
-	glint       colorful.Color // bright peak swept across (sunlight on glass)
-	titleDim    colorful.Color // unfocused title foreground
-	titleBright colorful.Color // focused title foreground
-	gaining     bool           // true = dim-to-bright wipe, false = bright-to-dim
-	reverse     bool           // sweep bottom-right to top-left
+	totalWidth   int
+	panelY       int // panel's top-left Y in global screen coordinates
+	screenHeight int // total terminal height
+	beamCenter   float64
+	dim          colorful.Color // unfocused border color
+	bright       colorful.Color // focused border color
+	glint        colorful.Color // bright peak swept across (sunlight on glass)
+	titleDim     colorful.Color // unfocused title foreground
+	titleBright  colorful.Color // focused title foreground
+	gaining      bool           // true = dim-to-bright wipe, false = bright-to-dim
+	reverse      bool           // sweep bottom-right to top-left
 }
 
 // flashBeamCenter returns the beam center position in diagonal-space for the
@@ -56,19 +57,16 @@ func flashBeamCenter(frame, totalFrames int) float64 {
 	return start + progress*(end-start)
 }
 
-// flashDiagonalValue computes the normalized diagonal position for a border
-// character at (x, y) within a panel of the given total dimensions (including
-// borders). Returns a value in [0, 2] where 0 is the top-left corner and 2
-// is the bottom-right corner.
-func flashDiagonalValue(x, y, width, height int) float64 {
-	var xNorm, yNorm float64
-	if width > 1 {
-		xNorm = float64(x) / float64(width-1)
+// flashVerticalValue computes the normalized vertical position for a border
+// row at localY within a panel whose top edge is at panelY in global screen
+// coordinates. Returns a value in [0, 2] where 0 is the top of the screen
+// and 2 is the bottom, matching the beam center range.
+func flashVerticalValue(localY, panelY, screenHeight int) float64 {
+	globalY := panelY + localY
+	if screenHeight <= 1 {
+		return 0
 	}
-	if height > 1 {
-		yNorm = float64(y) / float64(height-1)
-	}
-	return xNorm + yNorm
+	return 2.0 * float64(globalY) / float64(screenHeight-1)
 }
 
 // smoothstep performs Hermite interpolation between 0 and 1 when x is
@@ -152,14 +150,18 @@ func flashColor(c colorful.Color) color.Color {
 }
 
 // renderFlashBorders renders a panel with per-character colored borders for
-// the diagonal flash animation. The title is split into three parts:
+// the vertical flash animation. The title is split into three parts:
 //   - titlePrefix: pre-styled text that keeps its own coloring (e.g., dot indicator)
 //   - titleLabel: raw text that gets per-character flash coloring (e.g., "snappy")
 //   - titleSuffix: pre-styled text that keeps its own coloring (e.g., spinner)
 //
+// panelY is the panel's top-left Y in global screen coordinates.
+// screenHeight is the total terminal height, used to normalize the vertical
+// sweep so the glint flows continuously between panels.
+//
 // Content is padded and wrapped with manually-built borders, bypassing
 // Lipgloss border rendering to allow individual character coloring.
-func renderFlashBorders(content, titlePrefix, titleLabel, titleSuffix string, contentWidth int, flash flashState, gaining bool, s modelStyles) string {
+func renderFlashBorders(content, titlePrefix, titleLabel, titleSuffix string, contentWidth int, flash flashState, gaining bool, s modelStyles, panelY, screenHeight int) string {
 	padStyle := lipgloss.NewStyle().Padding(0, 1).Width(contentWidth + 2)
 	padded := padStyle.Render(content)
 	bodyLines := strings.Split(padded, "\n")
@@ -173,16 +175,17 @@ func renderFlashBorders(content, titlePrefix, titleLabel, titleSuffix string, co
 	}
 
 	ctx := flashCtx{
-		totalWidth:  contentWidth + 4,
-		totalHeight: len(bodyLines) + 2,
-		beamCenter:  beamCenter,
-		dim:         s.flashDim,
-		bright:      s.flashBright,
-		glint:       s.flashGlint,
-		titleDim:    s.flashTitleDim,
-		titleBright: s.flashTitleBright,
-		gaining:     gaining,
-		reverse:     flash.reverse,
+		totalWidth:   contentWidth + 4,
+		panelY:       panelY,
+		screenHeight: screenHeight,
+		beamCenter:   beamCenter,
+		dim:          s.flashDim,
+		bright:       s.flashBright,
+		glint:        s.flashGlint,
+		titleDim:     s.flashTitleDim,
+		titleBright:  s.flashTitleBright,
+		gaining:      gaining,
+		reverse:      flash.reverse,
 	}
 
 	// Compute full title width for truncation and centering.
@@ -209,91 +212,61 @@ func renderFlashBorders(content, titlePrefix, titleLabel, titleSuffix string, co
 	out.WriteByte('\n')
 
 	for i, line := range bodyLines {
-		y := i + 1
-		leftD := flashDiagonalValue(0, y, ctx.totalWidth, ctx.totalHeight)
-		rightD := flashDiagonalValue(ctx.totalWidth-1, y, ctx.totalWidth, ctx.totalHeight)
-		leftC := flashCharColor(leftD, ctx)
-		rightC := flashCharColor(rightD, ctx)
+		d := flashVerticalValue(i+1, ctx.panelY, ctx.screenHeight)
+		c := flashCharColor(d, ctx)
+		styled := lipgloss.NewStyle().Foreground(flashColor(c)).Render
 
-		out.WriteString(lipgloss.NewStyle().Foreground(flashColor(leftC)).Render(border.Left))
+		out.WriteString(styled(border.Left))
 		out.WriteString(line)
-		out.WriteString(lipgloss.NewStyle().Foreground(flashColor(rightC)).Render(border.Right))
+		out.WriteString(styled(border.Right))
 		if i < len(bodyLines)-1 {
 			out.WriteByte('\n')
 		}
 	}
 	out.WriteByte('\n')
 
-	buildFlashBottomBorder(&out, border, ctx)
+	buildFlashBottomBorder(&out, len(bodyLines)+2, border, ctx)
 
 	return out.String()
 }
 
-// buildFlashTopBorder writes the top border line with per-character coloring.
+// buildFlashTopBorder writes the top border line with uniform row coloring.
 // The title prefix and suffix are written as-is (pre-styled). The title label
-// is rendered per-character with flash-interpolated foreground colors.
+// is rendered per-character with the row's flash-interpolated title color.
 func buildFlashTopBorder(b *strings.Builder, titlePrefix, titleLabel, titleSuffix string, titleWidth int, border lipgloss.Border, ctx flashCtx) {
+	d := flashVerticalValue(0, ctx.panelY, ctx.screenHeight)
+	borderStyle := lipgloss.NewStyle().Foreground(flashColor(flashCharColor(d, ctx)))
+	titleColor := flashTitleColor(d, ctx)
+
 	totalFill := max(ctx.totalWidth-titleWidth-4, 0)
 	leftFill := totalFill / 2
 	rightFill := totalFill - leftFill
 
-	y := 0
-	x := 0
-
-	writeFlashChar(b, border.TopLeft, x, y, ctx)
-	x++
-
-	for range leftFill {
-		writeFlashChar(b, border.Top, x, y, ctx)
-		x++
-	}
-
-	writeFlashChar(b, " ", x, y, ctx)
-	x++
+	b.WriteString(borderStyle.Render(border.TopLeft))
+	b.WriteString(borderStyle.Render(strings.Repeat(border.Top, leftFill)))
+	b.WriteString(borderStyle.Render(" "))
 
 	// Title prefix (pre-styled, e.g., dot indicator).
 	b.WriteString(titlePrefix)
-	x += lipgloss.Width(titlePrefix)
 
-	// Title label (per-character flash coloring).
-	for _, r := range titleLabel {
-		d := flashDiagonalValue(x, y, ctx.totalWidth, ctx.totalHeight)
-		tc := flashTitleColor(d, ctx)
-		b.WriteString(lipgloss.NewStyle().Bold(true).Foreground(flashColor(tc)).Render(string(r)))
-		x++
-	}
+	// Title label (uniform row color from vertical position).
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(flashColor(titleColor))
+	b.WriteString(titleStyle.Render(titleLabel))
 
 	// Title suffix (pre-styled, e.g., spinner).
 	b.WriteString(titleSuffix)
-	x += lipgloss.Width(titleSuffix)
 
-	writeFlashChar(b, " ", x, y, ctx)
-	x++
-
-	for range rightFill {
-		writeFlashChar(b, border.Top, x, y, ctx)
-		x++
-	}
-
-	writeFlashChar(b, border.TopRight, x, y, ctx)
+	b.WriteString(borderStyle.Render(" "))
+	b.WriteString(borderStyle.Render(strings.Repeat(border.Top, rightFill)))
+	b.WriteString(borderStyle.Render(border.TopRight))
 }
 
-// buildFlashBottomBorder writes the bottom border line with per-character coloring.
-func buildFlashBottomBorder(b *strings.Builder, border lipgloss.Border, ctx flashCtx) {
-	y := ctx.totalHeight - 1
+// buildFlashBottomBorder writes the bottom border line with uniform row coloring.
+func buildFlashBottomBorder(b *strings.Builder, panelHeight int, border lipgloss.Border, ctx flashCtx) {
+	d := flashVerticalValue(panelHeight-1, ctx.panelY, ctx.screenHeight)
+	borderStyle := lipgloss.NewStyle().Foreground(flashColor(flashCharColor(d, ctx)))
 
-	writeFlashChar(b, border.BottomLeft, 0, y, ctx)
-
-	for x := 1; x < ctx.totalWidth-1; x++ {
-		writeFlashChar(b, border.Bottom, x, y, ctx)
-	}
-
-	writeFlashChar(b, border.BottomRight, ctx.totalWidth-1, y, ctx)
-}
-
-// writeFlashChar writes a single character with flash-computed coloring.
-func writeFlashChar(b *strings.Builder, char string, x, y int, ctx flashCtx) {
-	d := flashDiagonalValue(x, y, ctx.totalWidth, ctx.totalHeight)
-	c := flashCharColor(d, ctx)
-	b.WriteString(lipgloss.NewStyle().Foreground(flashColor(c)).Render(char))
+	b.WriteString(borderStyle.Render(border.BottomLeft))
+	b.WriteString(borderStyle.Render(strings.Repeat(border.Bottom, ctx.totalWidth-2)))
+	b.WriteString(borderStyle.Render(border.BottomRight))
 }

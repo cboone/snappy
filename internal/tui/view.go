@@ -92,7 +92,7 @@ func (m Model) renderInfoPanel(width int) string {
 
 	if m.flash.active && (m.flash.gainPanel == panelInfo || m.flash.losePanel == panelInfo) {
 		gaining := m.flash.gainPanel == panelInfo
-		return renderFlashBorders(body, dot+" ", "snappy", spinnerSuffix, cw, m.flash, gaining, m.styles)
+		return renderFlashBorders(body, dot+" ", "snappy", spinnerSuffix, cw, m.flash, gaining, m.styles, 0, m.height)
 	}
 
 	titleStyle := m.styles.sectionTitle
@@ -119,7 +119,7 @@ func (m Model) renderSnapshotPanel(width int) string {
 
 	if m.flash.active && (m.flash.gainPanel == panelSnap || m.flash.losePanel == panelSnap) {
 		gaining := m.flash.gainPanel == panelSnap
-		return renderFlashBorders(m.snapTable.View(), "", titleLabel, "", cw, m.flash, gaining, m.styles)
+		return renderFlashBorders(m.snapTable.View(), "", titleLabel, "", cw, m.flash, gaining, m.styles, m.snapPanelY, m.height)
 	}
 
 	titleStyle := m.styles.sectionTitle
@@ -144,7 +144,7 @@ func (m Model) renderLogPanel(width int) string {
 
 	if m.flash.active && (m.flash.gainPanel == panelLog || m.flash.losePanel == panelLog) {
 		gaining := m.flash.gainPanel == panelLog
-		return renderFlashBorders(m.logView.View(), "", titleLabel, "", cw, m.flash, gaining, m.styles)
+		return renderFlashBorders(m.logView.View(), "", titleLabel, "", cw, m.flash, gaining, m.styles, m.logPanelY, m.height)
 	}
 
 	titleStyle := m.styles.sectionTitle
