@@ -34,29 +34,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleWindowSize(msg)
 
 	case tea.BackgroundColorMsg:
-		m.hasDarkBG = msg.IsDark()
-		m.styles = newModelStyles(m.hasDarkBG)
-		m.help.Styles = helpStyles(m.styles)
-		m.spinner.Style = m.styles.spinnerStyle
-		m.snapTable.SetStyles(m.styles.tableStyles)
-		m.updateSnapViewContent()
-		m.updateLogViewContent()
-		return m, nil
+		return m.handleBackgroundColor(msg)
 
 	case spinner.TickMsg:
-		if m.loading {
-			var cmd tea.Cmd
-			m.spinner, cmd = m.spinner.Update(msg)
-			return m, cmd
-		}
-		return m, nil
+		return m.handleSpinnerTick(msg)
 
 	case UITickMsg:
-		m.updateSnapViewContent()
-		if m.auto.Enabled() || m.loading {
-			return m, uiTick()
-		}
-		return m, nil
+		return m.handleUITick()
 
 	case RefreshTickMsg:
 		return m.handleTick()
@@ -69,8 +53,43 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case ThinResultMsg:
 		return m.handleThinResult(msg)
+
+	case OpenLogDirResultMsg:
+		if msg.Err != nil {
+			m.log.Log(logger.LevelError, logger.CatOpen, fmt.Sprintf("Failed to open log directory: %v", msg.Err))
+			m.updateLogViewContent()
+		}
+		return m, nil
 	}
 
+	return m, nil
+}
+
+func (m Model) handleBackgroundColor(msg tea.BackgroundColorMsg) (tea.Model, tea.Cmd) {
+	m.hasDarkBG = msg.IsDark()
+	m.styles = newModelStyles(m.hasDarkBG)
+	m.help.Styles = helpStyles(m.styles)
+	m.spinner.Style = m.styles.spinnerStyle
+	m.snapTable.SetStyles(m.styles.tableStyles)
+	m.updateSnapViewContent()
+	m.updateLogViewContent()
+	return m, nil
+}
+
+func (m Model) handleSpinnerTick(msg spinner.TickMsg) (tea.Model, tea.Cmd) {
+	if m.loading {
+		var cmd tea.Cmd
+		m.spinner, cmd = m.spinner.Update(msg)
+		return m, cmd
+	}
+	return m, nil
+}
+
+func (m Model) handleUITick() (tea.Model, tea.Cmd) {
+	m.updateSnapViewContent()
+	if m.auto.Enabled() || m.loading {
+		return m, uiTick()
+	}
 	return m, nil
 }
 
@@ -134,7 +153,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 		m.snapshotting = true
 		m.loading = true
-		m.log.Log(logger.Info, "Creating snapshot...")
+		m.log.Log(logger.LevelInfo, logger.CatSnapshot, "Creating snapshot...")
 		m.updateLogViewContent()
 		return m, tea.Batch(doCreateSnapshot(m.runner), m.spinner.Tick)
 
@@ -153,7 +172,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		enabled := m.auto.Toggle(now)
 		if enabled {
 			clear(m.thinPinned)
-			m.log.Log(logger.Info, fmt.Sprintf(
+			m.log.Log(logger.LevelInfo, logger.CatAuto, fmt.Sprintf(
 				"Auto-snapshots enabled (every %ds, thin >%ds to %ds)",
 				int(m.auto.Interval().Seconds()),
 				int(m.auto.ThinAge().Seconds()),
@@ -162,12 +181,22 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			m.updateLogViewContent()
 			return m, uiTick()
 		}
-		m.log.Log(logger.Info, "Auto-snapshots disabled")
+		m.log.Log(logger.LevelInfo, logger.CatAuto, "Auto-snapshots disabled")
 		m.updateLogViewContent()
 		return m, nil
 
+	case key.Matches(msg, m.keys.OpenLog):
+		if m.cfg.LogDir == "" {
+			m.log.Log(logger.LevelWarn, logger.CatOpen, "Log directory unavailable")
+			m.updateLogViewContent()
+			return m, nil
+		}
+		m.log.Log(logger.LevelInfo, logger.CatOpen, "Opening log directory...")
+		m.updateLogViewContent()
+		return m, doOpenLogDir(m.cfg.LogDir)
+
 	case key.Matches(msg, m.keys.Quit):
-		m.log.Log(logger.Info, "Shutting down")
+		m.log.Log(logger.LevelInfo, logger.CatShutdown, "Shutting down")
 		m.quitting = true
 		return m, tea.Quit
 
@@ -295,7 +324,7 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 		m.snapshotting = true
 		m.loading = true
 		m.auto.RecordSnapshot(now)
-		m.log.Log(logger.Auto, "Creating auto-snapshot...")
+		m.log.Log(logger.LevelInfo, logger.CatAuto, "Creating auto-snapshot...")
 		m.updateLogViewContent()
 		cmds = append(cmds, doCreateSnapshot(m.runner), m.spinner.Tick)
 	}
@@ -319,33 +348,16 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 	}
 	m.tmStatus = msg.TMStatus
 
-	if msg.APFSInfo.Volume != "" {
-		m.apfsVolume = msg.APFSInfo.Volume
-		if msg.APFSInfo.OtherSnapCount > 0 && msg.APFSInfo.OtherSnapCount != m.lastOtherSnapCount {
-			m.log.Log(logger.Info, fmt.Sprintf("Non-TM snapshots on %s: %d",
-				msg.APFSInfo.Volume, msg.APFSInfo.OtherSnapCount))
-		}
-		m.lastOtherSnapCount = msg.APFSInfo.OtherSnapCount
-	}
-
-	if msg.Tidemark > 0 {
-		m.tidemark = platform.FormatBytes(msg.Tidemark)
-	} else {
-		m.tidemark = ""
-	}
-
-	if msg.DiskErr {
-		m.diskInfo = "unavailable"
-	} else {
-		m.diskInfo = msg.DiskInfo.String()
-	}
+	m.applyAPFSInfo(msg)
+	m.applyTidemark(msg)
+	m.applyDiskInfo(msg)
 
 	if msg.APFSErr != nil {
-		m.log.Log(logger.Error, fmt.Sprintf("APFS details unavailable: %v", msg.APFSErr))
+		m.log.Log(logger.LevelError, logger.CatRefresh, fmt.Sprintf("APFS details unavailable: %v", msg.APFSErr))
 	}
 
 	if msg.SnapshotErr != nil {
-		m.log.Log(logger.Error, fmt.Sprintf("Failed to list snapshots: %v", msg.SnapshotErr))
+		m.log.Log(logger.LevelError, logger.CatRefresh, fmt.Sprintf("Failed to list snapshots: %v", msg.SnapshotErr))
 		m.refreshPending = false
 		m.updateLogViewContent()
 		return m, nil
@@ -353,26 +365,12 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 
 	m.lastRefresh = m.now()
 
-	// Compute diff
 	prev := m.snapshots
 	m.prevSnapshots = prev
 	m.snapshots = msg.Snapshots
 
-	if len(prev) > 0 || len(msg.Snapshots) > 0 {
-		diff := snapshot.ComputeDiff(prev, msg.Snapshots)
-
-		for _, s := range diff.Added {
-			m.log.Log(logger.Added, "Snapshot appeared: "+s.Date)
-		}
-		for _, s := range diff.Removed {
-			m.log.Log(logger.Removed, "Snapshot disappeared: "+s.Date)
-		}
-	}
-
-	m.log.Log(logger.Info, fmt.Sprintf(
-		"Refresh: %d snapshots, disk %s",
-		len(m.snapshots), m.diskInfo,
-	))
+	m.logDiffChanges(prev, msg.Snapshots)
+	m.logRefreshSummary()
 
 	m.updateSnapViewContent()
 	m.updateLogViewContent()
@@ -392,6 +390,83 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+// applyAPFSInfo updates APFS volume state and logs non-TM snapshot count changes.
+func (m *Model) applyAPFSInfo(msg RefreshResultMsg) {
+	if msg.APFSInfo.Volume == "" {
+		return
+	}
+	m.apfsVolume = msg.APFSInfo.Volume
+	if msg.APFSInfo.OtherSnapCount > 0 && msg.APFSInfo.OtherSnapCount != m.lastOtherSnapCount {
+		m.log.Log(logger.LevelInfo, logger.CatRefresh, fmt.Sprintf("Non-TM snapshots on %s: %d",
+			msg.APFSInfo.Volume, msg.APFSInfo.OtherSnapCount))
+	}
+	m.lastOtherSnapCount = msg.APFSInfo.OtherSnapCount
+}
+
+// applyTidemark updates the tidemark display from a refresh result.
+func (m *Model) applyTidemark(msg RefreshResultMsg) {
+	if msg.Tidemark > 0 {
+		m.tidemark = platform.FormatBytes(msg.Tidemark)
+	} else {
+		m.tidemark = ""
+	}
+}
+
+// applyDiskInfo updates the cached disk info string from a refresh result.
+func (m *Model) applyDiskInfo(msg RefreshResultMsg) {
+	if msg.DiskErr {
+		m.diskInfo = "unavailable"
+	} else {
+		m.diskInfo = msg.DiskInfo.String()
+	}
+}
+
+// logDiffChanges logs snapshot additions and removals between refreshes,
+// suppressing duplicates from recent creates/thins.
+func (m *Model) logDiffChanges(prev, current []snapshot.Snapshot) {
+	if len(prev) == 0 && len(current) == 0 {
+		if !m.hadFirstRefresh {
+			m.hadFirstRefresh = true
+		}
+		return
+	}
+
+	diff := snapshot.ComputeDiff(prev, current)
+
+	if !m.hadFirstRefresh && len(diff.Added) > 0 {
+		m.log.Log(logger.LevelInfo, logger.CatFound, fmt.Sprintf(
+			"Found %d existing snapshots", len(diff.Added)))
+	} else {
+		for _, s := range diff.Added {
+			if _, ok := m.recentCreated[s.Date]; ok {
+				continue
+			}
+			m.log.Log(logger.LevelInfo, logger.CatAdded, "Snapshot appeared: "+s.Date)
+		}
+	}
+	clear(m.recentCreated)
+
+	for _, s := range diff.Removed {
+		if _, ok := m.recentThinned[s.Date]; ok {
+			continue
+		}
+		m.log.Log(logger.LevelInfo, logger.CatRemoved, "Snapshot disappeared: "+s.Date)
+	}
+	clear(m.recentThinned)
+
+	m.hadFirstRefresh = true
+}
+
+// logRefreshSummary logs the refresh summary only when the content changes.
+func (m *Model) logRefreshSummary() {
+	summary := fmt.Sprintf("Refresh: %d snapshots, disk %s",
+		len(m.snapshots), m.diskInfo)
+	if summary != m.lastRefreshSummary {
+		m.log.Log(logger.LevelInfo, logger.CatRefresh, summary)
+		m.lastRefreshSummary = summary
+	}
+}
+
 func (m *Model) maybeThin(cmds []tea.Cmd) []tea.Cmd {
 	if m.thinning {
 		return cmds
@@ -408,6 +483,8 @@ func (m *Model) maybeThin(cmds []tea.Cmd) []tea.Cmd {
 	if len(filtered) > 0 {
 		m.thinning = true
 		m.loading = true
+		m.log.Log(logger.LevelInfo, logger.CatAuto, fmt.Sprintf("Thinning %d snapshot(s)...", len(filtered)))
+		m.updateLogViewContent()
 		cmds = append(cmds, doThinSnapshots(m.runner, filtered), m.spinner.Tick)
 	}
 	return cmds
@@ -420,11 +497,12 @@ func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd
 	}
 	switch {
 	case msg.Err != nil:
-		m.log.Log(logger.Error, fmt.Sprintf("Failed to create snapshot: %v", msg.Err))
+		m.log.Log(logger.LevelError, logger.CatSnapshot, fmt.Sprintf("Failed to create snapshot: %v", msg.Err))
 	case msg.Date != "":
-		m.log.Log(logger.Created, "Snapshot created: "+msg.Date)
+		m.recentCreated[msg.Date] = struct{}{}
+		m.log.Log(logger.LevelInfo, logger.CatCreated, "Snapshot created: "+msg.Date)
 	default:
-		m.log.Log(logger.Created, "Snapshot created")
+		m.log.Log(logger.LevelInfo, logger.CatCreated, "Snapshot created")
 	}
 
 	m.updateLogViewContent()
@@ -442,8 +520,11 @@ func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
 	if !m.snapshotting {
 		m.loading = false
 	}
+	for _, d := range msg.ThinnedDates {
+		m.recentThinned[d] = struct{}{}
+	}
 	if msg.Deleted > 0 {
-		m.log.Log(logger.Thinned, fmt.Sprintf(
+		m.log.Log(logger.LevelInfo, logger.CatThinned, fmt.Sprintf(
 			"Thinned %d snapshot(s) older than %dm to %ds cadence",
 			msg.Deleted,
 			int(m.auto.ThinAge().Minutes()),
@@ -456,7 +537,12 @@ func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
 		for _, d := range msg.FailedDates {
 			m.thinPinned[d] = struct{}{}
 		}
-		m.log.Log(logger.Error, fmt.Sprintf("Thinning error: %v", msg.Err))
+		// ESTALE (stale handle) is a warning, not an error.
+		level := logger.LevelError
+		if msg.EstaleCount == len(msg.FailedDates) {
+			level = logger.LevelWarn
+		}
+		m.log.Log(level, logger.CatThinned, fmt.Sprintf("Thinning: %v", msg.Err))
 	} else {
 		// Full success: conditions may have changed, clear pinned set.
 		clear(m.thinPinned)
@@ -577,8 +663,8 @@ func (m *Model) updateLogViewContent() {
 		return
 	}
 
-	// Prefix: "15:04:05   TYPE     " = 8 + 3 + 7 + 3 = 21 chars.
-	const prefixW = 21
+	// Prefix: "15:04:05   LEVEL CATEGORY " = 8 + 3 + 5 + 1 + 8 + 1 = 26 chars.
+	const prefixW = 26
 	w := m.logView.Width()
 	msgW := max(w-prefixW, 10)
 	indent := strings.Repeat(" ", prefixW)
@@ -593,12 +679,13 @@ func (m *Model) updateLogViewContent() {
 		}
 		m.logEntryY[displayIdx] = visualLine
 		e := entries[i]
-		prefix := fmt.Sprintf("%-8s   %-7s   ",
+		prefix := fmt.Sprintf("%-8s   %-5s %-8s ",
 			e.Timestamp.Format("15:04:05"),
-			string(e.Type),
+			string(e.Level),
+			string(e.Category),
 		)
 
-		style := logEntryStyle(m.styles, e.Type)
+		style := logEntryStyle(m.styles, e.Level, e.Category)
 		if displayIdx == m.logCursor {
 			style = style.Bold(true)
 		}
@@ -683,20 +770,26 @@ func (m Model) snapRowAtVisualLine(line int) int {
 	return -1
 }
 
-// logEntryStyle returns the lipgloss style for the given log entry type.
-func logEntryStyle(s modelStyles, t logger.EventType) lipgloss.Style {
-	switch t {
-	case logger.Error:
+// logEntryStyle returns the lipgloss style for a log entry.
+// Level drives the primary color; category provides secondary hints for INFO.
+func logEntryStyle(s modelStyles, level logger.Level, cat logger.Category) lipgloss.Style {
+	switch level {
+	case logger.LevelError:
 		return s.textRed
-	case logger.Created, logger.Added:
-		return s.textGreen
-	case logger.Removed, logger.Thinned:
+	case logger.LevelWarn:
 		return s.textYellow
-	case logger.Auto:
-		return s.textCyan
-	case logger.Startup:
-		return s.textMagenta
 	default:
-		return s.textDefault
+		switch cat {
+		case logger.CatAuto:
+			return s.textCyan
+		case logger.CatStartup:
+			return s.textMagenta
+		case logger.CatCreated, logger.CatAdded:
+			return s.textGreen
+		case logger.CatFound:
+			return s.textDim
+		default:
+			return s.textDefault
+		}
 	}
 }

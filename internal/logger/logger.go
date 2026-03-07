@@ -2,32 +2,70 @@
 package logger
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
 
-// EventType identifies the kind of log event.
-type EventType string
+// Level is the severity of a log entry.
+type Level string
 
-// Event types for log categorization.
+// Log levels.
 const (
-	Startup EventType = "STARTUP"
-	Info    EventType = "INFO"
-	Created EventType = "CREATED"
-	Added   EventType = "ADDED"
-	Removed EventType = "REMOVED"
-	Auto    EventType = "AUTO"
-	Error   EventType = "ERROR"
-	Thinned EventType = "THINNED"
+	LevelInfo  Level = "INFO"
+	LevelWarn  Level = "WARN"
+	LevelError Level = "ERROR"
 )
 
-// Entry is a single log entry with timestamp, type, and message.
+// Category identifies what kind of event occurred.
+type Category string
+
+// Event categories.
+const (
+	CatStartup  Category = "STARTUP"
+	CatRefresh  Category = "REFRESH"
+	CatSnapshot Category = "SNAPSHOT"
+	CatCreated  Category = "CREATED"
+	CatAdded    Category = "ADDED"
+	CatRemoved  Category = "REMOVED"
+	CatAuto     Category = "AUTO"
+	CatThinned  Category = "THINNED"
+	CatFound    Category = "FOUND"
+	CatShutdown Category = "SHUTDOWN"
+	CatOpen     Category = "OPEN"
+)
+
+// knownCategories is the set of recognised Category values, used by
+// parseLogLine to disambiguate old and new log formats.
+var knownCategories = map[Category]bool{
+	CatStartup:  true,
+	CatRefresh:  true,
+	CatSnapshot: true,
+	CatCreated:  true,
+	CatAdded:    true,
+	CatRemoved:  true,
+	CatAuto:     true,
+	CatThinned:  true,
+	CatFound:    true,
+	CatShutdown: true,
+	CatOpen:     true,
+}
+
+// isKnownCategory reports whether s (case-insensitive) matches a defined
+// Category constant.
+func isKnownCategory(s string) bool {
+	return knownCategories[Category(strings.ToUpper(s))]
+}
+
+// Entry is a single log entry with timestamp, level, category, and message.
 type Entry struct {
 	Timestamp time.Time
-	Type      EventType
+	Level     Level
+	Category  Category
 	Message   string
 	Formatted string
 }
@@ -94,16 +132,17 @@ func New(opts Options) *Logger {
 }
 
 // Log records an event in the ring buffer and writes to the log file.
-func (l *Logger) Log(eventType EventType, message string) {
+func (l *Logger) Log(level Level, cat Category, message string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	now := l.now()
-	formatted := fmt.Sprintf("[%s] %-8s %s", now.Format("15:04:05"), eventType, message)
+	formatted := fmt.Sprintf("[%s] %-5s %-8s %s", now.Format("15:04:05"), level, cat, message)
 
 	entry := Entry{
 		Timestamp: now,
-		Type:      eventType,
+		Level:     level,
+		Category:  cat,
 		Message:   message,
 		Formatted: formatted,
 	}
@@ -144,6 +183,135 @@ func (l *Logger) Close() {
 		_ = l.file.Close()
 		l.file = nil
 	}
+}
+
+// LoadTail reads the last maxSize lines from the log file and seeds the ring
+// buffer. Call this after New and before the first Log to give the TUI
+// continuity across restarts. Unparseable lines are silently skipped.
+func (l *Logger) LoadTail() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if l.filePath == "" || l.maxSize <= 0 {
+		return
+	}
+
+	f, err := os.Open(l.filePath)
+	if err != nil {
+		return
+	}
+	defer func() { _ = f.Close() }()
+
+	// Use a fixed-size ring buffer so memory stays O(maxSize) regardless of file size.
+	buf := make([]string, 0, l.maxSize)
+	start := 0
+	count := 0
+
+	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if count < l.maxSize {
+			buf = append(buf, line)
+			count++
+		} else {
+			buf[start] = line
+			start = (start + 1) % l.maxSize
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "snappy: error reading log file:", err)
+	}
+
+	// Replay buffered lines from oldest to newest into the in-memory entry ring.
+	refTime := l.now()
+	for i := 0; i < count; i++ {
+		idx := (start + i) % len(buf)
+		line := buf[idx]
+		if entry, ok := parseLogLine(line, refTime); ok {
+			if len(l.entries) < l.maxSize {
+				l.entries = append(l.entries, entry)
+			} else {
+				copy(l.entries, l.entries[1:])
+				l.entries[l.maxSize-1] = entry
+			}
+		}
+	}
+}
+
+// parseLogLine parses a formatted log line into an Entry.
+// Expected format: "[HH:MM:SS] LEVEL CATEGORY message"
+// The date component is taken from refTime since the file only stores time.
+func parseLogLine(line string, refTime time.Time) (Entry, bool) {
+	// Minimum: "[HH:MM:SS] X Y z" = at least 16 chars
+	if len(line) < 16 || line[0] != '[' {
+		return Entry{}, false
+	}
+
+	closeBracket := strings.IndexByte(line, ']')
+	if closeBracket < 0 {
+		return Entry{}, false
+	}
+
+	timeStr := line[1:closeBracket]
+	t, err := time.Parse("15:04:05", timeStr)
+	if err != nil {
+		return Entry{}, false
+	}
+	// Combine parsed time-of-day with refTime's date.
+	ts := time.Date(refTime.Year(), refTime.Month(), refTime.Day(),
+		t.Hour(), t.Minute(), t.Second(), 0, refTime.Location())
+
+	rest := line[closeBracket+1:]
+	rest = strings.TrimSpace(rest)
+
+	// Use Fields to collapse repeated spaces so old-format lines with
+	// padded columns (e.g., "STARTUP  snappy started") are parsed correctly.
+	fields := strings.Fields(rest)
+	if len(fields) < 2 {
+		return Entry{}, false
+	}
+
+	var level Level
+	var cat Category
+	var message string
+
+	// Detect whether the first token is a known level (new format) or a
+	// category (old format where level is implicit).
+	//
+	// Ambiguity: the old format used INFO and ERROR as EventType values,
+	// which overlap with the new Level constants. To disambiguate, we check
+	// whether the second token is a known Category. If it is, this is the
+	// new "LEVEL CATEGORY message" format; otherwise, the first token was
+	// an old EventType and the rest is the message.
+	switch Level(strings.ToUpper(fields[0])) {
+	case LevelInfo, LevelWarn, LevelError:
+		if isKnownCategory(fields[1]) {
+			level = Level(strings.ToUpper(fields[0]))
+			cat = Category(strings.ToUpper(fields[1]))
+			if len(fields) > 2 {
+				message = strings.Join(fields[2:], " ")
+			}
+		} else {
+			// Old format: INFO/ERROR was an EventType, not a level+category.
+			level = Level(strings.ToUpper(fields[0]))
+			message = strings.Join(fields[1:], " ")
+		}
+	default:
+		level = LevelInfo
+		cat = Category(strings.ToUpper(fields[0]))
+		if len(fields) > 1 {
+			message = strings.Join(fields[1:], " ")
+		}
+	}
+
+	return Entry{
+		Timestamp: ts,
+		Level:     level,
+		Category:  cat,
+		Message:   message,
+		Formatted: line,
+	}, true
 }
 
 // maybeRotate checks the current log file size and rotates if it reaches or
