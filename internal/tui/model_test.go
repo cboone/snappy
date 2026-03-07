@@ -1575,3 +1575,21 @@ func TestFlashTickAdvancesMatchingAnimationID(t *testing.T) {
 		t.Error("expected follow-up flash tick command for active animation")
 	}
 }
+
+func TestShiftTabTriggersFlash(t *testing.T) {
+	m := testModel()
+	m.focusPanel = panelSnap
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift})
+	model := updated.(Model)
+
+	if model.focusPanel != panelInfo {
+		t.Errorf("focusPanel = %d, want %d (panelInfo)", model.focusPanel, panelInfo)
+	}
+	if !model.flash.active {
+		t.Error("flash should be active after shift-tab")
+	}
+	if cmd == nil {
+		t.Error("expected flash tick command from shift-tab")
+	}
+}
