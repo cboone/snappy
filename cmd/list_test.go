@@ -164,3 +164,158 @@ func TestFormatRelativeAgoFuture(t *testing.T) {
 		t.Errorf("formatRelativeAgo(future) = %q, want %q", got, "future")
 	}
 }
+
+const testAPFSSnapshotsWithXID = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Snapshots</key>
+	<array>
+		<dict>
+			<key>SnapshotName</key>
+			<string>com.apple.TimeMachine.2026-03-01-140000.local</string>
+			<key>SnapshotUUID</key>
+			<string>ABC-123</string>
+			<key>SnapshotXID</key>
+			<integer>1000</integer>
+			<key>Purgeable</key>
+			<true/>
+			<key>LimitingContainerShrink</key>
+			<false/>
+		</dict>
+		<dict>
+			<key>SnapshotName</key>
+			<string>com.apple.TimeMachine.2026-03-01-140100.local</string>
+			<key>SnapshotUUID</key>
+			<string>DEF-456</string>
+			<key>SnapshotXID</key>
+			<integer>1050</integer>
+			<key>Purgeable</key>
+			<false/>
+			<key>LimitingContainerShrink</key>
+			<true/>
+		</dict>
+	</array>
+</dict>
+</plist>`
+
+func apfsListRunner() *mockRunner {
+	return &mockRunner{responses: map[string]mockResponse{
+		"tmutil listlocalsnapshotdates /": {
+			output: []byte("2026-03-01-140000\n2026-03-01-140100\n"),
+		},
+		"diskutil info -plist /": {
+			output: []byte(testInfoPlist("disk3s1s1")),
+		},
+		"diskutil info -plist /System/Volumes/Data": {
+			output: []byte(testInfoPlist("disk3s5")),
+		},
+		"diskutil apfs listSnapshots disk3s5 -plist": {
+			output: []byte(testAPFSSnapshotsWithXID),
+		},
+		"diskutil apfs listSnapshots disk3s1s1 -plist": {
+			err: fmt.Errorf("unsupported"),
+		},
+	}}
+}
+
+func TestListJSONWithAPFSDetails(t *testing.T) {
+	viper.Reset()
+	defer viper.Reset()
+	config.SetDefaults()
+
+	origNewRunner := newRunner
+	origRequire := requireTmutil
+	defer func() { newRunner = origNewRunner; requireTmutil = origRequire }()
+	requireTmutil = func() error { return nil }
+	newRunner = func() platform.CommandRunner { return apfsListRunner() }
+
+	var buf bytes.Buffer
+	listCmd.SetOut(&buf)
+	setFlag(t, listCmd, "json", "true")
+	defer setFlag(t, listCmd, "json", "false")
+
+	setTestContext(listCmd)
+	if err := runList(listCmd, nil); err != nil {
+		t.Fatalf("runList() error = %v", err)
+	}
+
+	var result struct {
+		Snapshots []struct {
+			Date         string `json:"date"`
+			UUID         string `json:"uuid"`
+			XIDDelta     *int   `json:"xid_delta"`
+			Purgeable    *bool  `json:"purgeable"`
+			LimitsShrink *bool  `json:"limits_shrink"`
+		} `json:"snapshots"`
+	}
+	if err := json.Unmarshal(buf.Bytes(), &result); err != nil {
+		t.Fatalf("invalid JSON: %v\noutput: %s", err, buf.String())
+	}
+
+	if len(result.Snapshots) != 2 {
+		t.Fatalf("snapshots = %d, want 2", len(result.Snapshots))
+	}
+
+	// First snapshot (oldest, index 0 in ascending order) has no xid_delta.
+	first := result.Snapshots[0]
+	if first.UUID != "ABC-123" {
+		t.Errorf("first UUID = %q, want %q", first.UUID, "ABC-123")
+	}
+	if first.XIDDelta != nil {
+		t.Errorf("first xid_delta = %v, want nil (no predecessor)", *first.XIDDelta)
+	}
+	if first.Purgeable == nil || !*first.Purgeable {
+		t.Error("first purgeable should be true")
+	}
+
+	// Second snapshot (newer) has xid_delta = 50.
+	second := result.Snapshots[1]
+	if second.XIDDelta == nil {
+		t.Fatal("second xid_delta should not be nil")
+	}
+	if *second.XIDDelta != 50 {
+		t.Errorf("second xid_delta = %d, want 50", *second.XIDDelta)
+	}
+	if second.LimitsShrink == nil || !*second.LimitsShrink {
+		t.Error("second limits_shrink should be true")
+	}
+	if second.Purgeable == nil || *second.Purgeable {
+		t.Error("second purgeable should be false")
+	}
+}
+
+func TestListHumanWithAPFSDetails(t *testing.T) {
+	viper.Reset()
+	defer viper.Reset()
+	config.SetDefaults()
+
+	origNewRunner := newRunner
+	origRequire := requireTmutil
+	defer func() { newRunner = origNewRunner; requireTmutil = origRequire }()
+	requireTmutil = func() error { return nil }
+	newRunner = func() platform.CommandRunner { return apfsListRunner() }
+
+	var buf bytes.Buffer
+	listCmd.SetOut(&buf)
+	setFlag(t, listCmd, "json", "false")
+
+	setTestContext(listCmd)
+	if err := runList(listCmd, nil); err != nil {
+		t.Fatalf("runList() error = %v", err)
+	}
+
+	output := buf.String()
+	if !strings.Contains(output, "delta:50") {
+		t.Errorf("output missing 'delta:50', got:\n%s", output)
+	}
+	if !strings.Contains(output, "pinned") {
+		t.Errorf("output missing 'pinned' flag, got:\n%s", output)
+	}
+	if !strings.Contains(output, "limits shrink") {
+		t.Errorf("output missing 'limits shrink' flag, got:\n%s", output)
+	}
+	if !strings.Contains(output, "ABC-123") {
+		t.Errorf("output missing UUID, got:\n%s", output)
+	}
+}
