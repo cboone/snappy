@@ -350,6 +350,9 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 }
 
 func (m *Model) syncDaemonState(now time.Time) {
+	if m.cfg.LogDir == "" {
+		return
+	}
 	lockPath := service.DefaultLockPath(m.cfg.LogDir)
 	lockHeld := service.IsHeld(lockPath)
 
