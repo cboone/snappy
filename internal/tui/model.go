@@ -159,9 +159,10 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 	h.SetWidth(80)
 	h.Styles = helpStyles(styles)
 
+	const defaultTableHeight = 10
 	st := table.New(
 		table.WithWidth(76),
-		table.WithHeight(10),
+		table.WithHeight(defaultTableHeight),
 		table.WithFocused(true),
 		table.WithStyles(styles.tableStyles),
 	)
@@ -193,7 +194,7 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 		keys:            keys,
 		help:            h,
 		snapTable:       st,
-		snapVisibleRows: 9, // default table height (10) minus header (1)
+		snapVisibleRows: defaultTableHeight - 1, // minus header row
 		logView:         lv,
 		spinner:         s,
 		styles:          styles,
