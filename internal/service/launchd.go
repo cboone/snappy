@@ -155,7 +155,7 @@ func Install(cfg PlistConfig) error {
 	// then retry bootstrap once.
 	if bootoutErr := bootout(cfg.Label, plistPath); bootoutErr != nil {
 		return fmt.Errorf(
-			"launchctl bootstrap: service already loaded and bootout failed: %s (original: %s, %w)",
+			"launchctl bootstrap: service already loaded and bootout failed: %v (original: %s, %w)",
 			bootoutErr, outStr, err,
 		)
 	}
@@ -163,7 +163,11 @@ func Install(cfg PlistConfig) error {
 	// Ensure the service is enabled (a disabled service cannot be bootstrapped).
 	//nolint:gosec // arguments are controlled
 	enableCmd := exec.Command("launchctl", "enable", serviceTarget(cfg.Label))
-	_, _ = enableCmd.CombinedOutput()
+	enableOut, enableErr := enableCmd.CombinedOutput()
+	if enableErr != nil {
+		return fmt.Errorf("launchctl enable: %s (%w)",
+			strings.TrimSpace(string(enableOut)), enableErr)
+	}
 
 	retryOut, retryErr := runBootstrap(domainTarget(), plistPath)
 	if retryErr != nil {
