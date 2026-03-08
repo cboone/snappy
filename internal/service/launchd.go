@@ -157,12 +157,17 @@ func Install(cfg PlistConfig) error {
 	// retry bootout.
 	//nolint:gosec // arguments are controlled
 	bestEffortEnable := exec.Command("launchctl", "enable", serviceTarget(cfg.Label))
-	_ = bestEffortEnable.Run()
+	enableOut, enableErr := bestEffortEnable.CombinedOutput()
 
 	if bootoutErr := bootout(cfg.Label, plistPath); bootoutErr != nil {
+		enableDetail := ""
+		if enableErr != nil {
+			enableDetail = fmt.Sprintf(", enable failed: %s (%v)",
+				strings.TrimSpace(string(enableOut)), enableErr)
+		}
 		return fmt.Errorf(
-			"launchctl bootstrap: service already bootstrapped and bootout failed: %v (original: %s, %w)",
-			bootoutErr, outStr, err,
+			"launchctl bootstrap: service already bootstrapped and bootout failed: %v (original: %s%s, %w)",
+			bootoutErr, outStr, enableDetail, err,
 		)
 	}
 
@@ -171,10 +176,10 @@ func Install(cfg PlistConfig) error {
 	// need to enable again.
 	//nolint:gosec // arguments are controlled
 	enableCmd := exec.Command("launchctl", "enable", serviceTarget(cfg.Label))
-	enableOut, enableErr := enableCmd.CombinedOutput()
-	if enableErr != nil {
+	reEnableOut, reEnableErr := enableCmd.CombinedOutput()
+	if reEnableErr != nil {
 		return fmt.Errorf("launchctl enable: %s (%w)",
-			strings.TrimSpace(string(enableOut)), enableErr)
+			strings.TrimSpace(string(reEnableOut)), reEnableErr)
 	}
 
 	retryOut, retryErr := runBootstrap(domainTarget(), plistPath)
@@ -279,6 +284,11 @@ func bootout(label, plistPath string) error {
 
 	outStr := strings.TrimSpace(string(out))
 
+	// If the service simply wasn't loaded, no further attempts are needed.
+	if isNotLoadedError(outStr) {
+		return nil
+	}
+
 	// If service-target bootout failed, try the legacy domain-target + plist path
 	// approach, which works in some macOS versions where the service isn't
 	// registered in the expected domain.
@@ -334,8 +344,9 @@ func isNotLoadedError(output string) bool {
 // isAlreadyBootstrappedError checks if a launchctl bootstrap error indicates
 // the service is already registered in the domain.
 func isAlreadyBootstrappedError(output string) bool {
-	return isDomainNotSupportedError(output) ||
-		strings.Contains(strings.ToLower(output), "service is already loaded")
+	lower := strings.ToLower(output)
+	return strings.Contains(lower, "domain does not support specified action") ||
+		strings.Contains(lower, "service is already loaded")
 }
 
 // isDomainNotSupportedError checks if a launchctl error contains the
