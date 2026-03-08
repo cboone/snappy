@@ -814,6 +814,82 @@ func TestQuitDefersLockReleaseWhileAutoSnapshotting(t *testing.T) {
 	}
 }
 
+func TestToggleOffReEnableThenQuitReleasesNewLock(t *testing.T) {
+	cfg := testConfig()
+	cfg.LogDir = t.TempDir()
+	log := logger.New(logger.Options{MaxEntries: 50})
+	runner := &mockRunner{responses: map[string]mockResponse{}}
+
+	lockPath := service.DefaultLockPath(cfg.LogDir)
+	startupLock, err := service.Acquire(lockPath)
+	if err != nil {
+		t.Fatalf("Acquire() error = %v", err)
+	}
+
+	m := NewModel(cfg, runner, log, ModelParams{
+		APFSVolume:    "disk3s5",
+		APFSContainer: "disk3",
+		TMStatus:      "Configured",
+		VolumeName:    "/",
+		Version:       "dev",
+		Lock:          startupLock,
+	})
+	m.width = 80
+	m.height = 40
+
+	// Toggle off: releases the startup lock.
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model := updated.(Model)
+
+	if model.auto.Enabled() {
+		t.Fatal("expected auto disabled after toggle off")
+	}
+	if model.lock != nil {
+		t.Fatal("expected lock nil after toggle off")
+	}
+	if service.IsHeld(lockPath) {
+		t.Fatal("expected lock released after toggle off")
+	}
+
+	// The startup lock's file descriptor is now closed.
+	// Calling Release again should be a no-op (this is what
+	// cmd/root.go was doing before the fix).
+	if err := startupLock.Release(); err != nil {
+		t.Fatalf("second Release on startup lock should be no-op, got: %v", err)
+	}
+
+	// Toggle on: acquires a new, different lock.
+	updated, _ = model.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model = updated.(Model)
+
+	if !model.auto.Enabled() {
+		t.Fatal("expected auto enabled after re-toggle")
+	}
+	if model.lock == nil {
+		t.Fatal("expected new lock acquired after re-toggle")
+	}
+	if !service.IsHeld(lockPath) {
+		t.Fatal("expected new lock held after re-toggle")
+	}
+
+	// Quit: should release the new lock, not the old one.
+	updated, _ = model.Update(tea.KeyPressMsg{Code: 'q', Text: "q"})
+	model = updated.(Model)
+
+	if model.lock != nil {
+		t.Error("expected lock nil after quit")
+	}
+	if service.IsHeld(lockPath) {
+		t.Error("expected new lock released after quit")
+	}
+
+	// The startup lock is still a no-op to release (cmd/root.go
+	// would do this on error paths only).
+	if err := startupLock.Release(); err != nil {
+		t.Errorf("startup lock Release should remain no-op, got: %v", err)
+	}
+}
+
 func TestViewAPFSDetails(t *testing.T) {
 	m := testModel()
 	m.width = 120

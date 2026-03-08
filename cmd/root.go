@@ -222,15 +222,18 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	p := tea.NewProgram(model)
 
 	if _, err := p.Run(); err != nil {
+		// Release here only as a safety net: if p.Run() fails before the
+		// TUI processes any messages, the quit handler never ran.
 		if lock != nil {
 			_ = lock.Release()
 		}
 		return fmt.Errorf("running TUI: %w", err)
 	}
 
-	if lock != nil {
-		_ = lock.Release()
-	}
+	// On success the TUI's quit handler already released the lock (or a
+	// replacement lock if the user toggled auto-snapshots off and back on).
+	// Do not release here: the local variable may point to a stale LockFile
+	// that was already released, while the TUI holds a different one.
 
 	return nil
 }
