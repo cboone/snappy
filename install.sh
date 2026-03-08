@@ -182,9 +182,13 @@ function install_completions() {
   # Bash completions.
   if [[ -f "${comp_dir}/snappy.bash" ]]; then
     if [[ -n "${brew_prefix}" ]]; then
-      mkdir -p "${brew_prefix}/etc/bash_completion.d"
-      cp "${comp_dir}/snappy.bash" "${brew_prefix}/etc/bash_completion.d/snappy"
-      printf '  bash: %s/etc/bash_completion.d/snappy\n' "${brew_prefix}"
+      if mkdir -p "${brew_prefix}/etc/bash_completion.d" \
+        && cp "${comp_dir}/snappy.bash" "${brew_prefix}/etc/bash_completion.d/snappy"; then
+        printf '  bash: %s/etc/bash_completion.d/snappy\n' "${brew_prefix}"
+      else
+        printf '  bash: failed to install to %s/etc/bash_completion.d\n' "${brew_prefix}" >&2
+        printf '    To install manually: snappy completion bash > %s/etc/bash_completion.d/snappy\n' "${brew_prefix}" >&2
+      fi
     else
       printf '  bash: skipped (Homebrew not found)\n'
       printf '    To install manually: snappy completion bash > /usr/local/etc/bash_completion.d/snappy\n'
@@ -194,19 +198,27 @@ function install_completions() {
   # Zsh completions.
   if [[ -f "${comp_dir}/_snappy" ]]; then
     if [[ -n "${brew_prefix}" ]]; then
-      mkdir -p "${brew_prefix}/share/zsh/site-functions"
-      cp "${comp_dir}/_snappy" "${brew_prefix}/share/zsh/site-functions/_snappy"
-      printf '  zsh:  %s/share/zsh/site-functions/_snappy\n' "${brew_prefix}"
+      if mkdir -p "${brew_prefix}/share/zsh/site-functions" \
+        && cp "${comp_dir}/_snappy" "${brew_prefix}/share/zsh/site-functions/_snappy"; then
+        printf '  zsh:  %s/share/zsh/site-functions/_snappy\n' "${brew_prefix}"
+      else
+        printf '  zsh:  failed to install to %s/share/zsh/site-functions\n' "${brew_prefix}" >&2
+        printf '    To install manually: snappy completion zsh > %s/share/zsh/site-functions/_snappy\n' "${brew_prefix}" >&2
+      fi
     else
       local zsh_comp_dir="${HOME}/.zsh/completions"
-      mkdir -p "${zsh_comp_dir}"
-      cp "${comp_dir}/_snappy" "${zsh_comp_dir}/_snappy"
-      printf '  zsh:  %s/_snappy\n' "${zsh_comp_dir}"
-      printf '    Ensure %s is in your fpath. Add to ~/.zshrc:\n' "${zsh_comp_dir}"
-      # ${fpath} is intentionally literal: showing the user what to type.
-      # shellcheck disable=SC2016
-      printf '      fpath=(%s ${fpath})\n' "${zsh_comp_dir}"
-      printf '      autoload -Uz compinit && compinit\n'
+      if mkdir -p "${zsh_comp_dir}" \
+        && cp "${comp_dir}/_snappy" "${zsh_comp_dir}/_snappy"; then
+        printf '  zsh:  %s/_snappy\n' "${zsh_comp_dir}"
+        printf '    Ensure %s is in your fpath. Add to ~/.zshrc:\n' "${zsh_comp_dir}"
+        # ${fpath} is intentionally literal: showing the user what to type.
+        # shellcheck disable=SC2016
+        printf '      fpath=(%s ${fpath})\n' "${zsh_comp_dir}"
+        printf '      autoload -Uz compinit && compinit\n'
+      else
+        printf '  zsh:  failed to install to %s\n' "${zsh_comp_dir}" >&2
+        printf '    To install manually: snappy completion zsh > %s/_snappy\n' "${zsh_comp_dir}" >&2
+      fi
     fi
   fi
 
@@ -214,9 +226,13 @@ function install_completions() {
   if [[ -f "${comp_dir}/snappy.fish" ]]; then
     if command -v fish > /dev/null 2>&1; then
       local fish_comp_dir="${HOME}/.config/fish/completions"
-      mkdir -p "${fish_comp_dir}"
-      cp "${comp_dir}/snappy.fish" "${fish_comp_dir}/snappy.fish"
-      printf '  fish: %s/snappy.fish\n' "${fish_comp_dir}"
+      if mkdir -p "${fish_comp_dir}" \
+        && cp "${comp_dir}/snappy.fish" "${fish_comp_dir}/snappy.fish"; then
+        printf '  fish: %s/snappy.fish\n' "${fish_comp_dir}"
+      else
+        printf '  fish: failed to install to %s\n' "${fish_comp_dir}" >&2
+        printf '    To install manually: snappy completion fish > %s/snappy.fish\n' "${fish_comp_dir}" >&2
+      fi
     else
       printf '  fish: skipped (fish not installed)\n'
       printf '    To install manually: snappy completion fish > ~/.config/fish/completions/snappy.fish\n'
@@ -264,7 +280,9 @@ function main() {
 
   # Extract the binary and completions from the archive.
   tar -xzf "${tmp_dir}/${tarball}" -C "${extract_dir}" -- "${BINARY}"
-  tar -xzf "${tmp_dir}/${tarball}" -C "${extract_dir}" -- "completions/" 2> /dev/null || true
+  if tar -tzf "${tmp_dir}/${tarball}" "completions/" > /dev/null 2>&1; then
+    tar -xzf "${tmp_dir}/${tarball}" -C "${extract_dir}" -- "completions/"
+  fi
 
   local extracted_binary="${extract_dir}/${BINARY}"
 

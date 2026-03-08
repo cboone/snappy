@@ -12,7 +12,7 @@ Note: no completion files found in archive. Generate them manually with: snappy 
 
 ## Installs zsh completions to fallback directory without Homebrew
 
-Uses a fake `brew` that exits non-zero to simulate Homebrew not being installed.
+Runs with a PATH that excludes Homebrew to simulate Homebrew not being installed.
 
 ```scrut
 $ tmp="$(mktemp -d)" && mkdir -p "${tmp}/completions" && printf 'zsh-comp' > "${tmp}/completions/_snappy" && PATH="/usr/bin:/bin" source "${INSTALL_SH_BIN}" && HOME="${tmp}/fakehome" PATH="/usr/bin:/bin" install_completions "${tmp}" && cat "${tmp}/fakehome/.zsh/completions/_snappy"

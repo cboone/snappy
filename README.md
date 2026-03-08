@@ -182,20 +182,20 @@ Open a new shell session after installation to activate completions.
 
 Run `snappy help` or `snappy help <command>` for detailed usage. Or read the man page: `man snappy`.
 
-| Command              | Description                                    |
-| -------------------- | ---------------------------------------------- |
-| `snappy`             | Launch the interactive TUI                     |
-| `snappy completion`  | Generate shell completions (bash/zsh/fish)     |
-| `snappy config`      | Show active configuration                      |
-| `snappy config init` | Create a default config file                   |
-| `snappy create`      | Create a new local Time Machine snapshot       |
-| `snappy list`        | List snapshots with details                    |
-| `snappy run`         | Run the auto-snapshot loop in the foreground   |
-| `snappy service ...` | Manage the background service                  |
-| `snappy status`      | Show Time Machine and disk status              |
-| `snappy thin`        | Thin old snapshots based on configured cadence |
-| `snappy version`     | Print the version number                       |
-| `snappy help`        | Show help for any command                      |
+| Command              | Description                                           |
+| -------------------- | ----------------------------------------------------- |
+| `snappy`             | Launch the interactive TUI                            |
+| `snappy completion`  | Generate shell completions (bash/zsh/fish/PowerShell) |
+| `snappy config`      | Show active configuration                             |
+| `snappy config init` | Create a default config file                          |
+| `snappy create`      | Create a new local Time Machine snapshot              |
+| `snappy list`        | List snapshots with details                           |
+| `snappy run`         | Run the auto-snapshot loop in the foreground          |
+| `snappy service ...` | Manage the background service                         |
+| `snappy status`      | Show Time Machine and disk status                     |
+| `snappy thin`        | Thin old snapshots based on configured cadence        |
+| `snappy version`     | Print the version number                              |
+| `snappy help`        | Show help for any command                             |
 
 | Flag              | Description                                           |
 | ----------------- | ----------------------------------------------------- |
