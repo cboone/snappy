@@ -123,9 +123,9 @@ RefreshTick and the 5s daemon refresh.
 
 ## Files to modify
 
-| File | Change |
-| --- | --- |
-| `internal/tui/model.go` | Add `daemonRefreshCount` field; update `Init()` condition |
+| File                     | Change                                                       |
+| ------------------------ | ------------------------------------------------------------ |
+| `internal/tui/model.go`  | Add `daemonRefreshCount` field; update `Init()` condition    |
 | `internal/tui/update.go` | Update `handleUITick()`, `handleTick()`, `syncDaemonState()` |
 
 ## Tests
