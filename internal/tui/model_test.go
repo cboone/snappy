@@ -417,7 +417,7 @@ func TestAutoToggleIgnoredWhenDaemonActive(t *testing.T) {
 	entries := model.log.Entries()
 	found := false
 	for _, e := range entries {
-		if strings.Contains(e.Message, "background service") {
+		if strings.Contains(e.Message, "another process") {
 			found = true
 			break
 		}
@@ -457,7 +457,7 @@ func TestRefreshTickDisablesAutoWhenDaemonLockAppears(t *testing.T) {
 	entries := model.log.Entries()
 	found := false
 	for _, e := range entries {
-		if strings.Contains(e.Message, "Background service detected") {
+		if strings.Contains(e.Message, "Another snappy process detected") {
 			found = true
 			break
 		}
@@ -524,7 +524,7 @@ func TestRefreshTickIgnoresTUIAutoSnapshotLock(t *testing.T) {
 	}
 
 	for _, e := range model.log.Entries() {
-		if strings.Contains(e.Message, "Background service detected") {
+		if strings.Contains(e.Message, "Another snappy process detected") {
 			t.Fatal("unexpected daemon detection log while TUI auto-snapshot holds the lock")
 		}
 	}
@@ -539,6 +539,162 @@ func TestRefreshTickIgnoresTUIAutoSnapshotLock(t *testing.T) {
 	}
 	if !model.auto.Enabled() {
 		t.Error("expected auto-snapshots to remain enabled after auto-snapshot completes")
+	}
+}
+
+func TestRefreshTickIgnoresPersistentTUILock(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+	m.cfg.LogDir = t.TempDir()
+
+	// TUI holds the persistent lock.
+	lockPath := service.DefaultLockPath(m.cfg.LogDir)
+	lock, err := service.Acquire(lockPath)
+	if err != nil {
+		t.Fatalf("Acquire() error = %v", err)
+	}
+	defer func() { _ = lock.Release() }()
+	m.lock = lock
+
+	updated, _ := m.Update(RefreshTickMsg{})
+	model := updated.(Model)
+
+	if model.daemonActive {
+		t.Error("expected daemonActive = false when TUI itself holds the lock")
+	}
+	if !model.auto.Enabled() {
+		t.Error("expected auto-snapshots to remain enabled")
+	}
+
+	for _, e := range model.log.Entries() {
+		if strings.Contains(e.Message, "Another snappy process detected") {
+			t.Fatal("unexpected daemon detection log while TUI holds the persistent lock")
+		}
+	}
+}
+
+func TestAutoToggleAcquiresAndReleasesLock(t *testing.T) {
+	cfg := testConfig()
+	cfg.AutoEnabled = false
+	cfg.LogDir = t.TempDir()
+	log := logger.New(logger.Options{MaxEntries: 50})
+	runner := &mockRunner{responses: map[string]mockResponse{}}
+	m := NewModel(cfg, runner, log, ModelParams{
+		APFSVolume:    "disk3s5",
+		APFSContainer: "disk3",
+		TMStatus:      "Configured",
+		VolumeName:    "/",
+		Version:       "dev",
+	})
+	m.width = 80
+	m.height = 40
+
+	// Press 'a' to enable: should acquire the lock.
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model := updated.(Model)
+
+	if !model.auto.Enabled() {
+		t.Error("expected auto-snapshots enabled after toggle")
+	}
+	if model.lock == nil {
+		t.Error("expected lock acquired after enabling auto-snapshots")
+	}
+
+	lockPath := service.DefaultLockPath(cfg.LogDir)
+	if !service.IsHeld(lockPath) {
+		t.Error("expected IsHeld = true while TUI holds lock")
+	}
+
+	// Press 'a' to disable: should release the lock.
+	updated, _ = model.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model = updated.(Model)
+
+	if model.auto.Enabled() {
+		t.Error("expected auto-snapshots disabled after second toggle")
+	}
+	if model.lock != nil {
+		t.Error("expected lock released after disabling auto-snapshots")
+	}
+	if service.IsHeld(lockPath) {
+		t.Error("expected IsHeld = false after lock released")
+	}
+}
+
+func TestAutoToggleFailsWhenExternalLockHeld(t *testing.T) {
+	cfg := testConfig()
+	cfg.AutoEnabled = false
+	cfg.LogDir = t.TempDir()
+	log := logger.New(logger.Options{MaxEntries: 50})
+	runner := &mockRunner{responses: map[string]mockResponse{}}
+	m := NewModel(cfg, runner, log, ModelParams{
+		APFSVolume:    "disk3s5",
+		APFSContainer: "disk3",
+		TMStatus:      "Configured",
+		VolumeName:    "/",
+		Version:       "dev",
+	})
+	m.width = 80
+	m.height = 40
+
+	// External process holds the lock.
+	lockPath := service.DefaultLockPath(cfg.LogDir)
+	extLock, err := service.Acquire(lockPath)
+	if err != nil {
+		t.Fatalf("Acquire() error = %v", err)
+	}
+	defer func() { _ = extLock.Release() }()
+
+	// Press 'a' to enable: should fail and set daemonActive.
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model := updated.(Model)
+
+	if model.auto.Enabled() {
+		t.Error("expected auto-snapshots to remain disabled when lock is held externally")
+	}
+	if !model.daemonActive {
+		t.Error("expected daemonActive set when lock acquisition fails with ErrLocked")
+	}
+	if model.lock != nil {
+		t.Error("expected lock to remain nil when acquisition fails")
+	}
+}
+
+func TestQuitReleasesLock(t *testing.T) {
+	cfg := testConfig()
+	cfg.LogDir = t.TempDir()
+	log := logger.New(logger.Options{MaxEntries: 50})
+	runner := &mockRunner{responses: map[string]mockResponse{}}
+
+	lockPath := service.DefaultLockPath(cfg.LogDir)
+	lock, err := service.Acquire(lockPath)
+	if err != nil {
+		t.Fatalf("Acquire() error = %v", err)
+	}
+
+	m := NewModel(cfg, runner, log, ModelParams{
+		APFSVolume:    "disk3s5",
+		APFSContainer: "disk3",
+		TMStatus:      "Configured",
+		VolumeName:    "/",
+		Version:       "dev",
+		Lock:          lock,
+	})
+	m.width = 80
+	m.height = 40
+
+	if !service.IsHeld(lockPath) {
+		t.Fatal("expected IsHeld = true before quit")
+	}
+
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'q', Text: "q"})
+	model := updated.(Model)
+
+	if model.lock != nil {
+		t.Error("expected lock nil after quit")
+	}
+	if service.IsHeld(lockPath) {
+		t.Error("expected IsHeld = false after quit released the lock")
 	}
 }
 

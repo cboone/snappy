@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -186,8 +187,24 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	lockPath := service.DefaultLockPath(cfg.LogDir)
 	daemonActive := service.IsHeld(lockPath)
 
+	// Acquire persistent lock when auto-snapshots are enabled and no
+	// external process already holds it.
+	var lock *service.LockFile
+	if !daemonActive && cfg.AutoEnabled {
+		var lockErr error
+		lock, lockErr = service.Acquire(lockPath)
+		if lockErr != nil {
+			if errors.Is(lockErr, service.ErrLocked) {
+				// Between IsHeld and Acquire, another process grabbed it.
+				daemonActive = true
+			} else {
+				log.Log(logger.LevelWarn, logger.CatStartup, fmt.Sprintf("Failed to acquire auto-snapshot lock: %v", lockErr))
+			}
+		}
+	}
+
 	if daemonActive {
-		log.Log(logger.LevelInfo, logger.CatStartup, "Background service detected; TUI auto-snapshots disabled")
+		log.Log(logger.LevelInfo, logger.CatStartup, "Another snappy process detected; TUI auto-snapshots disabled")
 	}
 	log.Log(logger.LevelInfo, logger.CatStartup, fmt.Sprintf("auto-snapshot=%v | every %ds | thin >%ds to %ds",
 		cfg.AutoEnabled, int(cfg.AutoSnapshotInterval.Seconds()),
@@ -199,12 +216,20 @@ func runTUI(_ *cobra.Command, _ []string) error {
 		TMStatus:      tmStatus,
 		VolumeName:    volumeName,
 		Version:       version,
+		Lock:          lock,
 		DaemonActive:  daemonActive,
 	})
 	p := tea.NewProgram(model)
 
 	if _, err := p.Run(); err != nil {
+		if lock != nil {
+			_ = lock.Release()
+		}
 		return fmt.Errorf("running TUI: %w", err)
+	}
+
+	if lock != nil {
+		_ = lock.Release()
 	}
 
 	return nil
