@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-03-08
+
+### Added
+
+- Shell completions included in release archives and Homebrew cask
+- Shell completions installed from install.sh
+
+### Fixed
+
+- Check mkdir/cp success before reporting completion install
+- Warn when MANPATH does not include man page directory
+- Install man page in Homebrew cask
+- Remove early bootout return and deduplicate error check
+- Address Copilot review feedback on launchd bootout logic
+- Handle bootout exit 125 on disabled launchd services
+
+### Changed
+
+- Rename Homebrew cask from snappy to snappy-tm
+- Add make completions target and gitignore generated files
+
 ## [0.8.3] - 2026-03-07
 
 ### Fixed
@@ -311,7 +332,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add shellcheckrc with all checks enabled
 
-[unreleased]: https://github.com/cboone/snappy/compare/v0.8.3...HEAD
+[unreleased]: https://github.com/cboone/snappy/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/cboone/snappy/compare/v0.8.3...v0.9.0
 [0.8.3]: https://github.com/cboone/snappy/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/cboone/snappy/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/cboone/snappy/compare/v0.8.0...v0.8.1
