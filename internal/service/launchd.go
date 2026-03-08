@@ -156,7 +156,7 @@ func Install(cfg PlistConfig) error {
 	// then retry bootstrap once.
 	if bootoutErr := bootout(cfg.Label, plistPath); bootoutErr != nil {
 		return fmt.Errorf(
-			"launchctl bootstrap: service already loaded and bootout failed: %v (original: %s, %w)",
+			"launchctl bootstrap: service already bootstrapped and bootout failed: %v (original: %s, %w)",
 			bootoutErr, outStr, err,
 		)
 	}
