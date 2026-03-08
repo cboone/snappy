@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.3] - 2026-03-07
+
+### Fixed
+
+- Handle launchctl bootstrap error 125 with retry logic
+- Handle launchctl enable errors and use idiomatic error formatting
+- Use consistent wording in bootstrap error message
+- Remove trailing newline from caveats, add explanatory comment
+- Use single-line caveats to avoid GoReleaser cask template bug
+
+### Changed
+
+- Clarify bootout retry comment to match actual behavior
+- Update plan snippet to match final implementation
+- Add plan for fix-service-install-bootstrap-error
+- Add plan for fixing Homebrew install tap migration and caveats
+
 ## [0.8.2] - 2026-03-07
 
 ### Fixed
@@ -294,7 +311,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add shellcheckrc with all checks enabled
 
-[unreleased]: https://github.com/cboone/snappy/compare/v0.8.2...HEAD
+[unreleased]: https://github.com/cboone/snappy/compare/v0.8.3...HEAD
+[0.8.3]: https://github.com/cboone/snappy/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/cboone/snappy/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/cboone/snappy/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/cboone/snappy/compare/v0.7.0...v0.8.0
