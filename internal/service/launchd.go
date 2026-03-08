@@ -137,8 +137,9 @@ func Install(cfg PlistConfig) error {
 	}
 
 	// Best-effort unload of any existing agent. If this fails because the
-	// service is not loaded, that is fine. If it fails for another reason,
-	// the bootstrap retry logic below provides a second chance.
+	// service is not loaded, that is fine. Other bootout failures are
+	// silently ignored here; the bootstrap retry below only fires when
+	// launchctl reports the service is already bootstrapped/loaded.
 	_ = bootout(cfg.Label, plistPath)
 
 	out, err := runBootstrap(domainTarget(), plistPath)
