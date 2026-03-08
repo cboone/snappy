@@ -4,7 +4,7 @@
 
 [![GitHub branch check runs](https://img.shields.io/github/check-runs/cboone/snappy/main?style=for-the-badge&label=tests&labelColor=f3eecd&color=81834a)](https://github.com/cboone/snappy/actions) [![Go Report Card](https://img.shields.io/badge/go%20report%20card-A+-important?style=for-the-badge&labelColor=f3eecd&color=81834a)](https://goreportcard.com/report/github.com/cboone/snappy) ![macOS 11+](https://img.shields.io/badge/macOS-11+-critical?style=for-the-badge&labelColor=f3eecd&color=b18655) [![MIT License](https://img.shields.io/github/license/cboone/snappy?style=for-the-badge&labelColor=f3eecd&color=b18655&)](./LICENSE)
 
-[**Quick Start**](#quick-start) ・ [**Why Use Snappy?**](#why-use-snappy) ・ [**Usage**](#commands-and-options) ・ [**Background Service**](#background-service) ・ [**Restoring Files and Snapshots**](#restoring-files-and-snapshots) ・ [**Limitations**](#limitations) ・ [**Other Tools**](#comparison)
+[**Quick Start**](#quick-start) ・ [**Why Use Snappy?**](#why-use-snappy) ・ [**Installation**](#installation) ・ [**Usage**](#commands-and-options) ・ [**Restoring Files and Snapshots**](#restoring-files-and-snapshots) ・ [**Limitations**](#limitations) ・ [**Full ToC**](#table-of-contents)
 
 **Frequent, automatic, super fast, lightweight snapshot backups of your entire drive.** Snappy uses the macOS built-in snapshotting system to allow easy access to and rollbacks of individual files, directories, or the entire disk.
 
@@ -37,6 +37,12 @@ Hopefully you'll install Snappy and let it run and rarely think about it. But if
 
 See below for more on [How Snappy Works](#how-snappy-works), [How to Configure Snapshot Frequency](#configuration), and [How to Restore Files and Snapshots](#restoring-files-and-snapshots).
 
+### Why Not Just Use Time Machine?
+
+You should [use Time Machine](https://support.apple.com/en-us/104984), it's great. You should use Time Machine both for its ability to create incremental backups on an external drive (its documented and marketed use) and for its ability to create local APFS snapshots. But the most often Time Machine will create local snapshots is once every hour. Snappy increases that frequency dramatically (and allows you to customize it).
+
+Is once every hour good enough for you? Then just use Time Machine, it's simple and works great. Want more? Use Snappy, it's also simple and automatic and is completely integrated into Time Machine's existing capabilities.
+
 ## Quick Start
 
 Install Snappy via [Homebrew](https://brew.sh):
@@ -57,13 +63,23 @@ To open Snappy's TUI, just run `snappy`. You'll see what snapshots have been tak
 
 All of this can be done non-interactively as well via various [commands and options](#commands-and-options). Read more below, or run `snappy help` or `man snappy`. Also, see below for more on [How Snappy Works](#how-snappy-works), [How to Configure Snapshot Frequency](#configuration), and [How to Restore Files and Snapshots](#restoring-files-and-snapshots).
 
+## Table of Contents
+
+[**Introduction**](#snappy) ・ [**Why Use Snappy?**](#why-use-snappy) ・ [**Why Not Just Use Time Machine?**](#why-not-just-use-time-machine) ・ [**Quick Start**](#quick-start)
+
+[**Restoring Files and Snapshots**](#restoring-files-and-snapshots) ・ [**Using Time Machine to Scrub Through History**](#using-time-machine-to-scrub-through-history) ・ [**Mounting Snapshots**](#mounting-snapshots) ・ [**Opening Previous File Revisions Within Apps**](#opening-previous-file-revisions-within-apps) ・ [**Restoring Your Entire Drive**](#restoring-your-entire-drive)
+
+[**Installation**](#installation) ・ [**Homebrew**](#homebrew-recommended) ・ [**Shell Script**](#shell-script) ・ [**GH Release**](#gh-release)
+
+[**Commands and Options**](#commands-and-options)
+
 ## Restoring Files and Snapshots
 
 Using the Time Machine local snapshots gives you choices on how to undo errors and restore data. Again, none of these options requires that you [turn on Time Machine backups](#configuring-time-machine), though that does give you a longer snapshot history.
 
 TODO: Create screen recordings.
 
-### Using Time Machine to scrub through history
+### Using Time Machine to Scrub Through History
 
 This is the fastest way to restore small numbers of files or directories.
 
@@ -71,7 +87,7 @@ Open the directory you want to restore in the Finder, then open [the Time Machin
 
 You can't open the files from within Time Machine, but you can use Quick Look on them to preview the contents. Double click, press space bar, or right click and choose `Quick Look`.
 
-### Mounting snapshots
+### Mounting Snapshots
 
 TODO: Finalize in-Snappy commands and document.
 
@@ -81,53 +97,17 @@ You can also use Disk Utility<sup>✻</sup> to view and manage snapshots. Select
 
 TODO: Document using `diskutil`.
 
-### Opening previous file revisions within apps
+### Opening Previous File Revisions Within Apps
 
 If you just need to restore an earlier version of a single file and that file is open in a native macOS app, then [the fastest way to roll it back](https://support.apple.com/guide/mac-help/view-and-restore-past-versions-of-documents-mh40710/26/mac/26) is to select `Revert To > Browse All Versions` from the `File` menu. You'll find yourself in a version of the Time Machine history scrubber, but just for that file. Click `Restore` to get that version back, or press `option`and click `Restore a Copy`to open that version in a new file.
 
-### Restoring your entire drive
+### Restoring Your Entire Drive
 
 TODO: Document GUI and `asr` procedures.
 
-## Commands and Options
-
-TODO: Write.
-
-## Background Service
-
-Snappy can run as a macOS LaunchAgent, taking snapshots and thinning old ones automatically in the background. The service starts at login and restarts if it exits unexpectedly.
-
-### Install the service
-
-```sh
-snappy service install
-```
-
-This generates a launchd plist, loads it, and starts the service immediately. You only need to run this once.
-
-### Manage the service
-
-| Command                    | Description                             |
-| -------------------------- | --------------------------------------- |
-| `snappy service`           | Show service status (default)           |
-| `snappy service status`    | Show service status                     |
-| `snappy service install`   | Install the plist and start the service |
-| `snappy service uninstall` | Stop the service and remove the plist   |
-| `snappy service start`     | Start a stopped service                 |
-| `snappy service stop`      | Stop the running service                |
-| `snappy service log`       | Tail the service log (`Ctrl-C` to exit) |
-
-### TUI and service coexistence
-
-Only one auto-snapshot routine runs at a time. When the background service is active, the TUI detects it and disables its own auto-snapshot loop. The TUI header shows "service" next to the auto-snapshot indicator so you know the background service is handling it. You can still use the TUI to create manual snapshots, browse snapshot history, mount snapshots, and manage thinning.
-
-### Service details
-
-The service installs a standard macOS LaunchAgent plist at `~/Library/LaunchAgents/com.cboone.snappy.plist`. It runs `snappy run` with your configured settings. The LaunchAgent captures stdout/stderr to `~/.local/share/snappy/snappy-service.log`, while `snappy run` also writes log entries into the shared Snappy log file (default: `~/.local/share/snappy/snappy.log`) used by the TUI log panel. A file-based lock prevents duplicate auto-snapshot processes, whether from the service, the TUI, or manual `snappy run` invocations.
-
 ## Installation
 
-### Homebrew (recommended)
+### Homebrew (Recommended)
 
 The simplest method is via [Homebrew](https://brew.sh):
 
@@ -137,7 +117,7 @@ brew install cboone/tap/snappy-tm
 
 That installs the `snappy` binary and shell completions, and configures it to run on startup.
 
-### Shell script
+### Shell Script
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/cboone/snappy/main/install.sh | bash
@@ -157,6 +137,40 @@ TODO: Document.
 gh release ...
 ```
 
+## Commands and Options
+
+### Background Service
+
+Snappy can run as a macOS LaunchAgent, taking snapshots and thinning old ones automatically in the background. The service starts at login and restarts if it exits unexpectedly.
+
+#### Install the Service
+
+```sh
+snappy service install
+```
+
+This generates a launchd plist, loads it, and starts the service immediately. You only need to run this once.
+
+#### Manage the service
+
+| Command                    | Description                             |
+| -------------------------- | --------------------------------------- |
+| `snappy service`           | Show service status (default)           |
+| `snappy service status`    | Show service status                     |
+| `snappy service install`   | Install the plist and start the service |
+| `snappy service uninstall` | Stop the service and remove the plist   |
+| `snappy service start`     | Start a stopped service                 |
+| `snappy service stop`      | Stop the running service                |
+| `snappy service log`       | Tail the service log (`Ctrl-C` to exit) |
+
+#### TUI and Service Coexistence
+
+Only one auto-snapshot routine runs at a time. When the background service is active, the TUI detects it and disables its own auto-snapshot loop. The TUI header shows "service" next to the auto-snapshot indicator so you know the background service is handling it. You can still use the TUI to create manual snapshots, browse snapshot history, mount snapshots, and manage thinning.
+
+#### Service Details
+
+The service installs a standard macOS LaunchAgent plist at `~/Library/LaunchAgents/com.cboone.snappy.plist`. It runs `snappy run` with your configured settings. The LaunchAgent captures stdout/stderr to `~/.local/share/snappy/snappy-service.log`, while `snappy run` also writes log entries into the shared Snappy log file (default: `~/.local/share/snappy/snappy.log`) used by the TUI log panel. A file-based lock prevents duplicate auto-snapshot processes, whether from the service, the TUI, or manual `snappy run` invocations.
+
 ## Configuration
 
 ### Configuring Snappy
@@ -166,7 +180,7 @@ TODO: Update.
 Snappy reads configuration from `~/.config/snappy/config.yaml` or environment
 variables prefixed with `SNAPPY_`. Pass `--config <path>` to use a custom file.
 
-#### Generate a config file
+#### Generate a Config File
 
 Create a default config file with all settings and comments:
 
@@ -177,7 +191,7 @@ snappy config init
 This writes to `~/.config/snappy/config.yaml` (or the path given by
 `--config`). The command will not overwrite an existing file.
 
-#### View configuration
+#### View Configuration
 
 Show the active configuration, including values from the config file,
 environment variables, and defaults:
@@ -230,7 +244,7 @@ curl -fsSL https://raw.githubusercontent.com/cboone/snappy/main/bin/snappy-ez -o
 chmod +x snappy-ez
 ```
 
-### Run in the foreground
+### Run in the Foreground
 
 ```sh
 ./snappy-ez
@@ -238,7 +252,7 @@ chmod +x snappy-ez
 
 Press `Ctrl-C` to stop.
 
-### Run in the background
+### Run in the Background
 
 ```sh
 ./snappy-ez >> ~/snappy-ez.log 2>&1 &
