@@ -139,6 +139,104 @@ gh release ...
 
 ## Commands and Options
 
+Run `snappy help` or `snappy <command> --help` for detailed usage. A man page is also available: `man snappy`.
+
+### Command Summary
+
+| Command              | Description                                    |
+| -------------------- | ---------------------------------------------- |
+| `snappy`             | Launch the interactive TUI                     |
+| `snappy create`      | Create a new local Time Machine snapshot       |
+| `snappy list`        | List local snapshots with details              |
+| `snappy status`      | Show Time Machine and disk status              |
+| `snappy thin`        | Thin old snapshots based on configured cadence |
+| `snappy run`         | Run the auto-snapshot loop in the foreground   |
+| `snappy config`      | Show active configuration                      |
+| `snappy config init` | Create a default config file                   |
+| `snappy service ...` | Manage the background service                  |
+| `snappy version`     | Print the version number                       |
+| `snappy help`        | Show help for any command                      |
+
+### Global Flags
+
+| Flag              | Description                                           |
+| ----------------- | ----------------------------------------------------- |
+| `--config <path>` | Config file (default: `~/.config/snappy/config.yaml`) |
+| `-h`, `--help`    | Show help for the current command                     |
+| `-v`, `--version` | Print the version number                              |
+
+### Interactive TUI
+
+```sh
+snappy
+```
+
+Running `snappy` with no subcommand launches the interactive terminal UI. The TUI has three panels:
+
+- **Info panel:** volume name, disk usage, Time Machine status, and auto-snapshot settings
+- **Snapshot panel:** scrollable table of local snapshots with date, age, XID, delta, UUID, and status
+- **Log panel:** live activity log (creates, thins, refreshes, errors)
+
+TODO: Add a screenshot.
+
+#### TUI Key Bindings
+
+| Key          | Action                       |
+| ------------ | ---------------------------- |
+| `s`          | Create a snapshot            |
+| `r`          | Refresh snapshot list        |
+| `a`          | Toggle auto-snapshots        |
+| `l`          | Open log directory in Finder |
+| `Tab`        | Focus next panel             |
+| `Shift+Tab`  | Focus previous panel         |
+| `j` / `Down` | Scroll down                  |
+| `k` / `Up`   | Scroll up                    |
+| `q`          | Quit                         |
+
+Mouse support: click to focus panels, scroll with the mouse wheel. `Ctrl+C` also quits.
+
+### Snapshot Commands
+
+The `create`, `list`, `status`, and `thin` commands manage snapshots non-interactively. All four support a `--json` flag for machine-readable output, making them suitable for scripting.
+
+#### `snappy create`
+
+Create a new local Time Machine snapshot and print the snapshot date.
+
+```sh
+snappy create [--json]
+```
+
+TODO: Add example output.
+
+#### `snappy list`
+
+List all local snapshots with timestamps, relative ages, and APFS details (UUID, XID delta, purgeable status). Snapshots are displayed newest first.
+
+```sh
+snappy list [--json]
+```
+
+TODO: Add example output.
+
+#### `snappy status`
+
+Show Time Machine status, mount point, APFS volume, disk usage, snapshot counts, and auto-snapshot configuration.
+
+```sh
+snappy status [--json]
+```
+
+TODO: Add example output.
+
+#### `snappy thin`
+
+Thin old snapshots. Snapshots older than `thin_age_threshold` are reduced to one per `thin_cadence` interval. Uses the values from your [configuration](#configuring-snappy).
+
+```sh
+snappy thin [--json]
+```
+
 ### Background Service
 
 Snappy can run as a macOS LaunchAgent, taking snapshots and thinning old ones automatically in the background. The service starts at login and restarts if it exits unexpectedly.
@@ -151,7 +249,7 @@ snappy service install
 
 This generates a launchd plist, loads it, and starts the service immediately. You only need to run this once.
 
-#### Manage the service
+#### Manage the Service
 
 | Command                    | Description                             |
 | -------------------------- | --------------------------------------- |
@@ -170,6 +268,23 @@ Only one auto-snapshot routine runs at a time. When the background service is ac
 #### Service Details
 
 The service installs a standard macOS LaunchAgent plist at `~/Library/LaunchAgents/com.cboone.snappy.plist`. It runs `snappy run` with your configured settings. The LaunchAgent captures stdout/stderr to `~/.local/share/snappy/snappy-service.log`, while `snappy run` also writes log entries into the shared Snappy log file (default: `~/.local/share/snappy/snappy.log`) used by the TUI log panel. A file-based lock prevents duplicate auto-snapshot processes, whether from the service, the TUI, or manual `snappy run` invocations.
+
+### `snappy run`
+
+Run the auto-snapshot loop as a foreground process. This is the command the background service executes; you generally don't need to run it directly. It creates a snapshot and thins old ones on each configured interval, logging to both stdout and the shared log file. Acquires a file lock to prevent duplicate auto-snapshot processes. Exits cleanly on `SIGINT` or `SIGTERM`.
+
+```sh
+snappy run
+```
+
+### Configuration Commands
+
+Show or initialize Snappy's configuration. See [Configuring Snappy](#configuring-snappy) for full details on settings, environment variables, and defaults.
+
+```sh
+snappy config           # show active configuration
+snappy config init      # create a default config file
+```
 
 ## Configuration
 
