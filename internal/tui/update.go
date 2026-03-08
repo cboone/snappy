@@ -93,10 +93,28 @@ func (m Model) handleSpinnerTick(msg spinner.TickMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) handleUITick() (tea.Model, tea.Cmd) {
 	m.updateSnapAges()
-	if m.auto.Enabled() || m.loading {
-		return m, uiTick()
+
+	var cmds []tea.Cmd
+
+	// When a daemon is active, trigger a data refresh every 5 UI ticks
+	// (~5 seconds) so externally-created snapshots appear promptly.
+	if m.daemonActive {
+		m.daemonRefreshCount++
+		if m.daemonRefreshCount >= 5 && !m.refreshing {
+			m.daemonRefreshCount = 0
+			m.refreshing = true
+			cmds = append(cmds, doRefresh(m.runner, m.apfsVolume, m.apfsContainer))
+		}
 	}
-	return m, nil
+
+	if m.auto.Enabled() || m.daemonActive || m.loading {
+		cmds = append(cmds, uiTick())
+	}
+
+	if len(cmds) == 0 {
+		return m, nil
+	}
+	return m, tea.Batch(cmds...)
 }
 
 func helpStyles(s modelStyles) help.Styles {
@@ -434,9 +452,16 @@ func (m *Model) ensureSnapCursorVisible() {
 
 func (m Model) handleTick() (tea.Model, tea.Cmd) {
 	now := m.now()
+	wasDaemonActive := m.daemonActive
 	m.syncDaemonState(now)
 
 	var cmds []tea.Cmd
+
+	// Start the UI tick when a daemon is newly detected so ages and
+	// the display stay fresh while another process creates snapshots.
+	if m.daemonActive && !wasDaemonActive {
+		cmds = append(cmds, uiTick())
+	}
 
 	snapshotDue := m.auto.ShouldSnapshot(now) && !m.snapshotting
 	if snapshotDue {
@@ -489,6 +514,7 @@ func (m *Model) syncDaemonState(now time.Time) {
 
 	case !lockHeld && m.daemonActive:
 		m.daemonActive = false
+		m.daemonRefreshCount = 0
 		m.log.Log(logger.LevelInfo, logger.CatAuto, "External auto-snapshot process no longer detected; press 'a' to enable auto-snapshots")
 		m.updateLogViewContent()
 	}
