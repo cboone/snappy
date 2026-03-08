@@ -53,9 +53,11 @@ Remove `Formula/snappy.rb` from `cboone/homebrew-tap` since snappy now ships as 
 
 1. Run `goreleaser check` to validate the updated `.goreleaser.yml` syntax
 2. Inspect the generated cask output with `goreleaser release --snapshot --clean` and verify the `postflight` block in the generated `Casks/snappy.rb` contains:
+
    ```ruby
    postflight do
      system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/snappy"]
    end
    ```
+
 3. After the next release, confirm `brew install cboone/tap/snappy` succeeds
