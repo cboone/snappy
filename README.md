@@ -17,7 +17,7 @@
 >
 > You barely even need Snappy, for that matter. It provides easy setup, handy config options (with good defaults), a TUI to view and manage your snapshots, commands to mount your snapshots, and a few other niceties. But at its core, Snappy's a glorified Bash script cron job. So much so that I've included a super simple Bash script you could use instead, if you want frequent snapshots without installing a binary and are happy using `tmutil`, `diskutil`, and `asr` to manage the rest: [`snappy-ez`](./bin/snappy-ez). More details on [how to use it](#snappy-ez) below.
 
-**AI usage:** Snappy is a 3 out of 5 on [my personal vibes scale](#vibes), meaning that the code and tests were written by LLMs micro-managed by me. Robot code; human architecture, design (in all senses), code review, and manual testing. I wrote this README; other docs are a mix. Read more about my use of LLMs and my workflow in [my AI transparency statement](#transparency). Also see my note about [LLMs and copyright and licensing](#license).
+**AI usage:** Snappy is a 3 out of 5 on [my personal vibes scale](#vibes), meaning that the code and tests were written by LLMs micro-managed by me. Robot code; human architecture, design (in all senses), code review, and manual testing. I wrote this README; other docs are a mix. Read more about my use of LLMs and my workflow in [my AI transparency statement](#ai-transparency). Also see my note about [LLMs and copyright and licensing](#license).
 
 ## Why Use Snappy?
 
@@ -65,13 +65,16 @@ All of this can be done non-interactively as well via various [commands and opti
 
 ## Table of Contents
 
-[**Introduction**](#snappy) ・ [**Why Use Snappy?**](#why-use-snappy) ・ [**Why Not Just Use Time Machine?**](#why-not-just-use-time-machine) ・ [**Quick Start**](#quick-start)
-
-[**Restoring Files and Snapshots**](#restoring-files-and-snapshots) ・ [**Using Time Machine to Scrub Through History**](#using-time-machine-to-scrub-through-history) ・ [**Mounting Snapshots**](#mounting-snapshots) ・ [**Opening Previous File Revisions Within Apps**](#opening-previous-file-revisions-within-apps) ・ [**Restoring Your Entire Drive**](#restoring-your-entire-drive)
-
-[**Installation**](#installation) ・ [**Homebrew**](#homebrew-recommended) ・ [**Shell Script**](#shell-script) ・ [**GH Release**](#gh-release)
-
-[**Commands and Options**](#commands-and-options)
+[**Introduction**](#snappy) ・ [**Why Use Snappy?**](#why-use-snappy) ・ [**Why Not Just Use Time Machine?**](#why-not-just-use-time-machine) ・ [**Quick Start**](#quick-start)<br>
+[**Restoring Files and Snapshots**](#restoring-files-and-snapshots) ・ [**Using Time Machine to Scrub Through History**](#using-time-machine-to-scrub-through-history) ・ [**Mounting Snapshots**](#mounting-snapshots) ・ [**Opening Previous File Revisions Within Apps**](#opening-previous-file-revisions-within-apps) ・ [**Restoring Your Entire Drive**](#restoring-your-entire-drive)<br>
+[**Installation**](#installation) ・ [**Homebrew**](#homebrew-recommended) ・ [**Shell Script**](#shell-script) ・ [**GH Release**](#gh-release)<br>
+[**Commands and Options**](#commands-and-options) ・ [**Interactive TUI**](#interactive-tui) ・ [**Background Service**](#background-service)<br>
+[**Configuration**](#configuration) ・ [**Generate a Config File**](#generate-a-config-file) ・ [**View Configuration**](#view-configuration) ・ [**Configuration Settings**](#configuration-settings) ・ [**Configuring Time Machine**](#configuring-time-machine)<br>
+[**How Snappy Works**](#how-snappy-works) ・ [**How Time Machine Works**](#how-time-machine-works)<br>
+[**snappy-ez**](#snappy-ez) ・ [**Download**](#download) ・ [**Run in the Foreground**](#run-in-the-foreground) ・ [**Run in the Background**](#run-in-the-background) ・ [**Customize**](#customize)<br>
+[**Background**](#background)<br>
+[**Limitations**](#limitations) ・ [**Comparison**](#comparison) ・ [**Open Questions**](#open-questions) ・ [**To Document**](#to-document)<br>
+[**Vibes**](#vibes) ・ [**AI Transparency**](#ai-transparency) ・ [**License**](#license)
 
 ## Restoring Files and Snapshots
 
@@ -139,25 +142,21 @@ gh release ...
 
 ## Commands and Options
 
-Run `snappy help` or `snappy <command> --help` for detailed usage. A man page is also available: `man snappy`.
-
-### Command Summary
+Run `snappy help` or `snappy help <command>` for detailed usage. Or read the man page: `man snappy`.
 
 | Command              | Description                                    |
 | -------------------- | ---------------------------------------------- |
 | `snappy`             | Launch the interactive TUI                     |
-| `snappy create`      | Create a new local Time Machine snapshot       |
-| `snappy list`        | List local snapshots with details              |
-| `snappy status`      | Show Time Machine and disk status              |
-| `snappy thin`        | Thin old snapshots based on configured cadence |
-| `snappy run`         | Run the auto-snapshot loop in the foreground   |
 | `snappy config`      | Show active configuration                      |
 | `snappy config init` | Create a default config file                   |
+| `snappy create`      | Create a new local Time Machine snapshot       |
+| `snappy list`        | List snapshots with details                    |
+| `snappy run`         | Run the auto-snapshot loop in the foreground   |
 | `snappy service ...` | Manage the background service                  |
+| `snappy status`      | Show Time Machine and disk status              |
+| `snappy thin`        | Thin old snapshots based on configured cadence |
 | `snappy version`     | Print the version number                       |
 | `snappy help`        | Show help for any command                      |
-
-### Global Flags
 
 | Flag              | Description                                           |
 | ----------------- | ----------------------------------------------------- |
@@ -167,81 +166,15 @@ Run `snappy help` or `snappy <command> --help` for detailed usage. A man page is
 
 ### Interactive TUI
 
-```sh
-snappy
-```
+Running `snappy` with no command launches the interactive TUI:
 
-Running `snappy` with no subcommand launches the interactive terminal UI. The TUI has three panels:
-
-- **Info panel:** volume name, disk usage, Time Machine status, and auto-snapshot settings
-- **Snapshot panel:** scrollable table of local snapshots with date, age, XID, delta, UUID, and status
-- **Log panel:** live activity log (creates, thins, refreshes, errors)
-
-TODO: Add a screenshot.
-
-#### TUI Key Bindings
-
-| Key          | Action                       |
-| ------------ | ---------------------------- |
-| `s`          | Create a snapshot            |
-| `r`          | Refresh snapshot list        |
-| `a`          | Toggle auto-snapshots        |
-| `l`          | Open log directory in Finder |
-| `Tab`        | Focus next panel             |
-| `Shift+Tab`  | Focus previous panel         |
-| `j` / `Down` | Scroll down                  |
-| `k` / `Up`   | Scroll up                    |
-| `q`          | Quit                         |
-
-Mouse support: click to focus panels, scroll with the mouse wheel. `Ctrl+C` also quits.
-
-### Snapshot Commands
-
-The `create`, `list`, `status`, and `thin` commands manage snapshots non-interactively. All four support a `--json` flag for machine-readable output, making them suitable for scripting.
-
-#### `snappy create`
-
-Create a new local Time Machine snapshot and print the snapshot date.
-
-```sh
-snappy create [--json]
-```
-
-TODO: Add example output.
-
-#### `snappy list`
-
-List all local snapshots with timestamps, relative ages, and APFS details (UUID, XID delta, purgeable status). Snapshots are displayed newest first.
-
-```sh
-snappy list [--json]
-```
-
-TODO: Add example output.
-
-#### `snappy status`
-
-Show Time Machine status, mount point, APFS volume, disk usage, snapshot counts, and auto-snapshot configuration.
-
-```sh
-snappy status [--json]
-```
-
-TODO: Add example output.
-
-#### `snappy thin`
-
-Thin old snapshots. Snapshots older than `thin_age_threshold` are reduced to one per `thin_cadence` interval. Uses the values from your [configuration](#configuring-snappy).
-
-```sh
-snappy thin [--json]
-```
+![Snappy TUI showing the info panel, snapshot list, and log](./docs/images/tui-b1a8e61.png)
 
 ### Background Service
 
 Snappy can run as a macOS LaunchAgent, taking snapshots and thinning old ones automatically in the background. The service starts at login and restarts if it exits unexpectedly.
 
-#### Install the Service
+#### Install the Background Service
 
 ```sh
 snappy service install
@@ -249,7 +182,7 @@ snappy service install
 
 This generates a launchd plist, loads it, and starts the service immediately. You only need to run this once.
 
-#### Manage the Service
+#### Manage the Background Service
 
 | Command                    | Description                             |
 | -------------------------- | --------------------------------------- |
@@ -265,37 +198,12 @@ This generates a launchd plist, loads it, and starts the service immediately. Yo
 
 Only one auto-snapshot routine runs at a time. When the background service is active, the TUI detects it and disables its own auto-snapshot loop. The TUI header shows "service" next to the auto-snapshot indicator so you know the background service is handling it. You can still use the TUI to create manual snapshots, browse snapshot history, mount snapshots, and manage thinning.
 
-#### Service Details
-
-The service installs a standard macOS LaunchAgent plist at `~/Library/LaunchAgents/com.cboone.snappy.plist`. It runs `snappy run` with your configured settings. The LaunchAgent captures stdout/stderr to `~/.local/share/snappy/snappy-service.log`, while `snappy run` also writes log entries into the shared Snappy log file (default: `~/.local/share/snappy/snappy.log`) used by the TUI log panel. A file-based lock prevents duplicate auto-snapshot processes, whether from the service, the TUI, or manual `snappy run` invocations.
-
-### `snappy run`
-
-Run the auto-snapshot loop as a foreground process. This is the command the background service executes; you generally don't need to run it directly. It creates a snapshot and thins old ones on each configured interval, logging to both stdout and the shared log file. Acquires a file lock to prevent duplicate auto-snapshot processes. Exits cleanly on `SIGINT` or `SIGTERM`.
-
-```sh
-snappy run
-```
-
-### Configuration Commands
-
-Show or initialize Snappy's configuration. See [Configuring Snappy](#configuring-snappy) for full details on settings, environment variables, and defaults.
-
-```sh
-snappy config           # show active configuration
-snappy config init      # create a default config file
-```
-
 ## Configuration
-
-### Configuring Snappy
-
-TODO: Update.
 
 Snappy reads configuration from `~/.config/snappy/config.yaml` or environment
 variables prefixed with `SNAPPY_`. Pass `--config <path>` to use a custom file.
 
-#### Generate a Config File
+### Generate a Config File
 
 Create a default config file with all settings and comments:
 
@@ -306,7 +214,7 @@ snappy config init
 This writes to `~/.config/snappy/config.yaml` (or the path given by
 `--config`). The command will not overwrite an existing file.
 
-#### View Configuration
+### View Configuration
 
 Show the active configuration, including values from the config file,
 environment variables, and defaults:
@@ -315,7 +223,7 @@ environment variables, and defaults:
 snappy config
 ```
 
-#### Settings
+### Configuration Settings
 
 | Setting                  | Env var                         | Default   | Description                        |
 | ------------------------ | ------------------------------- | --------- | ---------------------------------- |
@@ -329,6 +237,8 @@ snappy config
 | `thin_cadence`           | `SNAPPY_THIN_CADENCE`           | `300s`    | Minimum gap kept when thinning     |
 
 ### Configuring Time Machine
+
+TODO: Write.
 
 ## How Snappy Works
 
@@ -345,8 +255,6 @@ now            -1 hour          -1 day           -1 week
 ```
 
 ## snappy-ez
-
-TODO: Update.
 
 A standalone bash script that provides snappy's core functionality (create
 snapshots, thin old ones, log state) without the TUI, Go, or a build step.
@@ -424,7 +332,7 @@ Details I haven't yet resolved with my own experimentation and haven't found def
 
 TODO: Write.
 
-## Transparency
+## AI Transparency
 
 TODO: Write.
 
