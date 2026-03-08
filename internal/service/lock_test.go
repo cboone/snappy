@@ -152,3 +152,11 @@ func TestDefaultLockPath(t *testing.T) {
 		t.Errorf("DefaultLockPath() = %q, want %q", got, want)
 	}
 }
+
+func TestDefaultLockPathEmptyLogDir(t *testing.T) {
+	got := DefaultLockPath("")
+	want := filepath.Join(os.TempDir(), "snappy.lock")
+	if got != want {
+		t.Errorf("DefaultLockPath(\"\") = %q, want %q", got, want)
+	}
+}
