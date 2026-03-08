@@ -98,7 +98,7 @@ Update existing tests:
 - **Race between `IsHeld` and `Acquire` at startup**: Caught by handling `ErrLocked` from `Acquire` as fallback.
 - **Crash/kill**: OS releases flock automatically. Next instance acquires cleanly.
 - **`LogDir` empty**: Lock operations skipped (guarded in `syncDaemonState` and 'a' handler).
-- **Quit during in-flight auto-snapshot**: Quit handler releases persistent lock. Goroutine has no lock of its own (`holdingLock = true` means it skipped transient acquire). Goroutine's `SnapshotCreatedMsg` arrives after quit and is dropped by Bubbletea.
+- **Quit during in-flight auto-snapshot**: Quit handler defers lock release and exit by setting `quitAfterSnapshot` and `lockReleasePending` flags while the auto-snapshot goroutine runs with `holdingLock = true` (no transient acquire). When the goroutine sends `SnapshotCreatedMsg`, the update handler releases the persistent lock and then quits, ensuring no unlocked window while the snapshot is in progress.
 - **Value semantics**: `*service.LockFile` is a pointer, shared across Bubbletea's value copies within one Update cycle. Mutations to `m.lock` are reflected in the returned model.
 
 ## Verification
