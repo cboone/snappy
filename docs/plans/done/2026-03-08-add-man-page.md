@@ -17,22 +17,22 @@ The README already promises `man snappy` works after Homebrew install (lines 60,
 
 Write the man page in mdoc format with these sections:
 
-| Section | Content |
-|---------|---------|
-| NAME | `snappy -- automatically increase your Time Machine snapshot frequency` |
-| SYNOPSIS | Multiple lines: bare `snappy` (TUI), `snappy command [options]`, `snappy service subcommand`, `snappy config [init]` |
-| DESCRIPTION | What Snappy does, APFS snapshots via tmutil, macOS-only, TUI vs non-interactive |
-| COMMANDS | Tagged list of all commands: `create`, `list`, `status`, `thin`, `run`, `config`, `config init`, `service` (with all 6 subcommands), `version`, `help`. Each with flags and behavior. |
-| GLOBAL OPTIONS | `--config`, `-h/--help`, `-v/--version` |
-| INTERACTIVE MODE | TUI panels (info, snapshot, log), key bindings (s, r, a, l, Tab, Shift+Tab, j/k, q), mouse support |
-| CONFIGURATION | All 8 settings with defaults and descriptions, YAML format, config file path |
-| ENVIRONMENT | `SNAPPY_`-prefixed env vars for all settings |
-| FILES | Config file, launchd plist, service log, shared log, lock file paths |
-| EXIT STATUS | 0 success, non-zero error |
-| EXAMPLES | Quick start, create, list --json, status, custom config, service log |
-| SEE ALSO | `tmutil(8)`, `diskutil(8)`, `launchctl(1)`, `asr(8)` |
-| AUTHORS | Christopher Boone |
-| BUGS | GitHub issues URL |
+| Section          | Content                                                                                                                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| NAME             | `snappy -- automatically increase your Time Machine snapshot frequency`                                                                                                               |
+| SYNOPSIS         | Multiple lines: bare `snappy` (TUI), `snappy command [options]`, `snappy service subcommand`, `snappy config [init]`                                                                  |
+| DESCRIPTION      | What Snappy does, APFS snapshots via tmutil, macOS-only, TUI vs non-interactive                                                                                                       |
+| COMMANDS         | Tagged list of all commands: `create`, `list`, `status`, `thin`, `run`, `config`, `config init`, `service` (with all 6 subcommands), `version`, `help`. Each with flags and behavior. |
+| GLOBAL OPTIONS   | `--config`, `-h/--help`, `-v/--version`                                                                                                                                               |
+| INTERACTIVE MODE | TUI panels (info, snapshot, log), key bindings (s, r, a, l, Tab, Shift+Tab, j/k, q), mouse support                                                                                    |
+| CONFIGURATION    | All 8 settings with defaults and descriptions, YAML format, config file path                                                                                                          |
+| ENVIRONMENT      | `SNAPPY_`-prefixed env vars for all settings                                                                                                                                          |
+| FILES            | Config file, launchd plist, service log, shared log, lock file paths                                                                                                                  |
+| EXIT STATUS      | 0 success, non-zero error                                                                                                                                                             |
+| EXAMPLES         | Quick start, create, list --json, status, custom config, service log                                                                                                                  |
+| SEE ALSO         | `tmutil(8)`, `diskutil(8)`, `launchctl(1)`, `asr(8)`                                                                                                                                  |
+| AUTHORS          | Christopher Boone                                                                                                                                                                     |
+| BUGS             | GitHub issues URL                                                                                                                                                                     |
 
 Source content from the README and Cobra command definitions in `cmd/*.go`.
 
@@ -123,14 +123,14 @@ Add man page references where appropriate:
 
 ## Files to modify
 
-| File | Change |
-|------|--------|
-| `docs/snappy.1` | **Create.** The man page itself. |
-| `Makefile` | Add `man`, `man-lint` targets; add `man-lint` to `lint`. |
-| `.goreleaser.yml` | Add `files` to `archives`; add man page to cask install. |
+| File                       | Change                                                                              |
+| -------------------------- | ----------------------------------------------------------------------------------- |
+| `docs/snappy.1`            | **Create.** The man page itself.                                                    |
+| `Makefile`                 | Add `man`, `man-lint` targets; add `man-lint` to `lint`.                            |
+| `.goreleaser.yml`          | Add `files` to `archives`; add man page to cask install.                            |
 | `.github/workflows/ci.yml` | Remove `docs/**` from `paths-ignore`; add `mandoc -Tlint` step to `test-scrut` job. |
-| `README.md` | Add man page mention to line 118 (Homebrew install description). |
-| `install.sh` | Extract and install man page when present in archive. |
+| `README.md`                | Add man page mention to line 118 (Homebrew install description).                    |
+| `install.sh`               | Extract and install man page when present in archive.                               |
 
 ## Verification
 
