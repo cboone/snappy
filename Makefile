@@ -1,16 +1,24 @@
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BINARY  := snappy
 OUTDIR  := bin
+COMPDIR := completions
 
 LDFLAGS := -ldflags "-X main.version=$(VERSION)"
 
-.PHONY: all build test test-scrut test-scrut-update test-scrut-ez test-scrut-ez-update test-scrut-install test-scrut-install-update test-install test-all test-ci lint lint-go lint-md lint-actions vet fmt fmt-check format format-check clean cover tidy help
+.PHONY: all build completions test test-scrut test-scrut-update test-scrut-ez test-scrut-ez-update test-scrut-install test-scrut-install-update test-install test-all test-ci lint lint-go lint-md lint-actions vet fmt fmt-check format format-check clean cover tidy help
 
 all: fmt-check vet lint test build ## Run all checks and build
 
 build: ## Build the binary
 	mkdir -p $(OUTDIR)
 	go build $(LDFLAGS) -o $(OUTDIR)/$(BINARY) .
+
+completions: build ## Generate shell completion scripts
+	mkdir -p $(COMPDIR)
+	$(OUTDIR)/$(BINARY) completion bash > $(COMPDIR)/snappy.bash
+	$(OUTDIR)/$(BINARY) completion zsh > $(COMPDIR)/_snappy
+	$(OUTDIR)/$(BINARY) completion fish > $(COMPDIR)/snappy.fish
+	$(OUTDIR)/$(BINARY) completion powershell > $(COMPDIR)/snappy.ps1
 
 test: ## Run tests
 	go test ./...
@@ -93,6 +101,7 @@ test-ci: test-all test-scrut-install test-install ## All tests including CI-only
 
 clean: ## Remove build artifacts
 	rm -f $(OUTDIR)/$(BINARY) dist coverage.out
+	rm -rf $(COMPDIR)
 
 cover: ## Run tests with coverage
 	go test -coverprofile=coverage.out ./...
