@@ -118,9 +118,6 @@ func Install(cfg PlistConfig) error {
 		return err
 	}
 
-	// Unload any existing agent (ignore errors; it may not be loaded).
-	_ = bootout(cfg.Label, plistPath)
-
 	plistBytes, err := GeneratePlist(cfg)
 	if err != nil {
 		return err
@@ -139,10 +136,39 @@ func Install(cfg PlistConfig) error {
 		return fmt.Errorf("writing plist: %w", err)
 	}
 
-	//nolint:gosec // arguments are controlled, not user input
-	cmd := exec.Command("launchctl", "bootstrap", domainTarget(), plistPath)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("launchctl bootstrap: %s (%w)", strings.TrimSpace(string(out)), err)
+	// Best-effort unload of any existing agent. If this fails because the
+	// service is not loaded, that is fine. If it fails for another reason,
+	// the bootstrap retry logic below provides a second chance.
+	_ = bootout(cfg.Label, plistPath)
+
+	out, err := runBootstrap(domainTarget(), plistPath)
+	if err == nil {
+		return nil
+	}
+
+	outStr := strings.TrimSpace(string(out))
+	if !isAlreadyBootstrappedError(outStr) {
+		return fmt.Errorf("launchctl bootstrap: %s (%w)", outStr, err)
+	}
+
+	// Service is already registered in the domain. Try harder to unload it,
+	// then retry bootstrap once.
+	if bootoutErr := bootout(cfg.Label, plistPath); bootoutErr != nil {
+		return fmt.Errorf(
+			"launchctl bootstrap: service already loaded and bootout failed: %s (original: %s, %w)",
+			bootoutErr, outStr, err,
+		)
+	}
+
+	// Ensure the service is enabled (a disabled service cannot be bootstrapped).
+	//nolint:gosec // arguments are controlled
+	enableCmd := exec.Command("launchctl", "enable", serviceTarget(cfg.Label))
+	_, _ = enableCmd.CombinedOutput()
+
+	retryOut, retryErr := runBootstrap(domainTarget(), plistPath)
+	if retryErr != nil {
+		return fmt.Errorf("launchctl bootstrap (after bootout retry): %s (%w)",
+			strings.TrimSpace(string(retryOut)), retryErr)
 	}
 
 	return nil
@@ -263,12 +289,27 @@ func bootout(label, plistPath string) error {
 	return fmt.Errorf("launchctl bootout: %s (%w)", outStr, err)
 }
 
+// runBootstrap calls launchctl bootstrap and returns the combined output and error.
+func runBootstrap(domain, plistPath string) ([]byte, error) {
+	//nolint:gosec // arguments are controlled, not user input
+	cmd := exec.Command("launchctl", "bootstrap", domain, plistPath)
+	return cmd.CombinedOutput()
+}
+
 // isNotLoadedError checks if a launchctl error message indicates the service
 // simply wasn't loaded (not a real error for our purposes).
 func isNotLoadedError(output string) bool {
 	lower := strings.ToLower(output)
 	return strings.Contains(lower, "no such process") ||
 		strings.Contains(lower, "could not find service")
+}
+
+// isAlreadyBootstrappedError checks if a launchctl bootstrap error indicates
+// the service is already registered in the domain.
+func isAlreadyBootstrappedError(output string) bool {
+	lower := strings.ToLower(output)
+	return strings.Contains(lower, "domain does not support specified action") ||
+		strings.Contains(lower, "service is already loaded")
 }
 
 // parsePIDFromPrint extracts the PID from `launchctl print` output.
