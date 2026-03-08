@@ -21,7 +21,11 @@ type LockFile struct {
 }
 
 // DefaultLockPath returns the lock file path within the given log directory.
+// If logDir is empty, it falls back to the OS temporary directory.
 func DefaultLockPath(logDir string) string {
+	if logDir == "" {
+		logDir = os.TempDir()
+	}
 	return filepath.Join(logDir, "snappy.lock")
 }
 
