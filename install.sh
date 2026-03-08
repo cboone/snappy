@@ -157,6 +157,75 @@ function validate_archive() {
   fi
 }
 
+# Install shell completion files for available shells.
+# Arguments:
+#   $1 - Path to the extraction directory containing completions/
+# Prints what was installed and notes for skipped shells.
+# Best-effort: never fails the overall install.
+function install_completions() {
+  local extract_dir="${1}"
+  local comp_dir="${extract_dir}/completions"
+
+  if [[ ! -d "${comp_dir}" ]]; then
+    printf '\nNote: no completion files found in archive. '
+    printf 'Generate them manually with: snappy completion <shell>\n'
+    return 0
+  fi
+
+  printf '\nInstalling shell completions...\n'
+
+  local brew_prefix=""
+  if command -v brew > /dev/null 2>&1; then
+    brew_prefix="$(brew --prefix)"
+  fi
+
+  # Bash completions.
+  if [[ -f "${comp_dir}/snappy.bash" ]]; then
+    if [[ -n "${brew_prefix}" ]]; then
+      mkdir -p "${brew_prefix}/etc/bash_completion.d"
+      cp "${comp_dir}/snappy.bash" "${brew_prefix}/etc/bash_completion.d/snappy"
+      printf '  bash: %s/etc/bash_completion.d/snappy\n' "${brew_prefix}"
+    else
+      printf '  bash: skipped (Homebrew not found)\n'
+      printf '    To install manually: snappy completion bash > /usr/local/etc/bash_completion.d/snappy\n'
+    fi
+  fi
+
+  # Zsh completions.
+  if [[ -f "${comp_dir}/_snappy" ]]; then
+    if [[ -n "${brew_prefix}" ]]; then
+      mkdir -p "${brew_prefix}/share/zsh/site-functions"
+      cp "${comp_dir}/_snappy" "${brew_prefix}/share/zsh/site-functions/_snappy"
+      printf '  zsh:  %s/share/zsh/site-functions/_snappy\n' "${brew_prefix}"
+    else
+      local zsh_comp_dir="${HOME}/.zsh/completions"
+      mkdir -p "${zsh_comp_dir}"
+      cp "${comp_dir}/_snappy" "${zsh_comp_dir}/_snappy"
+      printf '  zsh:  %s/_snappy\n' "${zsh_comp_dir}"
+      printf '    Ensure %s is in your fpath. Add to ~/.zshrc:\n' "${zsh_comp_dir}"
+      # ${fpath} is intentionally literal: showing the user what to type.
+      # shellcheck disable=SC2016
+      printf '      fpath=(%s ${fpath})\n' "${zsh_comp_dir}"
+      printf '      autoload -Uz compinit && compinit\n'
+    fi
+  fi
+
+  # Fish completions.
+  if [[ -f "${comp_dir}/snappy.fish" ]]; then
+    if command -v fish > /dev/null 2>&1; then
+      local fish_comp_dir="${HOME}/.config/fish/completions"
+      mkdir -p "${fish_comp_dir}"
+      cp "${comp_dir}/snappy.fish" "${fish_comp_dir}/snappy.fish"
+      printf '  fish: %s/snappy.fish\n' "${fish_comp_dir}"
+    else
+      printf '  fish: skipped (fish not installed)\n'
+      printf '    To install manually: snappy completion fish > ~/.config/fish/completions/snappy.fish\n'
+    fi
+  fi
+
+  printf '\nOpen a new shell session to activate completions.\n'
+}
+
 function main() {
   parse_args "${@}"
 
@@ -193,8 +262,9 @@ function main() {
   local extract_dir="${tmp_dir}/extract"
   mkdir -p "${extract_dir}"
 
-  # Extract only the expected binary from the archive.
+  # Extract the binary and completions from the archive.
   tar -xzf "${tmp_dir}/${tarball}" -C "${extract_dir}" -- "${BINARY}"
+  tar -xzf "${tmp_dir}/${tarball}" -C "${extract_dir}" -- "completions/" 2> /dev/null || true
 
   local extracted_binary="${extract_dir}/${BINARY}"
 
@@ -211,6 +281,8 @@ function main() {
   install -m 755 "${extracted_binary}" "${INSTALL_DIR}/${BINARY}"
 
   printf 'Installed %s to %s/%s\n' "${BINARY}" "${INSTALL_DIR}" "${BINARY}"
+
+  install_completions "${extract_dir}"
 
   # Warn if the install directory is not in PATH.
   case ":${PATH}:" in
