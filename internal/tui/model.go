@@ -103,6 +103,7 @@ type Model struct {
 	apfsContainer      string
 	volumeName         string
 	lastOtherSnapCount int
+	lastTidemarkErr    string
 	diskInfo           string
 	tidemark           string
 	lastRefresh        time.Time
