@@ -18,11 +18,11 @@ into `completions/`:
 COMPDIR := completions
 
 completions: build
-	mkdir -p $(COMPDIR)
-	$(OUTDIR)/$(BINARY) completion bash > $(COMPDIR)/snappy.bash
-	$(OUTDIR)/$(BINARY) completion zsh > $(COMPDIR)/_snappy
-	$(OUTDIR)/$(BINARY) completion fish > $(COMPDIR)/snappy.fish
-	$(OUTDIR)/$(BINARY) completion powershell > $(COMPDIR)/snappy.ps1
+ mkdir -p $(COMPDIR)
+ $(OUTDIR)/$(BINARY) completion bash > $(COMPDIR)/snappy.bash
+ $(OUTDIR)/$(BINARY) completion zsh > $(COMPDIR)/_snappy
+ $(OUTDIR)/$(BINARY) completion fish > $(COMPDIR)/snappy.fish
+ $(OUTDIR)/$(BINARY) completion powershell > $(COMPDIR)/snappy.ps1
 ```
 
 Add `completions/` to `.gitignore` (generated artifacts, not source).
