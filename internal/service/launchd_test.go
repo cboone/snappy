@@ -213,6 +213,30 @@ func TestIsAlreadyBootstrappedError(t *testing.T) {
 	}
 }
 
+func TestIsDomainNotSupportedError(t *testing.T) {
+	tests := []struct {
+		output string
+		want   bool
+	}{
+		{"Boot-out failed: 125: Domain does not support specified action", true},
+		{"Bootstrap failed: 125: Domain does not support specified action", true},
+		{"domain does not support specified action", true},
+		{"Domain Does Not Support Specified Action", true},
+		{"No such process", false},
+		{"Could not find service", false},
+		{"Bootstrap failed: 5: Input/output error", false},
+		{"Operation not permitted", false},
+		{"", false},
+	}
+
+	for _, tt := range tests {
+		got := isDomainNotSupportedError(tt.output)
+		if got != tt.want {
+			t.Errorf("isDomainNotSupportedError(%q) = %v, want %v", tt.output, got, tt.want)
+		}
+	}
+}
+
 func TestReadBinaryFromPlist(t *testing.T) {
 	content := `<?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0">

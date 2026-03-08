@@ -152,22 +152,34 @@ func Install(cfg PlistConfig) error {
 		return fmt.Errorf("launchctl bootstrap: %s (%w)", outStr, err)
 	}
 
-	// Service is already registered in the domain. Try harder to unload it,
-	// then retry bootstrap once.
+	// Service is already registered in the domain. It may be disabled, which
+	// prevents bootout from working. Enable it first (best-effort), then
+	// retry bootout.
+	//nolint:gosec // arguments are controlled
+	bestEffortEnable := exec.Command("launchctl", "enable", serviceTarget(cfg.Label))
+	enableOut, enableErr := bestEffortEnable.CombinedOutput()
+
 	if bootoutErr := bootout(cfg.Label, plistPath); bootoutErr != nil {
+		enableDetail := ""
+		if enableErr != nil {
+			enableDetail = fmt.Sprintf(", enable failed: %s (%v)",
+				strings.TrimSpace(string(enableOut)), enableErr)
+		}
 		return fmt.Errorf(
-			"launchctl bootstrap: service already bootstrapped and bootout failed: %v (original: %s, %w)",
-			bootoutErr, outStr, err,
+			"launchctl bootstrap: service already bootstrapped and bootout failed: %v (original: %s%s, %w)",
+			bootoutErr, outStr, enableDetail, err,
 		)
 	}
 
-	// Ensure the service is enabled (a disabled service cannot be bootstrapped).
+	// Ensure the service is enabled before re-bootstrapping. The best-effort
+	// enable above may have succeeded, but if bootout cleared the state, we
+	// need to enable again.
 	//nolint:gosec // arguments are controlled
 	enableCmd := exec.Command("launchctl", "enable", serviceTarget(cfg.Label))
-	enableOut, enableErr := enableCmd.CombinedOutput()
-	if enableErr != nil {
+	reEnableOut, reEnableErr := enableCmd.CombinedOutput()
+	if reEnableErr != nil {
 		return fmt.Errorf("launchctl enable: %s (%w)",
-			strings.TrimSpace(string(enableOut)), enableErr)
+			strings.TrimSpace(string(reEnableOut)), reEnableErr)
 	}
 
 	retryOut, retryErr := runBootstrap(domainTarget(), plistPath)
@@ -286,6 +298,21 @@ func bootout(label, plistPath string) error {
 		err = legacyErr
 	}
 
+	// Last resort: try the deprecated "launchctl unload" command. This handles
+	// services loaded via "launchctl load" or stuck in a disabled state where
+	// bootout refuses to act (exit 125). The unload subcommand is deprecated
+	// since macOS 10.10 but remains functional.
+	if _, statErr := os.Stat(plistPath); statErr == nil {
+		//nolint:gosec // arguments are controlled
+		unloadCmd := exec.Command("launchctl", "unload", plistPath)
+		unloadOut, unloadErr := unloadCmd.CombinedOutput()
+		if unloadErr == nil {
+			return nil
+		}
+		outStr = strings.TrimSpace(string(unloadOut))
+		err = unloadErr
+	}
+
 	// "No such process" or "Could not find service" means it wasn't loaded.
 	if isNotLoadedError(outStr) {
 		return nil
@@ -312,9 +339,16 @@ func isNotLoadedError(output string) bool {
 // isAlreadyBootstrappedError checks if a launchctl bootstrap error indicates
 // the service is already registered in the domain.
 func isAlreadyBootstrappedError(output string) bool {
-	lower := strings.ToLower(output)
-	return strings.Contains(lower, "domain does not support specified action") ||
-		strings.Contains(lower, "service is already loaded")
+	return isDomainNotSupportedError(output) ||
+		strings.Contains(strings.ToLower(output), "service is already loaded")
+}
+
+// isDomainNotSupportedError checks if a launchctl error contains the
+// "domain does not support specified action" message (exit 125). This error
+// appears in both bootstrap (service already registered) and bootout (service
+// is disabled and cannot be unloaded) contexts.
+func isDomainNotSupportedError(output string) bool {
+	return strings.Contains(strings.ToLower(output), "domain does not support specified action")
 }
 
 // parsePIDFromPrint extracts the PID from `launchctl print` output.
