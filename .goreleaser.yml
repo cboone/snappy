@@ -44,7 +44,9 @@ homebrew_casks:
       - snappy
     url:
       verified: "github.com/cboone/snappy"
-    caveats: 'To run snappy automatically in the background:\n  snappy service install\n\nTo stop the background service:\n  snappy service uninstall\n'
+    # Literal \n sequences are used because GoReleaser's cask template splits multi-line
+    # caveats into separate Ruby expressions, causing only the last line to display.
+    caveats: 'To run snappy automatically in the background:\n  snappy service install\n\nTo stop the background service:\n  snappy service uninstall'
     hooks:
       post:
         install: |
