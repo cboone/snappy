@@ -511,11 +511,19 @@ func (m *Model) applyAPFSInfo(msg RefreshResultMsg) {
 }
 
 // applyTidemark updates the tidemark display from a refresh result.
+// It only logs a warning when the error message changes from the previous
+// refresh, preventing duplicate warnings from filling the ring buffer.
 func (m *Model) applyTidemark(msg RefreshResultMsg) {
+	errMsg := ""
 	if msg.TidemarkErr != nil {
-		m.log.Log(logger.LevelWarn, logger.CatRefresh,
-			"Tidemark fetch failed: "+msg.TidemarkErr.Error())
+		errMsg = msg.TidemarkErr.Error()
 	}
+	if errMsg != "" && errMsg != m.lastTidemarkErr {
+		m.log.Log(logger.LevelWarn, logger.CatRefresh,
+			"Tidemark fetch failed: "+errMsg)
+	}
+	m.lastTidemarkErr = errMsg
+
 	if msg.Tidemark > 0 {
 		m.tidemark = platform.FormatBytes(msg.Tidemark)
 	} else {

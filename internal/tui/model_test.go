@@ -2027,24 +2027,70 @@ func TestTidemarkFetchFailureLogged(t *testing.T) {
 	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
 	m.now = func() time.Time { return now }
 
-	updated, _ := m.Update(RefreshResultMsg{
+	refreshMsg := RefreshResultMsg{
 		Snapshots:   []snapshot.Snapshot{{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)}},
 		TMStatus:    "Configured",
 		DiskInfo:    platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
 		TidemarkErr: fmt.Errorf("container not found"),
-	})
+	}
+
+	updated, _ := m.Update(refreshMsg)
 	model := updated.(Model)
 
-	entries := model.log.Entries()
-	var found bool
-	for _, e := range entries {
+	countWarnings := func(entries []logger.Entry) int {
+		n := 0
+		for _, e := range entries {
+			if e.Level == logger.LevelWarn && strings.Contains(e.Message, "Tidemark fetch failed") {
+				n++
+			}
+		}
+		return n
+	}
+
+	if n := countWarnings(model.log.Entries()); n != 1 {
+		t.Errorf("expected 1 WARN log for tidemark fetch failure, got %d", n)
+	}
+
+	// A second refresh with the same error should NOT produce a duplicate warning.
+	updated2, _ := model.Update(refreshMsg)
+	model2 := updated2.(Model)
+
+	if n := countWarnings(model2.log.Entries()); n != 1 {
+		t.Errorf("expected 1 WARN log after duplicate tidemark error, got %d", n)
+	}
+}
+
+func TestTidemarkFetchFailureLoggedOnChange(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	base := RefreshResultMsg{
+		Snapshots: []snapshot.Snapshot{{Date: "2026-03-01-143000", Time: now.Add(-30 * time.Minute)}},
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	}
+
+	// First error.
+	msg1 := base
+	msg1.TidemarkErr = fmt.Errorf("container not found")
+	updated, _ := m.Update(msg1)
+	model := updated.(Model)
+
+	// Different error should produce a second warning.
+	msg2 := base
+	msg2.TidemarkErr = fmt.Errorf("permission denied")
+	updated2, _ := model.Update(msg2)
+	model2 := updated2.(Model)
+
+	warnings := 0
+	for _, e := range model2.log.Entries() {
 		if e.Level == logger.LevelWarn && strings.Contains(e.Message, "Tidemark fetch failed") {
-			found = true
-			break
+			warnings++
 		}
 	}
-	if !found {
-		t.Error("expected WARN log for tidemark fetch failure")
+	if warnings != 2 {
+		t.Errorf("expected 2 WARN logs for different tidemark errors, got %d", warnings)
 	}
 }
 
