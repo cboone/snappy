@@ -220,6 +220,18 @@ function main() {
     mkdir -p "${man_dir}"
     install -m 644 "${extract_dir}/${man_page}" "${man_dir}/snappy.1"
     printf 'Installed man page to %s/snappy.1\n' "${man_dir}"
+
+    # Warn if the man directory is not in MANPATH.
+    local man_parent="${HOME}/.local/share/man"
+    case ":${MANPATH:-}:" in
+      *":${man_parent}:"*) ;;
+      *)
+        printf '\nNote: %s may not be in your MANPATH.\n' "${man_parent}"
+        # ${MANPATH} is intentionally literal: showing the user what to type.
+        # shellcheck disable=SC2016
+        printf 'Add it with: export MANPATH="%s:${MANPATH}"\n' "${man_parent}"
+        ;;
+    esac
   fi
 
   # Warn if the install directory is not in PATH.
