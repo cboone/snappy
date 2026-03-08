@@ -24,6 +24,9 @@ token.json
 !/bin/snappy-ez
 /dist/
 
+# Generated completions
+/completions/
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
