@@ -18,6 +18,12 @@ archives:
   - formats:
       - tar.gz
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+      - src: docs/snappy.1
+        dst: share/man/man1
+        strip_parent: true
 
 checksum:
   name_template: checksums.txt
@@ -43,6 +49,8 @@ homebrew_casks:
     description: "Automatically increase your Time Machine snapshot frequency (macOS only)"
     binaries:
       - snappy
+    manpages:
+      - share/man/man1/snappy.1
     url:
       verified: "github.com/cboone/snappy"
     # Literal \n sequences are used because GoReleaser's cask template splits multi-line

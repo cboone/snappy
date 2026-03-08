@@ -212,6 +212,28 @@ function main() {
 
   printf 'Installed %s to %s/%s\n' "${BINARY}" "${INSTALL_DIR}" "${BINARY}"
 
+  # Extract and install the man page if present in the archive.
+  local man_page="share/man/man1/snappy.1"
+  if tar -tzf "${tmp_dir}/${tarball}" -- "${man_page}" > /dev/null 2>&1; then
+    tar -xzf "${tmp_dir}/${tarball}" -C "${extract_dir}" -- "${man_page}"
+    local man_dir="${HOME}/.local/share/man/man1"
+    mkdir -p "${man_dir}"
+    install -m 644 "${extract_dir}/${man_page}" "${man_dir}/snappy.1"
+    printf 'Installed man page to %s/snappy.1\n' "${man_dir}"
+
+    # Warn if the man directory is not in MANPATH.
+    local man_parent="${HOME}/.local/share/man"
+    case ":${MANPATH:-}:" in
+      *":${man_parent}:"*) ;;
+      *)
+        printf '\nNote: %s may not be in your MANPATH.\n' "${man_parent}"
+        # ${MANPATH} is intentionally literal: showing the user what to type.
+        # shellcheck disable=SC2016
+        printf 'Add it with: export MANPATH="%s:${MANPATH}"\n' "${man_parent}"
+        ;;
+    esac
+  fi
+
   # Warn if the install directory is not in PATH.
   case ":${PATH}:" in
     *":${INSTALL_DIR}:"*) ;;

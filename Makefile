@@ -4,7 +4,7 @@ OUTDIR  := bin
 
 LDFLAGS := -ldflags "-X main.version=$(VERSION)"
 
-.PHONY: all build test test-scrut test-scrut-update test-scrut-ez test-scrut-ez-update test-scrut-install test-scrut-install-update test-install test-all test-ci lint lint-go lint-md lint-actions vet fmt fmt-check format format-check clean cover tidy help
+.PHONY: all build test test-scrut test-scrut-update test-scrut-ez test-scrut-ez-update test-scrut-install test-scrut-install-update test-install test-all test-ci lint lint-go lint-md lint-actions lint-man vet fmt fmt-check format format-check man clean cover tidy help
 
 all: fmt-check vet lint test build ## Run all checks and build
 
@@ -15,7 +15,7 @@ build: ## Build the binary
 test: ## Run tests
 	go test ./...
 
-lint: lint-go lint-md lint-actions ## Run all linters
+lint: lint-go lint-md lint-actions lint-man ## Run all linters
 
 lint-go: ## Run golangci-lint
 	golangci-lint run ./...
@@ -25,6 +25,12 @@ lint-md: ## Lint Markdown files
 
 lint-actions: ## Lint GitHub Actions workflows
 	actionlint
+
+lint-man: ## Lint the man page with mandoc
+	mandoc -Tlint docs/snappy.1
+
+man: ## Preview the man page
+	man ./docs/snappy.1
 
 vet: ## Run go vet
 	go vet ./...
