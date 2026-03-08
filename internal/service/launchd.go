@@ -284,11 +284,6 @@ func bootout(label, plistPath string) error {
 
 	outStr := strings.TrimSpace(string(out))
 
-	// If the service simply wasn't loaded, no further attempts are needed.
-	if isNotLoadedError(outStr) {
-		return nil
-	}
-
 	// If service-target bootout failed, try the legacy domain-target + plist path
 	// approach, which works in some macOS versions where the service isn't
 	// registered in the expected domain.
@@ -344,9 +339,8 @@ func isNotLoadedError(output string) bool {
 // isAlreadyBootstrappedError checks if a launchctl bootstrap error indicates
 // the service is already registered in the domain.
 func isAlreadyBootstrappedError(output string) bool {
-	lower := strings.ToLower(output)
-	return strings.Contains(lower, "domain does not support specified action") ||
-		strings.Contains(lower, "service is already loaded")
+	return isDomainNotSupportedError(output) ||
+		strings.Contains(strings.ToLower(output), "service is already loaded")
 }
 
 // isDomainNotSupportedError checks if a launchctl error contains the
