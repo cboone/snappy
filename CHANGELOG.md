@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-03-07
+
+### Fixed
+
+- Added persistent TUI lock for mutual exclusion between instances
+- Deferred TUI lock release until auto-snapshots finish
+- Removed double lock release from cmd/root.go success path
+- Used system_command DSL in Homebrew cask postflight hook
+
 ## [0.8.0] - 2026-03-07
 
 ### Added
@@ -274,7 +283,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add shellcheckrc with all checks enabled
 
-[unreleased]: https://github.com/cboone/snappy/compare/v0.8.0...HEAD
+[unreleased]: https://github.com/cboone/snappy/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/cboone/snappy/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/cboone/snappy/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/cboone/snappy/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/cboone/snappy/compare/v0.5.0...v0.6.0
