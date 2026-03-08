@@ -52,7 +52,8 @@ homebrew_casks:
         snappy service uninstall
     hooks:
       post:
-        install: 'xattr -dr com.apple.quarantine "#{staged_path}/snappy"'
+        install: |
+          system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/snappy"]
     uninstall:
       launchctl:
         - com.cboone.snappy
