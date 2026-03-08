@@ -212,6 +212,16 @@ function main() {
 
   printf 'Installed %s to %s/%s\n' "${BINARY}" "${INSTALL_DIR}" "${BINARY}"
 
+  # Extract and install the man page if present in the archive.
+  local man_page="share/man/man1/snappy.1"
+  if tar -tzf "${tmp_dir}/${tarball}" -- "${man_page}" > /dev/null 2>&1; then
+    tar -xzf "${tmp_dir}/${tarball}" -C "${extract_dir}" -- "${man_page}"
+    local man_dir="${HOME}/.local/share/man/man1"
+    mkdir -p "${man_dir}"
+    install -m 644 "${extract_dir}/${man_page}" "${man_dir}/snappy.1"
+    printf 'Installed man page to %s/snappy.1\n' "${man_dir}"
+  fi
+
   # Warn if the install directory is not in PATH.
   case ":${PATH}:" in
     *":${INSTALL_DIR}:"*) ;;

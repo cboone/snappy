@@ -115,7 +115,7 @@ The simplest method is via [Homebrew](https://brew.sh):
 brew install cboone/tap/snappy-tm
 ```
 
-That installs the `snappy` binary and shell completions, and configures it to run on startup.
+That installs the `snappy` binary, shell completions, and a man page, and configures it to run on startup.
 
 ### Shell Script
 

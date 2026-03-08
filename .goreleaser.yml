@@ -18,6 +18,12 @@ archives:
   - formats:
       - tar.gz
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+      - src: docs/snappy.1
+        dst: share/man/man1
+        strip_parent: true
 
 checksum:
   name_template: checksums.txt

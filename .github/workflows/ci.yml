@@ -11,7 +11,6 @@ on:
       - ".github/**/*.md"
       - ".github/ISSUE_TEMPLATE/**"
       - ".github/PULL_REQUEST_TEMPLATE/**"
-      - "docs/**"
       - "LICENSE"
   pull_request:
     branches: [main]
@@ -23,7 +22,6 @@ on:
       - ".github/**/*.md"
       - ".github/ISSUE_TEMPLATE/**"
       - ".github/PULL_REQUEST_TEMPLATE/**"
-      - "docs/**"
       - "LICENSE"
 
 concurrency:
@@ -110,6 +108,9 @@ jobs:
 
       - name: Run install.sh scrut tests
         run: make test-scrut-install
+
+      - name: Lint man page
+        run: make lint-man
 
   test-install:
     name: Test install.sh
