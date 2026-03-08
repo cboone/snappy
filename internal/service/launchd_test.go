@@ -191,6 +191,28 @@ func TestIsNotLoadedError(t *testing.T) {
 	}
 }
 
+func TestIsAlreadyBootstrappedError(t *testing.T) {
+	tests := []struct {
+		output string
+		want   bool
+	}{
+		{"Bootstrap failed: 125: Domain does not support specified action", true},
+		{"domain does not support specified action", true},
+		{"Service is already loaded", true},
+		{"Bootstrap failed: 5: Input/output error", false},
+		{"Operation not permitted", false},
+		{"No such process", false},
+		{"", false},
+	}
+
+	for _, tt := range tests {
+		got := isAlreadyBootstrappedError(tt.output)
+		if got != tt.want {
+			t.Errorf("isAlreadyBootstrappedError(%q) = %v, want %v", tt.output, got, tt.want)
+		}
+	}
+}
+
 func TestReadBinaryFromPlist(t *testing.T) {
 	content := `<?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0">
