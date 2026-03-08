@@ -34,7 +34,8 @@ changelog:
       - "^chore:"
 
 homebrew_casks:
-  - repository:
+  - name: snappy-tm
+    repository:
       owner: cboone
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
