@@ -13,6 +13,7 @@ import (
 	"github.com/cboone/snappy/internal/config"
 	"github.com/cboone/snappy/internal/logger"
 	"github.com/cboone/snappy/internal/platform"
+	"github.com/cboone/snappy/internal/service"
 	"github.com/cboone/snappy/internal/snapshot"
 )
 
@@ -106,14 +107,17 @@ type Model struct {
 	tidemark           string
 	lastRefresh        time.Time
 	daemonActive       bool
+	lock               *service.LockFile
 
 	width              int
 	height             int
 	quitting           bool
+	quitAfterSnapshot  bool
 	refreshing         bool
 	refreshPending     bool
 	snapshotting       bool
 	autoSnapshotting   bool
+	lockReleasePending bool
 	thinning           bool
 	thinPinned         map[string]struct{}
 	recentCreated      map[string]struct{}
@@ -157,6 +161,7 @@ type ModelParams struct {
 	TMStatus      string
 	VolumeName    string
 	Version       string
+	Lock          *service.LockFile // pre-acquired persistent lock, or nil
 	DaemonActive  bool
 }
 
@@ -202,6 +207,7 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 		tmStatus:        params.TMStatus,
 		volumeName:      params.VolumeName,
 		daemonActive:    params.DaemonActive,
+		lock:            params.Lock,
 		apfsContainer:   params.APFSContainer,
 		refreshing:      true,
 		thinPinned:      make(map[string]struct{}),

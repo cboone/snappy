@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -173,27 +174,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(doRefresh(m.runner, m.apfsVolume, m.apfsContainer), m.spinner.Tick)
 
 	case key.Matches(msg, m.keys.AutoSnap):
-		if m.daemonActive {
-			m.log.Log(logger.LevelInfo, logger.CatAuto, "Auto-snapshots managed by background service (snappy service stop to take over)")
-			m.updateLogViewContent()
-			return m, nil
-		}
-		now := m.now()
-		enabled := m.auto.Toggle(now)
-		if enabled {
-			clear(m.thinPinned)
-			m.log.Log(logger.LevelInfo, logger.CatAuto, fmt.Sprintf(
-				"Auto-snapshots enabled (every %ds, thin >%ds to %ds)",
-				int(m.auto.Interval().Seconds()),
-				int(m.auto.ThinAge().Seconds()),
-				int(m.auto.ThinCadence().Seconds()),
-			))
-			m.updateLogViewContent()
-			return m, uiTick()
-		}
-		m.log.Log(logger.LevelInfo, logger.CatAuto, "Auto-snapshots disabled")
-		m.updateLogViewContent()
-		return m, nil
+		return m.handleAutoSnapToggle()
 
 	case key.Matches(msg, m.keys.OpenLog):
 		if m.cfg.LogDir == "" {
@@ -207,6 +188,16 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 	case key.Matches(msg, m.keys.Quit):
 		m.log.Log(logger.LevelInfo, logger.CatShutdown, "Shutting down")
+		if m.autoSnapshotting && m.lock != nil {
+			m.quitAfterSnapshot = true
+			m.lockReleasePending = true
+			m.log.Log(logger.LevelInfo, logger.CatShutdown, "Waiting for auto-snapshot to finish before releasing lock and quitting")
+			m.updateLogViewContent()
+			return m, nil
+		}
+		if m.lock != nil {
+			m.releaseLock()
+		}
 		m.quitting = true
 		return m, tea.Quit
 
@@ -224,6 +215,55 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+func (m Model) handleAutoSnapToggle() (tea.Model, tea.Cmd) {
+	if m.daemonActive {
+		m.log.Log(logger.LevelInfo, logger.CatAuto, "Auto-snapshots managed by another process (stop it to take over)")
+		m.updateLogViewContent()
+		return m, nil
+	}
+	now := m.now()
+	if m.auto.Enabled() {
+		// Disabling: keep the lock until any in-flight auto-snapshot finishes.
+		m.auto.Toggle(now)
+		if m.lock != nil {
+			if m.autoSnapshotting {
+				m.lockReleasePending = true
+			} else {
+				m.releaseLock()
+			}
+		}
+		m.log.Log(logger.LevelInfo, logger.CatAuto, "Auto-snapshots disabled")
+		m.updateLogViewContent()
+		return m, nil
+	}
+	// Enabling: acquire the persistent lock first.
+	if m.cfg.LogDir != "" {
+		lockPath := service.DefaultLockPath(m.cfg.LogDir)
+		lock, lockErr := service.Acquire(lockPath)
+		if lockErr != nil {
+			if errors.Is(lockErr, service.ErrLocked) {
+				m.daemonActive = true
+				m.log.Log(logger.LevelInfo, logger.CatAuto, "Cannot enable: another process holds the auto-snapshot lock")
+			} else {
+				m.log.Log(logger.LevelWarn, logger.CatAuto, fmt.Sprintf("Failed to acquire lock: %v", lockErr))
+			}
+			m.updateLogViewContent()
+			return m, nil
+		}
+		m.lock = lock
+	}
+	m.auto.Toggle(now)
+	clear(m.thinPinned)
+	m.log.Log(logger.LevelInfo, logger.CatAuto, fmt.Sprintf(
+		"Auto-snapshots enabled (every %ds, thin >%ds to %ds)",
+		int(m.auto.Interval().Seconds()),
+		int(m.auto.ThinAge().Seconds()),
+		int(m.auto.ThinCadence().Seconds()),
+	))
+	m.updateLogViewContent()
+	return m, uiTick()
 }
 
 func (m Model) handleMouseClick(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
@@ -407,7 +447,7 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 		m.log.Log(logger.LevelInfo, logger.CatAuto, "Creating auto-snapshot...")
 		m.updateLogViewContent()
 		lockPath := service.DefaultLockPath(m.cfg.LogDir)
-		cmds = append(cmds, doAutoCreateSnapshot(m.runner, lockPath), m.spinner.Tick)
+		cmds = append(cmds, doAutoCreateSnapshot(m.runner, lockPath, m.lock != nil), m.spinner.Tick)
 	}
 
 	// Skip refresh when an auto-snapshot is in flight; SnapshotCreatedMsg
@@ -426,6 +466,12 @@ func (m *Model) syncDaemonState(now time.Time) {
 	if m.cfg.LogDir == "" {
 		return
 	}
+	// When the TUI itself holds the persistent lock, skip the probe.
+	// IsHeld would return true (flock is per-fd) and falsely trigger
+	// daemon detection.
+	if m.lock != nil {
+		return
+	}
 	if m.autoSnapshotting {
 		return
 	}
@@ -438,14 +484,24 @@ func (m *Model) syncDaemonState(now time.Time) {
 		if m.auto.Enabled() {
 			m.auto.Toggle(now)
 		}
-		m.log.Log(logger.LevelInfo, logger.CatAuto, "Background service detected; TUI auto-snapshots disabled")
+		m.log.Log(logger.LevelInfo, logger.CatAuto, "Another snappy process detected; TUI auto-snapshots disabled")
 		m.updateLogViewContent()
 
 	case !lockHeld && m.daemonActive:
 		m.daemonActive = false
-		m.log.Log(logger.LevelInfo, logger.CatAuto, "Background service no longer detected; press 'a' to enable auto-snapshots")
+		m.log.Log(logger.LevelInfo, logger.CatAuto, "External auto-snapshot process no longer detected; press 'a' to enable auto-snapshots")
 		m.updateLogViewContent()
 	}
+}
+
+func (m *Model) releaseLock() {
+	if m.lock == nil {
+		m.lockReleasePending = false
+		return
+	}
+	_ = m.lock.Release()
+	m.lock = nil
+	m.lockReleasePending = false
 }
 
 func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
@@ -612,6 +668,9 @@ func (m *Model) maybeThin(cmds []tea.Cmd) []tea.Cmd {
 func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd) {
 	m.snapshotting = false
 	m.autoSnapshotting = false
+	if m.lockReleasePending {
+		m.releaseLock()
+	}
 	if !m.thinning {
 		m.loading = false
 	}
@@ -628,6 +687,11 @@ func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd
 	}
 
 	m.updateLogViewContent()
+
+	if m.quitAfterSnapshot {
+		m.quitting = true
+		return m, tea.Quit
+	}
 
 	if m.refreshing {
 		m.refreshPending = true

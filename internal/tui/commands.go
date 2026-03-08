@@ -97,17 +97,22 @@ func doCreateSnapshot(runner platform.CommandRunner) tea.Cmd {
 }
 
 // doAutoCreateSnapshot creates a snapshot while holding the single-instance
-// lock. If the lock is already held by the daemon, the snapshot is skipped.
-func doAutoCreateSnapshot(runner platform.CommandRunner, lockPath string) tea.Cmd {
+// lock. If the lock is already held by another process, the snapshot is
+// skipped. When holdingLock is true the caller already holds a persistent
+// lock, so transient acquisition is skipped (flock is per-fd, so a second
+// Acquire on a new fd from the same process would fail).
+func doAutoCreateSnapshot(runner platform.CommandRunner, lockPath string, holdingLock bool) tea.Cmd {
 	return func() tea.Msg {
-		lock, lockErr := service.Acquire(lockPath)
-		if lockErr != nil {
-			if errors.Is(lockErr, service.ErrLocked) {
-				return SnapshotCreatedMsg{Skipped: true}
+		if !holdingLock {
+			lock, lockErr := service.Acquire(lockPath)
+			if lockErr != nil {
+				if errors.Is(lockErr, service.ErrLocked) {
+					return SnapshotCreatedMsg{Skipped: true}
+				}
+				return SnapshotCreatedMsg{Err: lockErr}
 			}
-			return SnapshotCreatedMsg{Err: lockErr}
+			defer func() { _ = lock.Release() }()
 		}
-		defer func() { _ = lock.Release() }()
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
