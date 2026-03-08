@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-03-07
+
+### Fixed
+
+- Guarded DefaultLockPath against empty LogDir (#85)
+- Rate-limited repeated tidemark WARN logs (#86)
+
+### Changed
+
+- Moved plan to done for guard-defaultlockpath-empty-logdir
+
 ## [0.8.1] - 2026-03-07
 
 ### Fixed
@@ -283,7 +294,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add shellcheckrc with all checks enabled
 
-[unreleased]: https://github.com/cboone/snappy/compare/v0.8.1...HEAD
+[unreleased]: https://github.com/cboone/snappy/compare/v0.8.2...HEAD
+[0.8.2]: https://github.com/cboone/snappy/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/cboone/snappy/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/cboone/snappy/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/cboone/snappy/compare/v0.6.0...v0.7.0
