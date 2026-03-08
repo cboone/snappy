@@ -69,7 +69,7 @@ All of this can be done non-interactively as well via various [commands and opti
 
 [**Restoring Files and Snapshots**](#restoring-files-and-snapshots) ・ [**Using Time Machine to Scrub Through History**](#using-time-machine-to-scrub-through-history) ・ [**Mounting Snapshots**](#mounting-snapshots) ・ [**Opening Previous File Revisions Within Apps**](#opening-previous-file-revisions-within-apps) ・ [**Restoring Your Entire Drive**](#restoring-your-entire-drive)
 
-[**Installation**](#installation) ・ [**Homebrew**](#homebrew-recommended) ・ [**Shell Script**](#shell-script) ・ [**GH Release**](#gh-release)
+[**Installation**](#installation) ・ [**Homebrew**](#homebrew-recommended) ・ [**Shell Script**](#shell-script) ・ [**GH Release**](#gh-release) ・ [**Shell Completions**](#shell-completions)
 
 [**Commands and Options**](#commands-and-options)
 
@@ -113,9 +113,10 @@ The simplest method is via [Homebrew](https://brew.sh):
 
 ```sh
 brew install cboone/tap/snappy-tm
+snappy service install
 ```
 
-That installs the `snappy` binary and shell completions, and configures it to run on startup.
+That installs the `snappy` command, along with shell completions and a man page, and installs the background service so that Snappy runs every minute.
 
 ### Shell Script
 
@@ -137,6 +138,43 @@ TODO: Document.
 gh release ...
 ```
 
+### Shell Completions
+
+Homebrew and `install.sh` install shell completions automatically. If you need to set them up manually, use the `snappy completion` command:
+
+#### Bash
+
+```bash
+snappy completion bash > "$(brew --prefix)/etc/bash_completion.d/snappy"
+```
+
+#### Zsh
+
+```bash
+snappy completion zsh > "$(brew --prefix)/share/zsh/site-functions/_snappy"
+```
+
+If you're not using Homebrew, place the file in any directory in your `fpath`:
+
+```bash
+snappy completion zsh > ~/.zsh/completions/_snappy
+```
+
+Then ensure the directory is in your `fpath` and `compinit` is loaded in `~/.zshrc`:
+
+```bash
+fpath=(~/.zsh/completions ${fpath})
+autoload -Uz compinit && compinit
+```
+
+#### Fish
+
+```bash
+snappy completion fish > ~/.config/fish/completions/snappy.fish
+```
+
+Open a new shell session after installation to activate completions.
+
 ## Commands and Options
 
 Run `snappy help` or `snappy <command> --help` for detailed usage. A man page is also available: `man snappy`.
@@ -146,6 +184,7 @@ Run `snappy help` or `snappy <command> --help` for detailed usage. A man page is
 | Command              | Description                                    |
 | -------------------- | ---------------------------------------------- |
 | `snappy`             | Launch the interactive TUI                     |
+| `snappy completion`  | Generate shell completions (bash/zsh/fish)     |
 | `snappy create`      | Create a new local Time Machine snapshot       |
 | `snappy list`        | List local snapshots with details              |
 | `snappy status`      | Show Time Machine and disk status              |
@@ -418,7 +457,6 @@ Details I haven't yet resolved with my own experimentation and haven't found def
 ## To Document
 
 - [ ] Using `asr`, `diskutil`, `tmutil`
-- [ ] Shell completions
 
 ## Vibes
 
