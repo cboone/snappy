@@ -188,9 +188,15 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 	case key.Matches(msg, m.keys.Quit):
 		m.log.Log(logger.LevelInfo, logger.CatShutdown, "Shutting down")
+		if m.autoSnapshotting && m.lock != nil {
+			m.quitAfterSnapshot = true
+			m.lockReleasePending = true
+			m.log.Log(logger.LevelInfo, logger.CatShutdown, "Waiting for auto-snapshot to finish before releasing lock and quitting")
+			m.updateLogViewContent()
+			return m, nil
+		}
 		if m.lock != nil {
-			_ = m.lock.Release()
-			m.lock = nil
+			m.releaseLock()
 		}
 		m.quitting = true
 		return m, tea.Quit
@@ -219,11 +225,14 @@ func (m Model) handleAutoSnapToggle() (tea.Model, tea.Cmd) {
 	}
 	now := m.now()
 	if m.auto.Enabled() {
-		// Disabling: release the persistent lock.
+		// Disabling: keep the lock until any in-flight auto-snapshot finishes.
 		m.auto.Toggle(now)
 		if m.lock != nil {
-			_ = m.lock.Release()
-			m.lock = nil
+			if m.autoSnapshotting {
+				m.lockReleasePending = true
+			} else {
+				m.releaseLock()
+			}
 		}
 		m.log.Log(logger.LevelInfo, logger.CatAuto, "Auto-snapshots disabled")
 		m.updateLogViewContent()
@@ -485,6 +494,16 @@ func (m *Model) syncDaemonState(now time.Time) {
 	}
 }
 
+func (m *Model) releaseLock() {
+	if m.lock == nil {
+		m.lockReleasePending = false
+		return
+	}
+	_ = m.lock.Release()
+	m.lock = nil
+	m.lockReleasePending = false
+}
+
 func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 	m.refreshing = false
 	if !m.thinning && !m.snapshotting {
@@ -649,6 +668,9 @@ func (m *Model) maybeThin(cmds []tea.Cmd) []tea.Cmd {
 func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd) {
 	m.snapshotting = false
 	m.autoSnapshotting = false
+	if m.lockReleasePending {
+		m.releaseLock()
+	}
 	if !m.thinning {
 		m.loading = false
 	}
@@ -665,6 +687,11 @@ func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd
 	}
 
 	m.updateLogViewContent()
+
+	if m.quitAfterSnapshot {
+		m.quitting = true
+		return m, tea.Quit
+	}
 
 	if m.refreshing {
 		m.refreshPending = true

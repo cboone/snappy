@@ -698,6 +698,122 @@ func TestQuitReleasesLock(t *testing.T) {
 	}
 }
 
+func TestAutoToggleDefersLockReleaseWhileAutoSnapshotting(t *testing.T) {
+	cfg := testConfig()
+	cfg.LogDir = t.TempDir()
+	log := logger.New(logger.Options{MaxEntries: 50})
+	runner := &mockRunner{responses: map[string]mockResponse{}}
+
+	lockPath := service.DefaultLockPath(cfg.LogDir)
+	lock, err := service.Acquire(lockPath)
+	if err != nil {
+		t.Fatalf("Acquire() error = %v", err)
+	}
+
+	m := NewModel(cfg, runner, log, ModelParams{
+		APFSVolume:    "disk3s5",
+		APFSContainer: "disk3",
+		TMStatus:      "Configured",
+		VolumeName:    "/",
+		Version:       "dev",
+		Lock:          lock,
+	})
+	m.width = 80
+	m.height = 40
+	m.snapshotting = true
+	m.autoSnapshotting = true
+
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model := updated.(Model)
+
+	if model.auto.Enabled() {
+		t.Error("expected auto-snapshots disabled after toggle")
+	}
+	if model.lock == nil {
+		t.Fatal("expected lock to stay held until auto-snapshot completes")
+	}
+	if !model.lockReleasePending {
+		t.Fatal("expected lockReleasePending while auto-snapshot is in flight")
+	}
+	if !service.IsHeld(lockPath) {
+		t.Fatal("expected lock to remain held until SnapshotCreatedMsg")
+	}
+
+	updated, _ = model.Update(SnapshotCreatedMsg{Date: "2026-03-01-150000"})
+	model = updated.(Model)
+
+	if model.lock != nil {
+		t.Error("expected lock released after auto-snapshot completes")
+	}
+	if model.lockReleasePending {
+		t.Error("expected lockReleasePending cleared after auto-snapshot completes")
+	}
+	if service.IsHeld(lockPath) {
+		t.Error("expected IsHeld = false after deferred release")
+	}
+}
+
+func TestQuitDefersLockReleaseWhileAutoSnapshotting(t *testing.T) {
+	cfg := testConfig()
+	cfg.LogDir = t.TempDir()
+	log := logger.New(logger.Options{MaxEntries: 50})
+	runner := &mockRunner{responses: map[string]mockResponse{}}
+
+	lockPath := service.DefaultLockPath(cfg.LogDir)
+	lock, err := service.Acquire(lockPath)
+	if err != nil {
+		t.Fatalf("Acquire() error = %v", err)
+	}
+
+	m := NewModel(cfg, runner, log, ModelParams{
+		APFSVolume:    "disk3s5",
+		APFSContainer: "disk3",
+		TMStatus:      "Configured",
+		VolumeName:    "/",
+		Version:       "dev",
+		Lock:          lock,
+	})
+	m.width = 80
+	m.height = 40
+	m.snapshotting = true
+	m.autoSnapshotting = true
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'q', Text: "q"})
+	model := updated.(Model)
+
+	if cmd != nil {
+		t.Fatal("expected quit to wait for in-flight auto-snapshot")
+	}
+	if model.quitting {
+		t.Fatal("expected quitting to remain false until auto-snapshot completes")
+	}
+	if !model.quitAfterSnapshot {
+		t.Fatal("expected quitAfterSnapshot set while waiting")
+	}
+	if !model.lockReleasePending {
+		t.Fatal("expected lockReleasePending set while waiting to quit")
+	}
+	if !service.IsHeld(lockPath) {
+		t.Fatal("expected lock to remain held until SnapshotCreatedMsg")
+	}
+
+	updated, cmd = model.Update(SnapshotCreatedMsg{Date: "2026-03-01-150000"})
+	model = updated.(Model)
+
+	if cmd == nil {
+		t.Fatal("expected quit command after auto-snapshot completes")
+	}
+	if !model.quitting {
+		t.Fatal("expected quitting = true after deferred quit completes")
+	}
+	if model.lock != nil {
+		t.Error("expected lock released before quitting")
+	}
+	if service.IsHeld(lockPath) {
+		t.Error("expected IsHeld = false after deferred quit release")
+	}
+}
+
 func TestViewAPFSDetails(t *testing.T) {
 	m := testModel()
 	m.width = 120

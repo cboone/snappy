@@ -112,10 +112,12 @@ type Model struct {
 	width              int
 	height             int
 	quitting           bool
+	quitAfterSnapshot  bool
 	refreshing         bool
 	refreshPending     bool
 	snapshotting       bool
 	autoSnapshotting   bool
+	lockReleasePending bool
 	thinning           bool
 	thinPinned         map[string]struct{}
 	recentCreated      map[string]struct{}
