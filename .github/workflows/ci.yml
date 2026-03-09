@@ -29,55 +29,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v6
+  ci:
+    uses: cboone/gh-actions/.github/workflows/go-ci.yml@main
+    with:
+      run-lint: true
+      run-build: true
+      run-format-check: true
 
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
+  text-lint:
+    uses: cboone/gh-actions/.github/workflows/text-lint.yml@main
 
-      - name: Run tests
-        run: make test
+  shell-lint:
+    uses: cboone/gh-actions/.github/workflows/shell-lint.yml@main
 
-  lint:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-
-      - run: npm ci
-
-      - name: Install shfmt
-        run: go install mvdan.cc/sh/v3/cmd/shfmt@v3.12.0
-
-      - name: Run vet
-        run: make vet
-
-      - name: Check formatting
-        run: make fmt-check
-
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v7
-        with:
-          version: v2.11.1
-
-      - name: Lint Markdown
-        run: make lint-md
-
-      - name: Actionlint
-        uses: raven-actions/actionlint@v2
+  github-lint:
+    uses: cboone/gh-actions/.github/workflows/github-lint.yml@main
 
   test-scrut:
     name: Test CLI (Scrut)
@@ -90,15 +56,7 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Install scrut
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p "${HOME}/.local/bin"
-          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
-          gh release download v0.4.3 --repo facebookincubator/scrut --pattern 'scrut-v0.4.3-macos-aarch64.tar.gz' --dir /tmp
-          tar -xzf /tmp/scrut-v0.4.3-macos-aarch64.tar.gz -C /tmp
-          cp /tmp/scrut-macos-aarch64/scrut "${HOME}/.local/bin/"
+      - uses: cboone/gh-actions/actions/setup-scrut@main
 
       - name: Run scrut CLI tests
         run: make test-scrut
