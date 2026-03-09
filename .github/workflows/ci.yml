@@ -30,8 +30,9 @@ concurrency:
 
 jobs:
   ci:
-    uses: cboone/gh-actions/.github/workflows/go-ci.yml@v1
+    uses: cboone/gh-actions/.github/workflows/go-ci.yml@v2
     with:
+      runs-on: macos-latest
       run-lint: true
       run-build: true
       run-format-check: true
