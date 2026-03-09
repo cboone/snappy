@@ -5,9 +5,9 @@ COMPDIR := completions
 
 LDFLAGS := -ldflags "-X main.version=$(VERSION)"
 
-.PHONY: all build completions test test-scrut test-scrut-update test-scrut-ez test-scrut-ez-update test-scrut-install test-scrut-install-update test-install test-all test-ci lint lint-go lint-md lint-actions lint-man vet fmt fmt-check format format-check man clean cover tidy help
+.PHONY: all build completions test test-scrut test-scrut-update test-scrut-ez test-scrut-ez-update test-scrut-install test-scrut-install-update test-install test-all test-ci lint lint-all lint-md lint-actions lint-man vet fmt format format-check man clean cover tidy help
 
-all: fmt-check vet lint test build ## Run all checks and build
+all: fmt vet lint test build ## Run all checks and build
 
 build: ## Build the binary
 	mkdir -p $(OUTDIR)
@@ -23,9 +23,9 @@ completions: build ## Generate shell completion scripts
 test: ## Run tests
 	go test ./...
 
-lint: lint-go lint-md lint-actions lint-man ## Run all linters
+lint-all: lint lint-md lint-actions lint-man ## Run all linters
 
-lint-go: ## Run golangci-lint
+lint: ## Run golangci-lint
 	golangci-lint run ./...
 
 lint-md: ## Lint Markdown files
@@ -43,19 +43,18 @@ man: ## Preview the man page
 vet: ## Run go vet
 	go vet ./...
 
-fmt: ## Format all code (Go, Markdown, JSON, YAML, shell)
+fmt: ## Check Go formatting (exits non-zero if files need formatting)
+	@test -z "$$(gofmt -l .)" || { gofmt -l . && exit 1; }
+
+format: ## Format all code (Go, Markdown, JSON, YAML, shell)
 	golangci-lint fmt ./...
 	npx prettier --write . --ignore-unknown
 	git ls-files | xargs shfmt -f | xargs shfmt -w
 
-fmt-check: ## Check formatting (exits non-zero if files need formatting)
+format-check: ## Check all formatting (Go, Markdown, JSON, YAML, shell)
 	@test -z "$$(gofmt -l .)" || { gofmt -l . && exit 1; }
 	npx prettier --check . --ignore-unknown
 	git ls-files | xargs shfmt -f | xargs shfmt -d
-
-format: fmt ## Alias for fmt
-
-format-check: fmt-check ## Alias for fmt-check
 
 test-scrut: build ## Run scrut CLI tests
 	@echo "Running scrut CLI tests..."
