@@ -20,6 +20,10 @@ import (
 	"github.com/cboone/snappy/internal/snapshot"
 )
 
+// daemonRefreshInterval is the number of UI ticks (~seconds) between
+// data refreshes when a daemon is active.
+const daemonRefreshInterval = 5
+
 // Update handles incoming messages and returns the updated model and
 // any commands to execute.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -96,11 +100,12 @@ func (m Model) handleUITick() (tea.Model, tea.Cmd) {
 
 	var cmds []tea.Cmd
 
-	// When a daemon is active, trigger a data refresh every 5 UI ticks
-	// (~5 seconds) so externally-created snapshots appear promptly.
+	// When a daemon is active, trigger a data refresh every
+	// daemonRefreshInterval UI ticks so externally-created snapshots
+	// appear promptly.
 	if m.daemonActive {
 		m.daemonRefreshCount++
-		if m.daemonRefreshCount >= 5 && !m.refreshing {
+		if m.daemonRefreshCount >= daemonRefreshInterval && !m.refreshing {
 			m.daemonRefreshCount = 0
 			m.refreshing = true
 			cmds = append(cmds, doRefresh(m.runner, m.apfsVolume, m.apfsContainer))
@@ -453,13 +458,15 @@ func (m *Model) ensureSnapCursorVisible() {
 func (m Model) handleTick() (tea.Model, tea.Cmd) {
 	now := m.now()
 	wasDaemonActive := m.daemonActive
+	hadUITick := m.auto.Enabled() || m.loading
 	m.syncDaemonState(now)
 
 	var cmds []tea.Cmd
 
 	// Start the UI tick when a daemon is newly detected so ages and
 	// the display stay fresh while another process creates snapshots.
-	if m.daemonActive && !wasDaemonActive {
+	// Only start if UITick isn't already running (e.g., from auto-snap).
+	if m.daemonActive && !wasDaemonActive && !hadUITick {
 		cmds = append(cmds, uiTick())
 	}
 
