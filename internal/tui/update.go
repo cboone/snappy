@@ -458,7 +458,7 @@ func (m *Model) ensureSnapCursorVisible() {
 func (m Model) handleTick() (tea.Model, tea.Cmd) {
 	now := m.now()
 	wasDaemonActive := m.daemonActive
-	hadUITick := m.auto.Enabled()
+	hadUITick := m.auto.Enabled() || m.loading
 	m.syncDaemonState(now)
 
 	var cmds []tea.Cmd

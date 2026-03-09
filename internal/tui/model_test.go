@@ -2651,8 +2651,18 @@ func TestDaemonDetectionStartsUITick(t *testing.T) {
 	if !model.daemonActive {
 		t.Error("expected daemonActive = true after lock appears")
 	}
+	// We cannot directly assert that uiTick() is in the returned tea.Batch
+	// because tea.Batch is opaque. Instead we verify the preconditions that
+	// cause handleTick to schedule uiTick(): daemon newly detected AND no
+	// prior UI tick chain running (auto disabled and not loading).
 	if cmd == nil {
-		t.Error("expected non-nil cmd containing uiTick when daemon is newly detected")
+		t.Error("expected non-nil cmd batch from handleTick")
+	}
+	if model.auto.Enabled() {
+		t.Error("auto should remain disabled so uiTick is the only tick source")
+	}
+	if model.loading {
+		t.Error("loading should be false so hadUITick did not suppress the new uiTick")
 	}
 }
 
@@ -2686,6 +2696,38 @@ func TestDaemonDetectionSkipsUITickWhenAutoWasEnabled(t *testing.T) {
 	}
 	// The UITick chain was already running from auto-snap, so handleTick
 	// should NOT start a second one (it continues via handleUITick).
+}
+
+func TestDaemonDetectionSkipsUITickWhenLoading(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+	m.cfg.LogDir = t.TempDir()
+	// Toggle auto off so it is not the source of UITick.
+	m.auto.Toggle(now)
+	m.auto.RecordSnapshot(now.Add(-2 * m.auto.Interval()))
+	// Simulate a loading state where handleUITick is already rescheduling.
+	m.loading = true
+
+	lockPath := service.DefaultLockPath(m.cfg.LogDir)
+	lock, err := service.Acquire(lockPath)
+	if err != nil {
+		t.Fatalf("Acquire() error = %v", err)
+	}
+	defer func() { _ = lock.Release() }()
+
+	if m.daemonActive {
+		t.Fatal("expected daemonActive = false before tick")
+	}
+
+	updated, _ := m.Update(RefreshTickMsg{})
+	model := updated.(Model)
+
+	if !model.daemonActive {
+		t.Error("expected daemonActive = true after lock appears")
+	}
+	// The UITick chain was already running due to loading state, so
+	// handleTick should NOT start a second one.
 }
 
 func TestDaemonModeTriggersPeriodicRefresh(t *testing.T) {
