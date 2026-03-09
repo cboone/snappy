@@ -103,9 +103,9 @@ func (m Model) handleUITick() (tea.Model, tea.Cmd) {
 	// When a daemon is active, trigger a data refresh every
 	// daemonRefreshInterval UI ticks so externally-created snapshots
 	// appear promptly.
-	if m.daemonActive {
+	if m.daemonActive && !m.refreshing {
 		m.daemonRefreshCount++
-		if m.daemonRefreshCount >= daemonRefreshInterval && !m.refreshing {
+		if m.daemonRefreshCount >= daemonRefreshInterval {
 			m.daemonRefreshCount = 0
 			m.refreshing = true
 			cmds = append(cmds, doRefresh(m.runner, m.apfsVolume, m.apfsContainer))
@@ -458,7 +458,7 @@ func (m *Model) ensureSnapCursorVisible() {
 func (m Model) handleTick() (tea.Model, tea.Cmd) {
 	now := m.now()
 	wasDaemonActive := m.daemonActive
-	hadUITick := m.auto.Enabled() || m.loading
+	hadUITick := m.auto.Enabled()
 	m.syncDaemonState(now)
 
 	var cmds []tea.Cmd
