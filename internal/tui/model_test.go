@@ -2596,3 +2596,197 @@ func TestTabTriggersForwardFlash(t *testing.T) {
 		t.Error("expected flash tick command from tab")
 	}
 }
+
+func TestUITickContinuesWhenDaemonActive(t *testing.T) {
+	m := testModel()
+	// Toggle auto off (starts enabled).
+	m.auto.Toggle(m.now())
+	m.daemonActive = true
+	m.loading = false
+
+	updated, cmd := m.Update(UITickMsg{})
+	_ = updated.(Model)
+	if cmd == nil {
+		t.Error("expected non-nil cmd (uiTick) when daemon is active")
+	}
+}
+
+func TestUITickStopsWhenDaemonDeactivates(t *testing.T) {
+	m := testModel()
+	// Toggle auto off (starts enabled).
+	m.auto.Toggle(m.now())
+	m.daemonActive = false
+	m.loading = false
+
+	updated, cmd := m.Update(UITickMsg{})
+	_ = updated.(Model)
+	if cmd != nil {
+		t.Error("expected nil cmd when auto disabled, daemon inactive, and not loading")
+	}
+}
+
+func TestDaemonDetectionStartsUITick(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+	m.cfg.LogDir = t.TempDir()
+	// Toggle auto off so no UITick chain is running.
+	m.auto.Toggle(now)
+	m.auto.RecordSnapshot(now.Add(-2 * m.auto.Interval()))
+
+	lockPath := service.DefaultLockPath(m.cfg.LogDir)
+	lock, err := service.Acquire(lockPath)
+	if err != nil {
+		t.Fatalf("Acquire() error = %v", err)
+	}
+	defer func() { _ = lock.Release() }()
+
+	if m.daemonActive {
+		t.Fatal("expected daemonActive = false before tick")
+	}
+
+	updated, cmd := m.Update(RefreshTickMsg{})
+	model := updated.(Model)
+
+	if !model.daemonActive {
+		t.Error("expected daemonActive = true after lock appears")
+	}
+	// We cannot directly assert that uiTick() is in the returned tea.Batch
+	// because tea.Batch is opaque. Instead we verify the preconditions that
+	// cause handleTick to schedule uiTick(): daemon newly detected AND no
+	// prior UI tick chain running (auto disabled and not loading).
+	if cmd == nil {
+		t.Error("expected non-nil cmd batch from handleTick")
+	}
+	if model.auto.Enabled() {
+		t.Error("auto should remain disabled so uiTick is the only tick source")
+	}
+	if model.loading {
+		t.Error("loading should be false so hadUITick did not suppress the new uiTick")
+	}
+}
+
+func TestDaemonDetectionSkipsUITickWhenAutoWasEnabled(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+	m.cfg.LogDir = t.TempDir()
+	// Keep auto enabled so a UITick chain is already running.
+	m.auto.RecordSnapshot(now.Add(-2 * m.auto.Interval()))
+
+	lockPath := service.DefaultLockPath(m.cfg.LogDir)
+	lock, err := service.Acquire(lockPath)
+	if err != nil {
+		t.Fatalf("Acquire() error = %v", err)
+	}
+	defer func() { _ = lock.Release() }()
+
+	if !m.auto.Enabled() {
+		t.Fatal("expected auto enabled before tick")
+	}
+
+	updated, _ := m.Update(RefreshTickMsg{})
+	model := updated.(Model)
+
+	if !model.daemonActive {
+		t.Error("expected daemonActive = true after lock appears")
+	}
+	if model.auto.Enabled() {
+		t.Error("expected auto disabled after daemon detected")
+	}
+	// The UITick chain was already running from auto-snap, so handleTick
+	// should NOT start a second one (it continues via handleUITick).
+}
+
+func TestDaemonDetectionSkipsUITickWhenLoading(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+	m.cfg.LogDir = t.TempDir()
+	// Toggle auto off so it is not the source of UITick.
+	m.auto.Toggle(now)
+	m.auto.RecordSnapshot(now.Add(-2 * m.auto.Interval()))
+	// Simulate a loading state where handleUITick is already rescheduling.
+	m.loading = true
+
+	lockPath := service.DefaultLockPath(m.cfg.LogDir)
+	lock, err := service.Acquire(lockPath)
+	if err != nil {
+		t.Fatalf("Acquire() error = %v", err)
+	}
+	defer func() { _ = lock.Release() }()
+
+	if m.daemonActive {
+		t.Fatal("expected daemonActive = false before tick")
+	}
+
+	updated, _ := m.Update(RefreshTickMsg{})
+	model := updated.(Model)
+
+	if !model.daemonActive {
+		t.Error("expected daemonActive = true after lock appears")
+	}
+	// The UITick chain was already running due to loading state, so
+	// handleTick should NOT start a second one.
+}
+
+func TestDaemonModeTriggersPeriodicRefresh(t *testing.T) {
+	m := testModel()
+	// Toggle auto off (starts enabled).
+	m.auto.Toggle(m.now())
+	m.daemonActive = true
+	m.loading = false
+	m.refreshing = false
+
+	// UITicks 1-4 should not trigger a refresh (daemonRefreshCount < 5).
+	for i := 1; i <= 4; i++ {
+		updated, _ := m.Update(UITickMsg{})
+		m = updated.(Model)
+		if m.refreshing {
+			t.Errorf("tick %d: expected no refresh yet", i)
+		}
+	}
+
+	// UITick 5 should trigger a refresh.
+	updated, cmd := m.Update(UITickMsg{})
+	m = updated.(Model)
+	if !m.refreshing {
+		t.Error("tick 5: expected refreshing = true")
+	}
+	if cmd == nil {
+		t.Error("tick 5: expected non-nil cmd batch (refresh + uiTick)")
+	}
+	if m.daemonRefreshCount != 0 {
+		t.Errorf("tick 5: expected daemonRefreshCount reset to 0, got %d", m.daemonRefreshCount)
+	}
+}
+
+func TestDaemonRefreshCountResetsOnDeactivation(t *testing.T) {
+	cfg := testConfig()
+	cfg.LogDir = t.TempDir()
+	log := logger.New(logger.Options{MaxEntries: 50})
+	runner := &mockRunner{responses: map[string]mockResponse{}}
+	m := NewModel(cfg, runner, log, ModelParams{
+		APFSVolume:    "disk3s5",
+		APFSContainer: "disk3",
+		TMStatus:      "Configured",
+		VolumeName:    "/",
+		Version:       "dev",
+		DaemonActive:  true,
+	})
+	m.now = func() time.Time {
+		return time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	}
+	m.daemonRefreshCount = 3
+
+	// No lock is held, so daemon should deactivate on tick.
+	updated, _ := m.Update(RefreshTickMsg{})
+	model := updated.(Model)
+
+	if model.daemonActive {
+		t.Error("expected daemonActive = false when lock is no longer held")
+	}
+	if model.daemonRefreshCount != 0 {
+		t.Errorf("expected daemonRefreshCount reset to 0 on deactivation, got %d", model.daemonRefreshCount)
+	}
+}

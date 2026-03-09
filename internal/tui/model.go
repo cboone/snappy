@@ -108,6 +108,7 @@ type Model struct {
 	tidemark           string
 	lastRefresh        time.Time
 	daemonActive       bool
+	daemonRefreshCount int
 	lock               *service.LockFile
 
 	width              int
@@ -236,15 +237,16 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 }
 
 // Init returns the initial commands: a refresh, a tick timer, and a
-// background color request. The UI tick is only started when
-// auto-snapshot is enabled, since it drives the countdown timer.
+// background color request. The UI tick is started when auto-snapshot
+// is enabled or a daemon is active, since it drives the countdown
+// timer and keeps snapshot ages fresh.
 func (m Model) Init() tea.Cmd {
 	cmds := []tea.Cmd{
 		doRefresh(m.runner, m.apfsVolume, m.apfsContainer),
 		refreshTick(m.cfg.RefreshInterval),
 		tea.RequestBackgroundColor,
 	}
-	if m.auto.Enabled() {
+	if m.auto.Enabled() || m.daemonActive {
 		cmds = append(cmds, uiTick())
 	}
 	return tea.Batch(cmds...)

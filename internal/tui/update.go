@@ -20,6 +20,10 @@ import (
 	"github.com/cboone/snappy/internal/snapshot"
 )
 
+// daemonRefreshInterval is the number of UI ticks (~seconds) between
+// data refreshes when a daemon is active.
+const daemonRefreshInterval = 5
+
 // Update handles incoming messages and returns the updated model and
 // any commands to execute.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -93,10 +97,29 @@ func (m Model) handleSpinnerTick(msg spinner.TickMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) handleUITick() (tea.Model, tea.Cmd) {
 	m.updateSnapAges()
-	if m.auto.Enabled() || m.loading {
-		return m, uiTick()
+
+	var cmds []tea.Cmd
+
+	// When a daemon is active, trigger a data refresh every
+	// daemonRefreshInterval UI ticks so externally-created snapshots
+	// appear promptly.
+	if m.daemonActive && !m.refreshing {
+		m.daemonRefreshCount++
+		if m.daemonRefreshCount >= daemonRefreshInterval {
+			m.daemonRefreshCount = 0
+			m.refreshing = true
+			cmds = append(cmds, doRefresh(m.runner, m.apfsVolume, m.apfsContainer))
+		}
 	}
-	return m, nil
+
+	if m.auto.Enabled() || m.daemonActive || m.loading {
+		cmds = append(cmds, uiTick())
+	}
+
+	if len(cmds) == 0 {
+		return m, nil
+	}
+	return m, tea.Batch(cmds...)
 }
 
 func helpStyles(s modelStyles) help.Styles {
@@ -434,9 +457,18 @@ func (m *Model) ensureSnapCursorVisible() {
 
 func (m Model) handleTick() (tea.Model, tea.Cmd) {
 	now := m.now()
+	wasDaemonActive := m.daemonActive
+	hadUITick := m.auto.Enabled() || m.loading
 	m.syncDaemonState(now)
 
 	var cmds []tea.Cmd
+
+	// Start the UI tick when a daemon is newly detected so ages and
+	// the display stay fresh while another process creates snapshots.
+	// Only start if UITick isn't already running (e.g., from auto-snap).
+	if m.daemonActive && !wasDaemonActive && !hadUITick {
+		cmds = append(cmds, uiTick())
+	}
 
 	snapshotDue := m.auto.ShouldSnapshot(now) && !m.snapshotting
 	if snapshotDue {
@@ -489,6 +521,7 @@ func (m *Model) syncDaemonState(now time.Time) {
 
 	case !lockHeld && m.daemonActive:
 		m.daemonActive = false
+		m.daemonRefreshCount = 0
 		m.log.Log(logger.LevelInfo, logger.CatAuto, "External auto-snapshot process no longer detected; press 'a' to enable auto-snapshots")
 		m.updateLogViewContent()
 	}
