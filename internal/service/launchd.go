@@ -209,21 +209,40 @@ func Uninstall(label string) error {
 	return nil
 }
 
-// Start sends a kickstart signal to the agent.
+// Start enables the agent and sends a kickstart signal. The enable step
+// reverses a prior disable so that KeepAlive and RunAtLoad take effect again.
 func Start(label string) error {
+	target := serviceTarget(label)
+
 	//nolint:gosec // arguments are controlled
-	cmd := exec.Command("launchctl", "kickstart", serviceTarget(label))
-	if out, err := cmd.CombinedOutput(); err != nil {
+	enableCmd := exec.Command("launchctl", "enable", target)
+	if out, err := enableCmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("launchctl enable: %s (%w)", strings.TrimSpace(string(out)), err)
+	}
+
+	//nolint:gosec // arguments are controlled
+	kickCmd := exec.Command("launchctl", "kickstart", target)
+	if out, err := kickCmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("launchctl kickstart: %s (%w)", strings.TrimSpace(string(out)), err)
 	}
 	return nil
 }
 
-// Stop sends SIGTERM to the agent process.
+// Stop disables the agent and sends SIGTERM. The disable step prevents
+// launchd from respawning the process (the plist has KeepAlive: true).
+// The disable persists until a matching enable call.
 func Stop(label string) error {
+	target := serviceTarget(label)
+
 	//nolint:gosec // arguments are controlled
-	cmd := exec.Command("launchctl", "kill", "SIGTERM", serviceTarget(label))
-	if out, err := cmd.CombinedOutput(); err != nil {
+	disableCmd := exec.Command("launchctl", "disable", target)
+	if out, err := disableCmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("launchctl disable: %s (%w)", strings.TrimSpace(string(out)), err)
+	}
+
+	//nolint:gosec // arguments are controlled
+	killCmd := exec.Command("launchctl", "kill", "SIGTERM", target)
+	if out, err := killCmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("launchctl kill: %s (%w)", strings.TrimSpace(string(out)), err)
 	}
 	return nil
