@@ -183,41 +183,24 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	if apfsContainer != "" {
 		log.Log(logger.LevelInfo, logger.CatStartup, fmt.Sprintf("apfs-container=%s", apfsContainer))
 	}
-	// Check if a background service holds the auto-snapshot lock.
-	lockPath := service.DefaultLockPath(cfg.LogDir)
-	daemonActive := service.IsHeld(lockPath)
-
-	// Acquire persistent lock when auto-snapshots are enabled and no
-	// external process already holds it.
-	var lock *service.LockFile
-	if !daemonActive && cfg.AutoEnabled {
-		var lockErr error
-		lock, lockErr = service.Acquire(lockPath)
-		if lockErr != nil {
-			if errors.Is(lockErr, service.ErrLocked) {
-				// Between IsHeld and Acquire, another process grabbed it.
-				daemonActive = true
-			} else {
-				log.Log(logger.LevelWarn, logger.CatStartup, fmt.Sprintf("Failed to acquire auto-snapshot lock: %v", lockErr))
-			}
-		}
-	}
-
-	if daemonActive {
-		log.Log(logger.LevelInfo, logger.CatStartup, "Another snappy process detected; TUI auto-snapshots disabled")
-	}
+	svcInstalled, svcRunning := checkServiceStatus(log)
+	var svcCtrl tui.ServiceController = tui.LaunchdController{}
+	daemonActive, lock := acquireAutoSnapLock(cfg, log, svcRunning)
 	log.Log(logger.LevelInfo, logger.CatStartup, fmt.Sprintf("auto-snapshot=%v | every %ds | thin >%ds to %ds",
 		cfg.AutoEnabled, int(cfg.AutoSnapshotInterval.Seconds()),
 		int(cfg.ThinAgeThreshold.Seconds()), int(cfg.ThinCadence.Seconds())))
 
 	model := tui.NewModel(cfg, runner, log, tui.ModelParams{
-		APFSVolume:    apfsVolume,
-		APFSContainer: apfsContainer,
-		TMStatus:      tmStatus,
-		VolumeName:    volumeName,
-		Version:       version,
-		Lock:          lock,
-		DaemonActive:  daemonActive,
+		APFSVolume:       apfsVolume,
+		APFSContainer:    apfsContainer,
+		TMStatus:         tmStatus,
+		VolumeName:       volumeName,
+		Version:          version,
+		Lock:             lock,
+		DaemonActive:     daemonActive,
+		ServiceCtrl:      svcCtrl,
+		ServiceInstalled: svcInstalled,
+		ServiceRunning:   svcRunning,
 	})
 	p := tea.NewProgram(model)
 
@@ -241,4 +224,43 @@ func runTUI(_ *cobra.Command, _ []string) error {
 func startupSummary(version, volumeName string, refreshInterval time.Duration) string {
 	return fmt.Sprintf("snappy %s | volume=%s | refresh=%ds",
 		version, volumeName, int(refreshInterval.Seconds()))
+}
+
+func checkServiceStatus(log *logger.Logger) (installed, running bool) {
+	svcInfo, svcErr := service.Status(service.DefaultLabel)
+	if svcErr != nil {
+		log.Log(logger.LevelWarn, logger.CatStartup, fmt.Sprintf("Service status check failed: %v", svcErr))
+		return false, false
+	}
+	if svcInfo.Installed {
+		log.Log(logger.LevelInfo, logger.CatStartup, fmt.Sprintf("service=%s installed=%t running=%t",
+			service.DefaultLabel, svcInfo.Installed, svcInfo.Running))
+	}
+	return svcInfo.Installed, svcInfo.Running
+}
+
+func acquireAutoSnapLock(cfg *config.Config, log *logger.Logger, svcRunning bool) (bool, *service.LockFile) {
+	lockPath := service.DefaultLockPath(cfg.LogDir)
+	daemonActive := service.IsHeld(lockPath)
+	if svcRunning {
+		daemonActive = true
+	}
+
+	var lock *service.LockFile
+	if !daemonActive && cfg.AutoEnabled {
+		var lockErr error
+		lock, lockErr = service.Acquire(lockPath)
+		if lockErr != nil {
+			if errors.Is(lockErr, service.ErrLocked) {
+				daemonActive = true
+			} else {
+				log.Log(logger.LevelWarn, logger.CatStartup, fmt.Sprintf("Failed to acquire auto-snapshot lock: %v", lockErr))
+			}
+		}
+	}
+
+	if daemonActive {
+		log.Log(logger.LevelInfo, logger.CatStartup, "Another snappy process detected; TUI auto-snapshots disabled")
+	}
+	return daemonActive, lock
 }

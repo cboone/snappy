@@ -37,6 +37,7 @@ const (
 	CatFound    Category = "FOUND"
 	CatShutdown Category = "SHUTDOWN"
 	CatOpen     Category = "OPEN"
+	CatService  Category = "SERVICE"
 )
 
 // knownCategories is the set of recognised Category values, used by
@@ -53,6 +54,7 @@ var knownCategories = map[Category]bool{
 	CatFound:    true,
 	CatShutdown: true,
 	CatOpen:     true,
+	CatService:  true,
 }
 
 // isKnownCategory reports whether s (case-insensitive) matches a defined

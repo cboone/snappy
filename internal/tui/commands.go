@@ -180,6 +180,27 @@ func uiTick() tea.Cmd {
 	})
 }
 
+func doServiceStatus(ctrl ServiceController, label string) tea.Cmd {
+	return func() tea.Msg {
+		info, err := ctrl.Status(label)
+		return ServiceStatusResultMsg{Info: info, Err: err}
+	}
+}
+
+func doServiceStart(ctrl ServiceController, label string) tea.Cmd {
+	return func() tea.Msg {
+		err := ctrl.Start(label)
+		return ServiceToggleResultMsg{Action: "start", Err: err}
+	}
+}
+
+func doServiceStop(ctrl ServiceController, label string) tea.Cmd {
+	return func() tea.Msg {
+		err := ctrl.Stop(label)
+		return ServiceToggleResultMsg{Action: "stop", Err: err}
+	}
+}
+
 func doOpenLogDir(dir string) tea.Cmd {
 	return func() tea.Msg {
 		if dir == "" {

@@ -65,11 +65,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleThinResult(msg)
 
 	case OpenLogDirResultMsg:
-		if msg.Err != nil {
-			m.log.Log(logger.LevelError, logger.CatOpen, fmt.Sprintf("Failed to open log directory: %v", msg.Err))
-			m.updateLogViewContent()
-		}
-		return m, nil
+		return m.handleOpenLogDirResult(msg)
+
+	case ServiceStatusResultMsg, ServiceToggleResultMsg:
+		return m.handleServiceMsg(msg)
 	}
 
 	return m, nil
@@ -241,6 +240,11 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleAutoSnapToggle() (tea.Model, tea.Cmd) {
+	// When the launchd service is installed, 'a' controls the service.
+	if m.serviceInstalled && m.serviceCtrl != nil {
+		return m.handleServiceToggle()
+	}
+
 	if m.daemonActive {
 		m.log.Log(logger.LevelInfo, logger.CatAuto, "Auto-snapshots managed by another process (stop it to take over)")
 		m.updateLogViewContent()
@@ -287,6 +291,103 @@ func (m Model) handleAutoSnapToggle() (tea.Model, tea.Cmd) {
 	))
 	m.updateLogViewContent()
 	return m, uiTick()
+}
+
+func (m Model) handleServiceMsg(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case ServiceStatusResultMsg:
+		return m.handleServiceStatusResult(msg)
+	case ServiceToggleResultMsg:
+		return m.handleServiceToggleResult(msg)
+	}
+	return m, nil
+}
+
+func (m Model) handleOpenLogDirResult(msg OpenLogDirResultMsg) (tea.Model, tea.Cmd) {
+	if msg.Err != nil {
+		m.log.Log(logger.LevelError, logger.CatOpen, fmt.Sprintf("Failed to open log directory: %v", msg.Err))
+		m.updateLogViewContent()
+	}
+	return m, nil
+}
+
+func (m Model) handleServiceToggle() (tea.Model, tea.Cmd) {
+	if m.serviceToggling {
+		return m, nil
+	}
+	m.serviceToggling = true
+
+	if m.serviceRunning {
+		m.log.Log(logger.LevelInfo, logger.CatService, "Stopping service...")
+		m.updateLogViewContent()
+		return m, doServiceStop(m.serviceCtrl, m.serviceLabel)
+	}
+
+	m.log.Log(logger.LevelInfo, logger.CatService, "Starting service...")
+	m.updateLogViewContent()
+	return m, doServiceStart(m.serviceCtrl, m.serviceLabel)
+}
+
+func (m Model) handleServiceStatusResult(msg ServiceStatusResultMsg) (tea.Model, tea.Cmd) {
+	if msg.Err != nil {
+		m.log.Log(logger.LevelWarn, logger.CatService, fmt.Sprintf("Service status check failed: %v", msg.Err))
+		m.updateLogViewContent()
+		return m, nil
+	}
+
+	wasInstalled := m.serviceInstalled
+	wasRunning := m.serviceRunning
+
+	m.serviceInstalled = msg.Info.Installed
+	m.serviceRunning = msg.Info.Running
+
+	if m.serviceInstalled && !wasInstalled {
+		m.log.Log(logger.LevelInfo, logger.CatService, "Service installed")
+	} else if !m.serviceInstalled && wasInstalled {
+		m.log.Log(logger.LevelInfo, logger.CatService, "Service uninstalled")
+	}
+
+	if m.serviceRunning && !wasRunning {
+		m.log.Log(logger.LevelInfo, logger.CatService,
+			fmt.Sprintf("Service started (PID %d)", msg.Info.PID))
+	} else if !m.serviceRunning && wasRunning && m.serviceInstalled {
+		m.log.Log(logger.LevelInfo, logger.CatService, "Service stopped")
+	}
+
+	m.updateAutoSnapHelpText()
+	m.updateLogViewContent()
+	return m, nil
+}
+
+func (m Model) handleServiceToggleResult(msg ServiceToggleResultMsg) (tea.Model, tea.Cmd) {
+	m.serviceToggling = false
+
+	if msg.Err != nil {
+		m.log.Log(logger.LevelError, logger.CatService,
+			fmt.Sprintf("Service %s failed: %v", msg.Action, msg.Err))
+		m.updateLogViewContent()
+		if m.serviceCtrl != nil {
+			return m, doServiceStatus(m.serviceCtrl, m.serviceLabel)
+		}
+		return m, nil
+	}
+
+	switch msg.Action {
+	case "start":
+		m.serviceRunning = true
+		m.log.Log(logger.LevelInfo, logger.CatService, "Service started")
+	case "stop":
+		m.serviceRunning = false
+		m.log.Log(logger.LevelInfo, logger.CatService, "Service stopped")
+	}
+
+	m.updateAutoSnapHelpText()
+	m.updateLogViewContent()
+
+	if m.serviceCtrl != nil {
+		return m, doServiceStatus(m.serviceCtrl, m.serviceLabel)
+	}
+	return m, nil
 }
 
 func (m Model) handleMouseClick(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
@@ -490,6 +591,12 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 		cmds = append(cmds, doRefresh(m.runner, m.apfsVolume, m.apfsContainer))
 	}
 	cmds = append(cmds, refreshTick(m.cfg.RefreshInterval))
+
+	// Periodic service status check so CLI-driven install/uninstall/start/stop
+	// is picked up by the TUI.
+	if m.serviceCtrl != nil {
+		cmds = append(cmds, doServiceStatus(m.serviceCtrl, m.serviceLabel))
+	}
 
 	return m, tea.Batch(cmds...)
 }
@@ -1044,7 +1151,7 @@ func logEntryStyle(s modelStyles, level logger.Level, cat logger.Category) lipgl
 		return s.textYellow
 	default:
 		switch cat {
-		case logger.CatAuto:
+		case logger.CatAuto, logger.CatService:
 			return s.textCyan
 		case logger.CatStartup:
 			return s.textMagenta

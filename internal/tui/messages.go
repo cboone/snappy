@@ -2,6 +2,7 @@ package tui
 
 import (
 	"github.com/cboone/snappy/internal/platform"
+	"github.com/cboone/snappy/internal/service"
 	"github.com/cboone/snappy/internal/snapshot"
 )
 
@@ -50,4 +51,16 @@ type ThinResultMsg struct {
 	FailedDates  []string
 	EstaleCount  int
 	Err          error
+}
+
+// ServiceStatusResultMsg carries the result of a service status probe.
+type ServiceStatusResultMsg struct {
+	Info *service.Info
+	Err  error
+}
+
+// ServiceToggleResultMsg carries the result of a service start or stop.
+type ServiceToggleResultMsg struct {
+	Action string // "start" or "stop"
+	Err    error
 }
