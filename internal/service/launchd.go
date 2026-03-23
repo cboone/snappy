@@ -211,6 +211,8 @@ func Uninstall(label string) error {
 
 // Start enables the agent and sends a kickstart signal. The enable step
 // reverses a prior disable so that KeepAlive and RunAtLoad take effect again.
+// If the service was unloaded from the domain (common after disable + kill),
+// Start falls back to bootstrap to re-register it.
 func Start(label string) error {
 	target := serviceTarget(label)
 
@@ -222,8 +224,27 @@ func Start(label string) error {
 
 	//nolint:gosec // arguments are controlled
 	kickCmd := exec.Command("launchctl", "kickstart", target)
-	if out, err := kickCmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("launchctl kickstart: %s (%w)", strings.TrimSpace(string(out)), err)
+	kickOut, kickErr := kickCmd.CombinedOutput()
+	if kickErr == nil {
+		return nil
+	}
+
+	// After disable + kill, launchd may unload the service from the domain.
+	// Kickstart fails with "Could not find service" in that case. Fall back
+	// to bootstrap which re-registers the plist and starts the process
+	// (RunAtLoad is true).
+	if !isNotLoadedError(strings.TrimSpace(string(kickOut))) {
+		return fmt.Errorf("launchctl kickstart: %s (%w)", strings.TrimSpace(string(kickOut)), kickErr)
+	}
+
+	plistPath, err := PlistPath(label)
+	if err != nil {
+		return err
+	}
+
+	out, err := runBootstrap(domainTarget(), plistPath)
+	if err != nil {
+		return fmt.Errorf("launchctl bootstrap: %s (%w)", strings.TrimSpace(string(out)), err)
 	}
 	return nil
 }
