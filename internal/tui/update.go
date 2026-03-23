@@ -422,6 +422,12 @@ func (m Model) handleServiceToggleResult(msg ServiceToggleResultMsg) (tea.Model,
 	m.updateLogViewContent()
 
 	if m.serviceCtrl != nil {
+		// After a stop, delay the follow-up check so the process has time
+		// to exit. An immediate check would catch it mid-shutdown and
+		// falsely report "Service started."
+		if msg.Action == "stop" {
+			return m, doDelayedServiceStatus(m.serviceCtrl, m.serviceLabel, 2*time.Second)
+		}
 		return m, doServiceStatus(m.serviceCtrl, m.serviceLabel)
 	}
 	return m, nil

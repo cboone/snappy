@@ -187,6 +187,18 @@ func doServiceStatus(ctrl ServiceController, label string) tea.Cmd {
 	}
 }
 
+// doDelayedServiceStatus waits for the given duration before checking service
+// status. This gives a process time to exit after receiving SIGTERM so that the
+// follow-up check reflects the actual state rather than catching the process
+// mid-shutdown.
+func doDelayedServiceStatus(ctrl ServiceController, label string, delay time.Duration) tea.Cmd {
+	return func() tea.Msg {
+		time.Sleep(delay)
+		info, err := ctrl.Status(label)
+		return ServiceStatusResultMsg{Info: info, Err: err}
+	}
+}
+
 func doServiceStart(ctrl ServiceController, label string) tea.Cmd {
 	return func() tea.Msg {
 		err := ctrl.Start(label)
