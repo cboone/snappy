@@ -186,9 +186,13 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	svcInstalled, svcRunning := checkServiceStatus(log)
 	var svcCtrl tui.ServiceController = tui.LaunchdController{}
 	daemonActive, lock := acquireAutoSnapLock(cfg, log, svcInstalled, svcRunning)
-	log.Log(logger.LevelInfo, logger.CatStartup, fmt.Sprintf("auto-snapshot=%v | every %ds | thin >%ds to %ds",
+	autoStatus := fmt.Sprintf("auto-snapshot=%v | every %ds | thin >%ds to %ds",
 		cfg.AutoEnabled, int(cfg.AutoSnapshotInterval.Seconds()),
-		int(cfg.ThinAgeThreshold.Seconds()), int(cfg.ThinCadence.Seconds())))
+		int(cfg.ThinAgeThreshold.Seconds()), int(cfg.ThinCadence.Seconds()))
+	if svcInstalled && cfg.AutoEnabled {
+		autoStatus += " (deferred to service)"
+	}
+	log.Log(logger.LevelInfo, logger.CatStartup, autoStatus)
 
 	model := tui.NewModel(cfg, runner, log, tui.ModelParams{
 		APFSVolume:       apfsVolume,
