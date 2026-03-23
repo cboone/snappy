@@ -440,7 +440,14 @@ func (m Model) handleServiceToggleResult(msg ServiceToggleResultMsg) (tea.Model,
 		if msg.Action == "stop" {
 			return m, doDelayedServiceStatus(m.serviceCtrl, m.serviceLabel, 2*time.Second)
 		}
-		return m, doServiceStatus(m.serviceCtrl, m.serviceLabel)
+		// After a start, also trigger a data refresh so the service's
+		// first snapshot appears in the TUI promptly.
+		cmds := []tea.Cmd{doServiceStatus(m.serviceCtrl, m.serviceLabel)}
+		if !m.refreshing {
+			m.refreshing = true
+			cmds = append(cmds, doRefresh(m.runner, m.apfsVolume, m.apfsContainer))
+		}
+		return m, tea.Batch(cmds...)
 	}
 	return m, nil
 }
@@ -826,7 +833,11 @@ func (m *Model) logDiffChanges(prev, current []snapshot.Snapshot) {
 			if _, ok := m.recentCreated[s.Date]; ok {
 				continue
 			}
-			m.log.Log(logger.LevelInfo, logger.CatAdded, "Snapshot appeared: "+s.Date)
+			if m.serviceRunning {
+				m.log.Log(logger.LevelInfo, logger.CatAdded, "Service snapshot: "+s.Date)
+			} else {
+				m.log.Log(logger.LevelInfo, logger.CatAdded, "Snapshot appeared: "+s.Date)
+			}
 		}
 	}
 	clear(m.recentCreated)
