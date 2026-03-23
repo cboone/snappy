@@ -265,6 +265,15 @@ func (m Model) handleAutoSnapToggle() (tea.Model, tea.Cmd) {
 		m.updateLogViewContent()
 		return m, nil
 	}
+	// Defense-in-depth: if the service was installed during this session but
+	// serviceInstalled is currently false (transient status glitch), do not
+	// start TUI auto-snapping. Trigger a status re-check instead.
+	if m.serviceEverInstalled && m.serviceCtrl != nil {
+		m.log.Log(logger.LevelInfo, logger.CatService, "Service state unclear; rechecking...")
+		m.updateLogViewContent()
+		return m, doServiceStatus(m.serviceCtrl, m.serviceLabel)
+	}
+
 	// Enabling: acquire the persistent lock first.
 	if m.cfg.LogDir != "" {
 		lockPath := service.DefaultLockPath(m.cfg.LogDir)
@@ -338,9 +347,41 @@ func (m Model) handleServiceStatusResult(msg ServiceStatusResultMsg) (tea.Model,
 	wasInstalled := m.serviceInstalled
 	wasRunning := m.serviceRunning
 
-	m.serviceInstalled = msg.Info.Installed
-	m.serviceRunning = msg.Info.Running
+	m.applyServiceStatus(msg.Info)
+	m.logServiceTransitions(wasInstalled, wasRunning, msg.Info.PID)
 
+	m.updateAutoSnapHelpText()
+	m.updateLogViewContent()
+
+	// First time seeing Installed=false after being installed: trigger
+	// an immediate re-check to confirm before committing to the transition.
+	if wasInstalled && !msg.Info.Installed && m.serviceConsecutiveUninstalled == 1 {
+		return m, doServiceStatus(m.serviceCtrl, m.serviceLabel)
+	}
+
+	return m, nil
+}
+
+// applyServiceStatus updates serviceInstalled and serviceRunning from a
+// status probe. Transitions to not-installed are debounced: two consecutive
+// probes must report Installed=false before the change is accepted.
+func (m *Model) applyServiceStatus(info *service.Info) {
+	if info.Installed {
+		m.serviceInstalled = true
+		m.serviceRunning = info.Running
+		m.serviceConsecutiveUninstalled = 0
+		m.serviceEverInstalled = true
+		return
+	}
+	m.serviceConsecutiveUninstalled++
+	m.serviceRunning = false
+	if !m.serviceInstalled || m.serviceConsecutiveUninstalled >= 2 {
+		m.serviceInstalled = false
+		m.serviceEverInstalled = false
+	}
+}
+
+func (m *Model) logServiceTransitions(wasInstalled, wasRunning bool, pid int) {
 	if m.serviceInstalled && !wasInstalled {
 		m.log.Log(logger.LevelInfo, logger.CatService, "Service installed")
 	} else if !m.serviceInstalled && wasInstalled {
@@ -349,14 +390,10 @@ func (m Model) handleServiceStatusResult(msg ServiceStatusResultMsg) (tea.Model,
 
 	if m.serviceRunning && !wasRunning {
 		m.log.Log(logger.LevelInfo, logger.CatService,
-			fmt.Sprintf("Service started (PID %d)", msg.Info.PID))
+			fmt.Sprintf("Service started (PID %d)", pid))
 	} else if !m.serviceRunning && wasRunning && m.serviceInstalled {
 		m.log.Log(logger.LevelInfo, logger.CatService, "Service stopped")
 	}
-
-	m.updateAutoSnapHelpText()
-	m.updateLogViewContent()
-	return m, nil
 }
 
 func (m Model) handleServiceToggleResult(msg ServiceToggleResultMsg) (tea.Model, tea.Cmd) {

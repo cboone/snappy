@@ -3031,16 +3031,33 @@ func TestServiceStatusResultUpdatesState(t *testing.T) {
 func TestServiceStatusResultDetectsUninstall(t *testing.T) {
 	m := testModelWithService(true, true)
 
-	updated, _ := m.Update(ServiceStatusResultMsg{
+	// First Installed=false: debounced, serviceInstalled stays true.
+	updated, cmd := m.Update(ServiceStatusResultMsg{
 		Info: &service.Info{Installed: false},
 	})
 	model := updated.(Model)
 
-	if model.serviceInstalled {
-		t.Error("expected serviceInstalled = false")
+	if !model.serviceInstalled {
+		t.Error("expected serviceInstalled to remain true after first false reading")
 	}
 	if model.serviceRunning {
 		t.Error("expected serviceRunning = false")
+	}
+	if cmd == nil {
+		t.Error("expected re-check command after first false reading")
+	}
+
+	// Second Installed=false: confirmed uninstall.
+	updated, _ = model.Update(ServiceStatusResultMsg{
+		Info: &service.Info{Installed: false},
+	})
+	model = updated.(Model)
+
+	if model.serviceInstalled {
+		t.Error("expected serviceInstalled = false after two consecutive false readings")
+	}
+	if model.serviceEverInstalled {
+		t.Error("expected serviceEverInstalled = false after confirmed uninstall")
 	}
 
 	entries := model.log.Entries()
@@ -3053,6 +3070,88 @@ func TestServiceStatusResultDetectsUninstall(t *testing.T) {
 	}
 	if !found {
 		t.Error("expected log message about service uninstalled")
+	}
+}
+
+func TestServiceStatusTransientUninstallDebounced(t *testing.T) {
+	m := testModelWithService(true, true)
+
+	// Single Installed=false: debounced.
+	updated, cmd := m.Update(ServiceStatusResultMsg{
+		Info: &service.Info{Installed: false},
+	})
+	model := updated.(Model)
+
+	if !model.serviceInstalled {
+		t.Error("expected serviceInstalled to remain true after single false reading")
+	}
+	if !model.serviceEverInstalled {
+		t.Error("expected serviceEverInstalled to remain true")
+	}
+	if cmd == nil {
+		t.Error("expected re-check command after transient uninstall")
+	}
+
+	// Follow-up check returns Installed=true: state restored.
+	updated, _ = model.Update(ServiceStatusResultMsg{
+		Info: &service.Info{Installed: true, Running: false},
+	})
+	model = updated.(Model)
+
+	if !model.serviceInstalled {
+		t.Error("expected serviceInstalled = true after corrective check")
+	}
+	if model.serviceConsecutiveUninstalled != 0 {
+		t.Errorf("expected counter reset to 0, got %d", model.serviceConsecutiveUninstalled)
+	}
+}
+
+func TestAutoToggleBlockedWhenServiceRecentlyInstalled(t *testing.T) {
+	// Start with service running so auto.Enabled()=false (daemonActive=true at init).
+	m := testModelWithService(true, true)
+	// Simulate transient state: serviceInstalled cleared but serviceEverInstalled still true.
+	m.serviceInstalled = false
+	m.serviceRunning = false
+	m.daemonActive = false
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model := updated.(Model)
+
+	if model.auto.Enabled() {
+		t.Error("TUI auto-snapping should not start when serviceEverInstalled is true")
+	}
+	if cmd == nil {
+		t.Error("expected status re-check command")
+	}
+
+	entries := model.log.Entries()
+	found := false
+	for _, e := range entries {
+		if strings.Contains(e.Message, "Service state unclear") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected log message about unclear service state")
+	}
+}
+
+func TestAutoToggleAllowedAfterConfirmedUninstall(t *testing.T) {
+	// Start with service running so auto.Enabled()=false (daemonActive=true at init).
+	m := testModelWithService(true, true)
+	// Simulate confirmed uninstall: both flags cleared, daemon gone.
+	m.serviceInstalled = false
+	m.serviceRunning = false
+	m.serviceEverInstalled = false
+	m.serviceConsecutiveUninstalled = 2
+	m.daemonActive = false
+
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model := updated.(Model)
+
+	if !model.auto.Enabled() {
+		t.Error("expected TUI auto-snapping to start after confirmed uninstall")
 	}
 }
 
@@ -3073,7 +3172,11 @@ func TestHelpTextChangesWithServiceState(t *testing.T) {
 		t.Errorf("help text = %q, want %q", model.keys.AutoSnap.Help().Desc, "start service")
 	}
 
-	// Simulate service uninstalled
+	// Simulate service uninstalled (two consecutive checks to confirm).
+	updated, _ = model.Update(ServiceStatusResultMsg{
+		Info: &service.Info{Installed: false},
+	})
+	model = updated.(Model)
 	updated, _ = model.Update(ServiceStatusResultMsg{
 		Info: &service.Info{Installed: false},
 	})
