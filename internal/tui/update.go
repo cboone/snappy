@@ -678,7 +678,14 @@ func (m *Model) syncDaemonState(now time.Time) {
 		if m.auto.Enabled() {
 			m.auto.Toggle(now)
 		}
-		m.log.Log(logger.LevelInfo, logger.CatAuto, "Another snappy process detected; TUI auto-snapshots disabled")
+		// When the service is known to be running, the lock detection is
+		// expected. Only log the "another process" message for genuinely
+		// unexpected external processes.
+		if m.serviceRunning {
+			m.log.Log(logger.LevelInfo, logger.CatService, "Service acquired auto-snapshot lock")
+		} else {
+			m.log.Log(logger.LevelInfo, logger.CatAuto, "Another snappy process detected; TUI auto-snapshots disabled")
+		}
 		m.updateLogViewContent()
 
 	case !lockHeld && m.daemonActive:
