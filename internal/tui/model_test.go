@@ -3244,6 +3244,42 @@ func TestViewAutoStatusServiceRunning(t *testing.T) {
 	}
 }
 
+func TestRefreshTickTriggersServiceStatusCheck(t *testing.T) {
+	statusCalls := 0
+	m := testModelWithService(true, true)
+	m.serviceCtrl = &mockServiceController{
+		statusFn: func(string) (*service.Info, error) {
+			statusCalls++
+			return &service.Info{Installed: true, Running: true, PID: 42}, nil
+		},
+	}
+	// Mark refreshing so handleTick skips the slow doRefresh command,
+	// and use a tiny refresh interval so tea.Tick returns quickly.
+	m.refreshing = true
+	m.cfg.RefreshInterval = time.Millisecond
+
+	before := statusCalls
+	_, cmd := m.Update(RefreshTickMsg{})
+
+	if cmd == nil {
+		t.Fatal("expected non-nil cmd batch from handleTick")
+	}
+
+	// Execute the returned batch to verify a service status check is included.
+	msg := cmd()
+	if batchMsg, ok := msg.(tea.BatchMsg); ok {
+		for _, c := range batchMsg {
+			if c != nil {
+				c()
+			}
+		}
+	}
+
+	if statusCalls <= before {
+		t.Error("expected at least one service status check during tick")
+	}
+}
+
 func TestViewAutoStatusServiceStopped(t *testing.T) {
 	m := testModelWithService(true, false)
 	v := viewContent(m)

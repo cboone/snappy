@@ -180,6 +180,11 @@ func uiTick() tea.Cmd {
 	})
 }
 
+// serviceStopSettleDelay is the time to wait after stopping the service
+// before checking its status. This gives the process time to exit after
+// bootout so the follow-up check reflects the actual state.
+const serviceStopSettleDelay = 2 * time.Second
+
 func doServiceStatus(ctrl ServiceController, label string) tea.Cmd {
 	return func() tea.Msg {
 		info, err := ctrl.Status(label)

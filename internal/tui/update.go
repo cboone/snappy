@@ -438,7 +438,7 @@ func (m Model) handleServiceToggleResult(msg ServiceToggleResultMsg) (tea.Model,
 		// to exit. An immediate check would catch it mid-shutdown and
 		// falsely report "Service started."
 		if msg.Action == "stop" {
-			return m, doDelayedServiceStatus(m.serviceCtrl, m.serviceLabel, 2*time.Second)
+			return m, doDelayedServiceStatus(m.serviceCtrl, m.serviceLabel, serviceStopSettleDelay)
 		}
 		// After a start, also trigger a data refresh so the service's
 		// first snapshot appears in the TUI promptly.
