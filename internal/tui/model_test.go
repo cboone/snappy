@@ -2891,6 +2891,42 @@ func TestAutoToggleStartsServiceWhenStopped(t *testing.T) {
 	}
 }
 
+func TestAutoToggleDisablesTUIAutoSnapWhenStartingService(t *testing.T) {
+	// Service installed but not running; TUI auto-snap is active.
+	m := testModelWithService(true, false)
+	if !m.auto.Enabled() {
+		t.Fatal("precondition: auto should be enabled when service is stopped")
+	}
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model := updated.(Model)
+
+	if model.auto.Enabled() {
+		t.Error("expected TUI auto-snap to be disabled when starting service")
+	}
+	if cmd == nil {
+		t.Fatal("expected a command to be returned")
+	}
+
+	entries := model.log.Entries()
+	foundDisable := false
+	foundStart := false
+	for _, e := range entries {
+		if strings.Contains(e.Message, "handing off to service") {
+			foundDisable = true
+		}
+		if strings.Contains(e.Message, "Starting service") {
+			foundStart = true
+		}
+	}
+	if !foundDisable {
+		t.Error("expected log message about disabling auto-snap for service handoff")
+	}
+	if !foundStart {
+		t.Error("expected log message about starting service")
+	}
+}
+
 func TestAutoToggleFallsBackWhenServiceNotInstalled(t *testing.T) {
 	m := testModel()
 

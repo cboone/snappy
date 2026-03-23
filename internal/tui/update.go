@@ -332,6 +332,18 @@ func (m Model) handleServiceToggle() (tea.Model, tea.Cmd) {
 		return m, doServiceStop(m.serviceCtrl, m.serviceLabel)
 	}
 
+	// If the TUI is auto-snapshotting, disable it and release the lock
+	// so the service process can acquire it.
+	if m.auto.Enabled() {
+		m.auto.Toggle(m.now())
+		m.log.Log(logger.LevelInfo, logger.CatAuto, "Auto-snapshots disabled (handing off to service)")
+	}
+	if m.lock != nil && !m.autoSnapshotting {
+		m.releaseLock()
+	} else if m.lock != nil {
+		m.lockReleasePending = true
+	}
+
 	m.log.Log(logger.LevelInfo, logger.CatService, "Starting service...")
 	m.updateLogViewContent()
 	return m, doServiceStart(m.serviceCtrl, m.serviceLabel)
