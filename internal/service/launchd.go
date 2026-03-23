@@ -12,6 +12,12 @@ import (
 	"howett.net/plist"
 )
 
+var runLaunchctl = func(args ...string) ([]byte, error) {
+	//nolint:gosec // arguments are controlled
+	cmd := exec.Command("launchctl", args...)
+	return cmd.CombinedOutput()
+}
+
 // DefaultLabel is the launchd agent label for snappy.
 const DefaultLabel = "com.cboone.snappy"
 
@@ -216,15 +222,12 @@ func Uninstall(label string) error {
 func Start(label string) error {
 	target := serviceTarget(label)
 
-	//nolint:gosec // arguments are controlled
-	enableCmd := exec.Command("launchctl", "enable", target)
-	if out, err := enableCmd.CombinedOutput(); err != nil {
+	out, err := runLaunchctl("enable", target)
+	if err != nil {
 		return fmt.Errorf("launchctl enable: %s (%w)", strings.TrimSpace(string(out)), err)
 	}
 
-	//nolint:gosec // arguments are controlled
-	kickCmd := exec.Command("launchctl", "kickstart", target)
-	kickOut, kickErr := kickCmd.CombinedOutput()
+	kickOut, kickErr := runLaunchctl("kickstart", target)
 	if kickErr == nil {
 		return nil
 	}
@@ -242,7 +245,7 @@ func Start(label string) error {
 		return err
 	}
 
-	out, err := runBootstrap(domainTarget(), plistPath)
+	out, err = runBootstrap(domainTarget(), plistPath)
 	if err != nil {
 		return fmt.Errorf("launchctl bootstrap: %s (%w)", strings.TrimSpace(string(out)), err)
 	}
@@ -257,9 +260,8 @@ func Start(label string) error {
 func Stop(label string) error {
 	target := serviceTarget(label)
 
-	//nolint:gosec // arguments are controlled
-	disableCmd := exec.Command("launchctl", "disable", target)
-	if out, err := disableCmd.CombinedOutput(); err != nil {
+	out, err := runLaunchctl("disable", target)
+	if err != nil {
 		return fmt.Errorf("launchctl disable: %s (%w)", strings.TrimSpace(string(out)), err)
 	}
 
@@ -316,9 +318,7 @@ func Status(label string) (*Info, error) {
 // bootout unloads the agent. Returns nil if the agent was not loaded.
 func bootout(label, plistPath string) error {
 	// Try the modern service-target approach first.
-	//nolint:gosec // arguments are controlled
-	cmd := exec.Command("launchctl", "bootout", serviceTarget(label))
-	out, err := cmd.CombinedOutput()
+	out, err := runLaunchctl("bootout", serviceTarget(label))
 	if err == nil {
 		return nil
 	}
@@ -329,9 +329,7 @@ func bootout(label, plistPath string) error {
 	// approach, which works in some macOS versions where the service isn't
 	// registered in the expected domain.
 	if _, statErr := os.Stat(plistPath); statErr == nil {
-		//nolint:gosec // arguments are controlled
-		legacyCmd := exec.Command("launchctl", "bootout", domainTarget(), plistPath)
-		legacyOut, legacyErr := legacyCmd.CombinedOutput()
+		legacyOut, legacyErr := runLaunchctl("bootout", domainTarget(), plistPath)
 		if legacyErr == nil {
 			return nil
 		}
@@ -344,9 +342,7 @@ func bootout(label, plistPath string) error {
 	// bootout refuses to act (exit 125). The unload subcommand is deprecated
 	// since macOS 10.10 but remains functional.
 	if _, statErr := os.Stat(plistPath); statErr == nil {
-		//nolint:gosec // arguments are controlled
-		unloadCmd := exec.Command("launchctl", "unload", plistPath)
-		unloadOut, unloadErr := unloadCmd.CombinedOutput()
+		unloadOut, unloadErr := runLaunchctl("unload", plistPath)
 		if unloadErr == nil {
 			return nil
 		}
@@ -364,9 +360,7 @@ func bootout(label, plistPath string) error {
 
 // runBootstrap calls launchctl bootstrap and returns the combined output and error.
 func runBootstrap(domain, plistPath string) ([]byte, error) {
-	//nolint:gosec // arguments are controlled, not user input
-	cmd := exec.Command("launchctl", "bootstrap", domain, plistPath)
-	return cmd.CombinedOutput()
+	return runLaunchctl("bootstrap", domain, plistPath)
 }
 
 // isNotLoadedError checks if a launchctl error message indicates the service
