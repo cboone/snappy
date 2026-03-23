@@ -249,9 +249,11 @@ func Start(label string) error {
 	return nil
 }
 
-// Stop disables the agent and sends SIGTERM. The disable step prevents
-// launchd from respawning the process (the plist has KeepAlive: true).
-// The disable persists until a matching enable call.
+// Stop unloads the agent from the launchd domain via bootout (the inverse of
+// the bootstrap used by Start). Bootout stops the running process and removes
+// the service registration, which definitively prevents KeepAlive respawn.
+// A disable is applied first so the service stays suppressed if something
+// re-bootstraps it before the next explicit Start.
 func Stop(label string) error {
 	target := serviceTarget(label)
 
@@ -261,12 +263,11 @@ func Stop(label string) error {
 		return fmt.Errorf("launchctl disable: %s (%w)", strings.TrimSpace(string(out)), err)
 	}
 
-	//nolint:gosec // arguments are controlled
-	killCmd := exec.Command("launchctl", "kill", "SIGTERM", target)
-	if out, err := killCmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("launchctl kill: %s (%w)", strings.TrimSpace(string(out)), err)
+	plistPath, err := PlistPath(label)
+	if err != nil {
+		return err
 	}
-	return nil
+	return bootout(label, plistPath)
 }
 
 // Status queries launchctl for the current state of the agent.
