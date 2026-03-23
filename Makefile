@@ -62,10 +62,14 @@ test-scrut: build ## Run scrut CLI tests
 		echo "scrut not installed. Install from https://github.com/facebookincubator/scrut"; \
 		exit 1; \
 	fi
-	SNAPPY_BIN="$(CURDIR)/$(OUTDIR)/$(BINARY)" scrut test tests/scrut/*.md
+	@tmp_home=$$(mktemp -d); \
+		trap 'rm -rf "$$tmp_home"' EXIT; \
+		HOME="$$tmp_home" SNAPPY_BIN="$(CURDIR)/$(OUTDIR)/$(BINARY)" scrut test tests/scrut/*.md
 
 test-scrut-update: build ## Update scrut test expectations
-	SNAPPY_BIN="$(CURDIR)/$(OUTDIR)/$(BINARY)" scrut update --replace --assume-yes tests/scrut/*.md
+	@tmp_home=$$(mktemp -d); \
+		trap 'rm -rf "$$tmp_home"' EXIT; \
+		HOME="$$tmp_home" SNAPPY_BIN="$(CURDIR)/$(OUTDIR)/$(BINARY)" scrut update --replace --assume-yes tests/scrut/*.md
 
 test-scrut-ez: ## Run scrut tests for snappy-ez
 	@echo "Running snappy-ez scrut tests..."
