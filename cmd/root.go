@@ -185,7 +185,7 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	}
 	svcInstalled, svcRunning := checkServiceStatus(log)
 	var svcCtrl tui.ServiceController = tui.LaunchdController{}
-	daemonActive, lock := acquireAutoSnapLock(cfg, log, svcRunning)
+	daemonActive, lock := acquireAutoSnapLock(cfg, log, svcInstalled, svcRunning)
 	log.Log(logger.LevelInfo, logger.CatStartup, fmt.Sprintf("auto-snapshot=%v | every %ds | thin >%ds to %ds",
 		cfg.AutoEnabled, int(cfg.AutoSnapshotInterval.Seconds()),
 		int(cfg.ThinAgeThreshold.Seconds()), int(cfg.ThinCadence.Seconds())))
@@ -239,11 +239,20 @@ func checkServiceStatus(log *logger.Logger) (installed, running bool) {
 	return svcInfo.Installed, svcInfo.Running
 }
 
-func acquireAutoSnapLock(cfg *config.Config, log *logger.Logger, svcRunning bool) (bool, *service.LockFile) {
+func acquireAutoSnapLock(cfg *config.Config, log *logger.Logger, svcInstalled, svcRunning bool) (bool, *service.LockFile) {
 	lockPath := service.DefaultLockPath(cfg.LogDir)
 	daemonActive := service.IsHeld(lockPath)
 	if svcRunning {
 		daemonActive = true
+	}
+
+	// When the service is installed, don't acquire the lock or enable TUI
+	// auto-snapping. The user should press 'a' to start the service.
+	if svcInstalled {
+		if daemonActive {
+			log.Log(logger.LevelInfo, logger.CatStartup, "Another snappy process detected; TUI auto-snapshots disabled")
+		}
+		return daemonActive, nil
 	}
 
 	var lock *service.LockFile

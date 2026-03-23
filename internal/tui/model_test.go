@@ -2891,11 +2891,20 @@ func TestAutoToggleStartsServiceWhenStopped(t *testing.T) {
 	}
 }
 
-func TestAutoToggleDisablesTUIAutoSnapWhenStartingService(t *testing.T) {
-	// Service installed but not running; TUI auto-snap is active.
+func TestAutoSnapDisabledAtStartupWhenServiceInstalled(t *testing.T) {
 	m := testModelWithService(true, false)
+	if m.auto.Enabled() {
+		t.Error("expected TUI auto-snap to be disabled when service is installed")
+	}
+}
+
+func TestAutoToggleDisablesTUIAutoSnapWhenStartingService(t *testing.T) {
+	// Simulate edge case: service installed mid-session while TUI auto-snap
+	// was already running. Manually enable auto to test the handoff.
+	m := testModelWithService(true, false)
+	m.auto.Toggle(m.now()) // force-enable auto-snap
 	if !m.auto.Enabled() {
-		t.Fatal("precondition: auto should be enabled when service is stopped")
+		t.Fatal("precondition: auto should be enabled after manual toggle")
 	}
 
 	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})

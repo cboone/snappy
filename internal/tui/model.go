@@ -185,7 +185,7 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 	hasDarkBG := true
 
 	autoEnabled := cfg.AutoEnabled
-	if params.DaemonActive {
+	if params.DaemonActive || params.ServiceInstalled {
 		autoEnabled = false
 	}
 
