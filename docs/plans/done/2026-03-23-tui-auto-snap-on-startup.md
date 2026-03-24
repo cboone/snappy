@@ -19,6 +19,7 @@ func (m *Model) maybeStartupSnapshot(cmds []tea.Cmd) []tea.Cmd
 ```
 
 Logic:
+
 1. Return early if `!m.auto.Enabled()` or `m.snapshotting`
 2. If snapshots exist, check the newest one (last element, sorted ascending):
    - If `age < m.auto.Interval()`: skip creation, but call `m.auto.RecordSnapshot(newest.Time)` to align the timer so the next auto-snapshot fires relative to the last actual snapshot, not TUI startup. Return.
@@ -31,6 +32,7 @@ Two insertions:
 **Before `m.logDiffChanges()`** (~line 752): capture `isFirstRefresh := !m.hadFirstRefresh`
 
 **After `var cmds []tea.Cmd`** (~line 758): add:
+
 ```go
 if isFirstRefresh {
     cmds = m.maybeStartupSnapshot(cmds)
@@ -42,7 +44,7 @@ This placement ensures `m.snapshots` is populated, diff logging has run, and the
 ### 3. Add tests to `internal/tui/model_test.go`
 
 | Test | Scenario | Key assertion |
-|------|----------|---------------|
+| ------ | ---------- | --------------- |
 | `TestFirstRefreshTriggersStartupSnapshot` | Newest snapshot older than interval | `snapshotting == true`, log contains "startup auto-snapshot" |
 | `TestFirstRefreshSkipsStartupSnapshotWhenRecent` | Newest snapshot younger than interval | `snapshotting == false`, timer aligned (~40s remaining) |
 | `TestFirstRefreshTriggersStartupSnapshotWhenEmpty` | No existing snapshots | `snapshotting == true` |
