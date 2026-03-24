@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -20,6 +21,7 @@ var listCmd = &cobra.Command{
 
 func init() {
 	listCmd.Flags().Bool("json", false, "output in JSON format")
+	listCmd.Flags().Bool("no-header", false, "suppress column header row")
 	rootCmd.AddCommand(listCmd)
 }
 
@@ -29,6 +31,7 @@ func runList(cmd *cobra.Command, _ []string) error {
 	}
 
 	jsonOut, _ := cmd.Flags().GetBool("json")
+	noHeader, _ := cmd.Flags().GetBool("no-header")
 	runner := newRunner()
 
 	ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
@@ -43,7 +46,7 @@ func runList(cmd *cobra.Command, _ []string) error {
 		return writeListJSON(cmd, snapshots)
 	}
 
-	return writeListHuman(cmd, snapshots)
+	return writeListHuman(cmd, snapshots, noHeader)
 }
 
 func writeListJSON(cmd *cobra.Command, snapshots []snapshot.Snapshot) error {
@@ -88,7 +91,7 @@ func writeListJSON(cmd *cobra.Command, snapshots []snapshot.Snapshot) error {
 	})
 }
 
-func writeListHuman(cmd *cobra.Command, snapshots []snapshot.Snapshot) error {
+func writeListHuman(cmd *cobra.Command, snapshots []snapshot.Snapshot, noHeader bool) error {
 	w := cmd.OutOrStdout()
 	count := len(snapshots)
 	now := time.Now()
@@ -105,36 +108,76 @@ func writeListHuman(cmd *cobra.Command, snapshots []snapshot.Snapshot) error {
 		return err
 	}
 
-	// Display newest first (reverse of ascending loadSnapshots order).
-	for i := count - 1; i >= 0; i-- {
-		s := snapshots[i]
-		relative := formatRelativeAgo(s.Time, now)
-		num := count - i
-
-		line := fmt.Sprintf("  %2d. %s   (%s)", num, s.Date, relative)
-
+	// Check whether any snapshot has APFS details.
+	hasAPFS := false
+	for _, s := range snapshots {
 		if s.UUID != "" {
-			var delta string
-			if i > 0 && snapshots[i-1].UUID != "" {
-				delta = fmt.Sprintf("   delta:%d", s.XID-snapshots[i-1].XID)
-			}
-
-			flags := "purgeable"
-			if !s.Purgeable {
-				flags = "pinned"
-			}
-			if s.LimitsShrink {
-				flags += "   limits shrink"
-			}
-			line += fmt.Sprintf("   %s%s   %s", s.UUID, delta, flags)
-		}
-
-		if _, err := fmt.Fprintln(w, line); err != nil {
-			return err
+			hasAPFS = true
+			break
 		}
 	}
 
-	return nil
+	ct := listTable(hasAPFS)
+
+	// Display newest first (reverse of ascending loadSnapshots order).
+	for i := count - 1; i >= 0; i-- {
+		s := snapshots[i]
+		num := fmt.Sprintf("%d", count-i)
+		date := formatHumanDate(s.Time)
+		age := formatRelativeAgo(s.Time, now)
+
+		if !hasAPFS {
+			ct.addRow(num, date, age)
+			continue
+		}
+
+		var xid, delta, uuid, status string
+		if s.UUID != "" {
+			xid = fmt.Sprintf("%d", s.XID)
+			uuid = s.UUID
+			status = formatStatus(s)
+			if i > 0 && snapshots[i-1].UUID != "" {
+				delta = fmt.Sprintf("%d", s.XID-snapshots[i-1].XID)
+			}
+		}
+		ct.addRow(num, date, age, xid, delta, uuid, status)
+	}
+
+	return ct.render(w, !noHeader)
+}
+
+func listTable(hasAPFS bool) *columnTable {
+	cols := []columnDef{
+		{title: "#", align: alignRight},
+		{title: "DATE", align: alignLeft},
+		{title: "AGE", align: alignLeft},
+	}
+	if hasAPFS {
+		cols = append(cols,
+			columnDef{title: "XID", align: alignRight},
+			columnDef{title: "DELTA", align: alignRight},
+			columnDef{title: "UUID", align: alignLeft},
+			columnDef{title: "STATUS", align: alignLeft},
+		)
+	}
+	return &columnTable{cols: cols}
+}
+
+func formatHumanDate(t time.Time) string {
+	return t.Format("2006-01-02 15:04:05")
+}
+
+func formatStatus(s snapshot.Snapshot) string {
+	var parts []string
+	if s.Purgeable {
+		parts = append(parts, "purgeable")
+	} else {
+		parts = append(parts, "pinned")
+	}
+	if s.LimitsShrink {
+		parts = append(parts, "limits shrink")
+	}
+	return strings.Join(parts, ", ")
 }
 
 func formatRelativeAgo(t, now time.Time) string {
