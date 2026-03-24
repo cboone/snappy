@@ -27,16 +27,17 @@ type keyMap struct {
 	ScrollDown key.Binding
 	Tab        key.Binding
 	ShiftTab   key.Binding
+	Help       key.Binding
 }
 
 func (k keyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Snapshot, k.Refresh, k.AutoSnap, k.OpenLog, k.Quit}
+	return []key.Binding{k.Snapshot, k.Refresh, k.AutoSnap, k.OpenLog, k.Quit, k.Help}
 }
 
 func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Snapshot, k.Refresh, k.AutoSnap, k.OpenLog, k.Quit},
-		{k.ScrollUp, k.ScrollDown, k.Tab, k.ShiftTab},
+		{k.ScrollUp, k.ScrollDown, k.Tab, k.ShiftTab, k.Help},
 	}
 }
 
@@ -77,6 +78,10 @@ func defaultKeyMap() keyMap {
 		ShiftTab: key.NewBinding(
 			key.WithKeys("shift+tab"),
 			key.WithHelp("shift+tab", "prev panel"),
+		),
+		Help: key.NewBinding(
+			key.WithKeys("?"),
+			key.WithHelp("?", "help"),
 		),
 	}
 }

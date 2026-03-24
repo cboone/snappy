@@ -3487,3 +3487,66 @@ func TestViewAutoStatusServiceStopped(t *testing.T) {
 		t.Error("view missing 'stopped' status when service is stopped")
 	}
 }
+
+func TestHelpToggle(t *testing.T) {
+	m := testModel()
+	if m.help.ShowAll {
+		t.Fatal("expected ShowAll=false initially")
+	}
+
+	// Press ? to expand help.
+	updated, _ := m.Update(tea.KeyPressMsg{Code: '?', Text: "?"})
+	model := updated.(Model)
+	if !model.help.ShowAll {
+		t.Error("expected ShowAll=true after pressing '?'")
+	}
+	if got := model.keys.Help.Help().Desc; got != "close help" {
+		t.Errorf("help desc = %q, want %q", got, "close help")
+	}
+
+	// Press ? again to collapse help.
+	updated, _ = model.Update(tea.KeyPressMsg{Code: '?', Text: "?"})
+	model = updated.(Model)
+	if model.help.ShowAll {
+		t.Error("expected ShowAll=false after second '?'")
+	}
+	if got := model.keys.Help.Help().Desc; got != "help" {
+		t.Errorf("help desc = %q, want %q", got, "help")
+	}
+}
+
+func TestHelpToggleRelayoutsPanels(t *testing.T) {
+	m := testModel()
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 40})
+	m = updated.(Model)
+	snapRowsBefore := m.snapVisibleRows
+
+	// Expand help: panels should shrink to make room.
+	updated, _ = m.Update(tea.KeyPressMsg{Code: '?', Text: "?"})
+	m = updated.(Model)
+	if m.snapVisibleRows >= snapRowsBefore {
+		t.Errorf("snapVisibleRows should decrease when help expanded: before=%d after=%d",
+			snapRowsBefore, m.snapVisibleRows)
+	}
+}
+
+func TestViewShowsHelpHint(t *testing.T) {
+	m := testModel()
+	v := viewContent(m)
+	if !strings.Contains(v, "?") {
+		t.Error("view should show '?' key in help bar")
+	}
+}
+
+func TestFullHelpShowsAllBindings(t *testing.T) {
+	m := testModel()
+	updated, _ := m.Update(tea.KeyPressMsg{Code: '?', Text: "?"})
+	model := updated.(Model)
+	v := viewContent(model)
+
+	for _, want := range []string{"scroll up", "scroll down", "next panel", "prev panel"} {
+		if !strings.Contains(v, want) {
+			t.Errorf("full help view missing %q", want)
+		}
+	}
+}
