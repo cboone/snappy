@@ -12,8 +12,9 @@ Usage:
   snappy list [flags]
 
 Flags:
-  -h, --help   help for list
-      --json   output in JSON format
+  -h, --help        help for list
+      --json        output in JSON format
+      --no-header   suppress column header row
 
 Global Flags:
       --config string   config file (default: ~/.config/snappy/config.yaml)
@@ -31,6 +32,13 @@ $ "${SNAPPY_BIN}" list | head -1
 ```scrut
 $ "${SNAPPY_BIN}" list --json | head -1
 {
+```
+
+## List no-header still shows snapshot count
+
+```scrut
+$ "${SNAPPY_BIN}" list --no-header | head -1
+* snapshot(s) on / (glob)
 ```
 
 ## List rejects extra arguments

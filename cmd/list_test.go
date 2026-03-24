@@ -75,8 +75,19 @@ func TestListHumanWithSnapshots(t *testing.T) {
 	if !strings.Contains(output, "2 snapshot(s)") {
 		t.Errorf("output missing '2 snapshot(s)', got: %s", output)
 	}
-	if !strings.Contains(output, "2026-03-01-140100") {
-		t.Errorf("output missing snapshot date, got: %s", output)
+	// Date should be in human-readable format.
+	if !strings.Contains(output, "2026-03-01 14:01:00") {
+		t.Errorf("output missing human-readable date, got: %s", output)
+	}
+	// Without APFS data, should show basic columns but no XID/UUID columns.
+	if !strings.Contains(output, "DATE") {
+		t.Errorf("output missing DATE header, got: %s", output)
+	}
+	if strings.Contains(output, "XID") {
+		t.Errorf("output should not contain XID column without APFS data, got: %s", output)
+	}
+	if strings.Contains(output, "UUID") {
+		t.Errorf("output should not contain UUID column without APFS data, got: %s", output)
 	}
 }
 
@@ -344,16 +355,189 @@ func TestListHumanWithAPFSDetails(t *testing.T) {
 	}
 
 	output := buf.String()
-	if !strings.Contains(output, "delta:50") {
-		t.Errorf("output missing 'delta:50', got:\n%s", output)
+	// APFS columns should have headers.
+	if !strings.Contains(output, "DELTA") {
+		t.Errorf("output missing DELTA header, got:\n%s", output)
 	}
-	if !strings.Contains(output, "pinned") {
-		t.Errorf("output missing 'pinned' flag, got:\n%s", output)
+	if !strings.Contains(output, "XID") {
+		t.Errorf("output missing XID header, got:\n%s", output)
 	}
-	if !strings.Contains(output, "limits shrink") {
-		t.Errorf("output missing 'limits shrink' flag, got:\n%s", output)
+	// Delta is now a standalone column value (not "delta:50").
+	if !strings.Contains(output, "50") {
+		t.Errorf("output missing delta value '50', got:\n%s", output)
+	}
+	if strings.Contains(output, "delta:") {
+		t.Errorf("output should not contain 'delta:' prefix, got:\n%s", output)
+	}
+	// Status uses comma separator.
+	if !strings.Contains(output, "pinned, limits shrink") {
+		t.Errorf("output missing 'pinned, limits shrink', got:\n%s", output)
 	}
 	if !strings.Contains(output, "ABC-123") {
 		t.Errorf("output missing UUID, got:\n%s", output)
+	}
+}
+
+func TestListHumanNoHeader(t *testing.T) {
+	viper.Reset()
+	defer viper.Reset()
+	config.SetDefaults()
+
+	origNewRunner := newRunner
+	origRequire := requireTmutil
+	defer func() { newRunner = origNewRunner; requireTmutil = origRequire }()
+	requireTmutil = func() error { return nil }
+
+	runner := &mockRunner{responses: map[string]mockResponse{
+		"tmutil listlocalsnapshotdates /": {
+			output: []byte("2026-03-01-140000\n2026-03-01-140100\n"),
+		},
+		"diskutil info -plist /": {err: fmt.Errorf("no device")},
+	}}
+	newRunner = func() platform.CommandRunner { return runner }
+
+	var buf bytes.Buffer
+	listCmd.SetOut(&buf)
+	setFlag(t, listCmd, "json", "false")
+	setFlag(t, listCmd, "no-header", "true")
+	defer setFlag(t, listCmd, "no-header", "false")
+
+	setTestContext(listCmd)
+	if err := runList(listCmd, nil); err != nil {
+		t.Fatalf("runList() error = %v", err)
+	}
+
+	output := buf.String()
+	// Summary line should still be present.
+	if !strings.Contains(output, "2 snapshot(s)") {
+		t.Errorf("output missing summary line, got: %s", output)
+	}
+	// Header row should be suppressed.
+	if strings.Contains(output, "DATE") {
+		t.Errorf("output should not contain header with --no-header, got: %s", output)
+	}
+	// Data rows should still be present.
+	if !strings.Contains(output, "2026-03-01 14:01:00") {
+		t.Errorf("output missing data row, got: %s", output)
+	}
+}
+
+func TestListHumanNoHeaderWithAPFS(t *testing.T) {
+	viper.Reset()
+	defer viper.Reset()
+	config.SetDefaults()
+
+	origNewRunner := newRunner
+	origRequire := requireTmutil
+	defer func() { newRunner = origNewRunner; requireTmutil = origRequire }()
+	requireTmutil = func() error { return nil }
+	newRunner = func() platform.CommandRunner { return apfsListRunner() }
+
+	var buf bytes.Buffer
+	listCmd.SetOut(&buf)
+	setFlag(t, listCmd, "json", "false")
+	setFlag(t, listCmd, "no-header", "true")
+	defer setFlag(t, listCmd, "no-header", "false")
+
+	setTestContext(listCmd)
+	if err := runList(listCmd, nil); err != nil {
+		t.Fatalf("runList() error = %v", err)
+	}
+
+	output := buf.String()
+	// Header labels should be absent.
+	if strings.Contains(output, "DELTA") {
+		t.Errorf("output should not contain DELTA header, got:\n%s", output)
+	}
+	// Data should still be present.
+	if !strings.Contains(output, "ABC-123") {
+		t.Errorf("output missing UUID data, got:\n%s", output)
+	}
+	if !strings.Contains(output, "50") {
+		t.Errorf("output missing delta value, got:\n%s", output)
+	}
+}
+
+func TestListHumanNoHeaderEmpty(t *testing.T) {
+	viper.Reset()
+	defer viper.Reset()
+	config.SetDefaults()
+
+	origNewRunner := newRunner
+	origRequire := requireTmutil
+	defer func() { newRunner = origNewRunner; requireTmutil = origRequire }()
+	requireTmutil = func() error { return nil }
+
+	runner := &mockRunner{responses: map[string]mockResponse{
+		"tmutil listlocalsnapshotdates /": {output: []byte("")},
+		"diskutil info -plist /":          {err: fmt.Errorf("no device")},
+	}}
+	newRunner = func() platform.CommandRunner { return runner }
+
+	var buf bytes.Buffer
+	listCmd.SetOut(&buf)
+	setFlag(t, listCmd, "json", "false")
+	setFlag(t, listCmd, "no-header", "true")
+	defer setFlag(t, listCmd, "no-header", "false")
+
+	setTestContext(listCmd)
+	if err := runList(listCmd, nil); err != nil {
+		t.Fatalf("runList() error = %v", err)
+	}
+
+	output := buf.String()
+	if !strings.Contains(output, "0 snapshot(s)") {
+		t.Errorf("output missing summary line, got: %s", output)
+	}
+}
+
+func TestListHumanColumnAlignment(t *testing.T) {
+	viper.Reset()
+	defer viper.Reset()
+	config.SetDefaults()
+
+	origNewRunner := newRunner
+	origRequire := requireTmutil
+	defer func() { newRunner = origNewRunner; requireTmutil = origRequire }()
+	requireTmutil = func() error { return nil }
+	newRunner = func() platform.CommandRunner { return apfsListRunner() }
+
+	var buf bytes.Buffer
+	listCmd.SetOut(&buf)
+	setFlag(t, listCmd, "json", "false")
+	setFlag(t, listCmd, "no-header", "false")
+
+	setTestContext(listCmd)
+	if err := runList(listCmd, nil); err != nil {
+		t.Fatalf("runList() error = %v", err)
+	}
+
+	output := buf.String()
+	lines := strings.Split(output, "\n")
+
+	// Find the header line (first line after the blank line).
+	var headerIdx int
+	for i, line := range lines {
+		if strings.Contains(line, "DATE") && strings.Contains(line, "AGE") {
+			headerIdx = i
+			break
+		}
+	}
+	if headerIdx == 0 {
+		t.Fatalf("could not find header line in output:\n%s", output)
+	}
+
+	// DATE column should start at the same position in the header and data rows.
+	headerDatePos := strings.Index(lines[headerIdx], "DATE")
+	for i := headerIdx + 1; i < len(lines); i++ {
+		if strings.TrimSpace(lines[i]) == "" {
+			continue
+		}
+		// Each data row should have "2026-03-01" starting at the same column as "DATE".
+		datePos := strings.Index(lines[i], "2026-03-01")
+		if datePos != headerDatePos {
+			t.Errorf("line %d: DATE column at position %d, want %d\nheader: %q\nrow:    %q",
+				i, datePos, headerDatePos, lines[headerIdx], lines[i])
+		}
 	}
 }
