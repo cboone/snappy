@@ -391,7 +391,9 @@ func (m *Model) applyServiceStatus(info *service.Info) {
 		m.serviceEverInstalled = true
 		return
 	}
-	m.serviceConsecutiveUninstalled++
+	if m.serviceConsecutiveUninstalled < 2 {
+		m.serviceConsecutiveUninstalled++
+	}
 	m.serviceRunning = false
 	if !m.serviceInstalled || m.serviceConsecutiveUninstalled >= 2 {
 		m.serviceInstalled = false

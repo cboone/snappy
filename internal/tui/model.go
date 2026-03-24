@@ -188,6 +188,12 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 	now := time.Now()
 	hasDarkBG := true
 
+	// ServiceInstalled/ServiceRunning are meaningless without a controller.
+	if params.ServiceCtrl == nil {
+		params.ServiceInstalled = false
+		params.ServiceRunning = false
+	}
+
 	autoEnabled := cfg.AutoEnabled
 	if params.DaemonActive || params.ServiceInstalled {
 		autoEnabled = false
