@@ -19,10 +19,12 @@ The config variable is named `log_scrollback` (Go field: `LogScrollback`) to mak
 - Add `LogScrollback: viper.GetInt("log_scrollback")` in `Load()`
 - Add `viper.SetDefault("log_scrollback", defaultLogScrollback)` in `SetDefaults()`
 - Add config template entry in `defaultConfigTmpl`:
+
   ```yaml
   # Number of log entries to display in the TUI scrollback.
   log_scrollback: {{.LogScrollback}}
   ```
+
 - Add `LogScrollback int` + value to `WriteDefaultConfig()` template data struct
 - Add `log_scrollback: {{.LogScrollback}}` to `formatConfigTmpl`
 - Add `LogScrollback int` + value to `FormatConfig()` template data struct
