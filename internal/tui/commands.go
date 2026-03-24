@@ -180,6 +180,44 @@ func uiTick() tea.Cmd {
 	})
 }
 
+// serviceStopSettleDelay is the time to wait after stopping the service
+// before checking its status. This gives the process time to exit after
+// bootout so the follow-up check reflects the actual state.
+const serviceStopSettleDelay = 2 * time.Second
+
+func doServiceStatus(ctrl ServiceController, label string) tea.Cmd {
+	return func() tea.Msg {
+		info, err := ctrl.Status(label)
+		return ServiceStatusResultMsg{Info: info, Err: err}
+	}
+}
+
+// doDelayedServiceStatus waits for the given duration before checking service
+// status. This gives a process time to exit after receiving SIGTERM so that the
+// follow-up check reflects the actual state rather than catching the process
+// mid-shutdown.
+func doDelayedServiceStatus(ctrl ServiceController, label string, delay time.Duration) tea.Cmd {
+	return func() tea.Msg {
+		time.Sleep(delay)
+		info, err := ctrl.Status(label)
+		return ServiceStatusResultMsg{Info: info, Err: err}
+	}
+}
+
+func doServiceStart(ctrl ServiceController, label string) tea.Cmd {
+	return func() tea.Msg {
+		err := ctrl.Start(label)
+		return ServiceToggleResultMsg{Action: "start", Err: err}
+	}
+}
+
+func doServiceStop(ctrl ServiceController, label string) tea.Cmd {
+	return func() tea.Msg {
+		err := ctrl.Stop(label)
+		return ServiceToggleResultMsg{Action: "stop", Err: err}
+	}
+}
+
 func doOpenLogDir(dir string) tea.Cmd {
 	return func() tea.Msg {
 		if dir == "" {

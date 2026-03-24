@@ -65,11 +65,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleThinResult(msg)
 
 	case OpenLogDirResultMsg:
-		if msg.Err != nil {
-			m.log.Log(logger.LevelError, logger.CatOpen, fmt.Sprintf("Failed to open log directory: %v", msg.Err))
-			m.updateLogViewContent()
-		}
-		return m, nil
+		return m.handleOpenLogDirResult(msg)
+
+	case ServiceStatusResultMsg, ServiceToggleResultMsg:
+		return m.handleServiceMsg(msg)
 	}
 
 	return m, nil
@@ -241,6 +240,11 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleAutoSnapToggle() (tea.Model, tea.Cmd) {
+	// When the launchd service is installed, 'a' controls the service.
+	if m.serviceInstalled && m.serviceCtrl != nil {
+		return m.handleServiceToggle()
+	}
+
 	if m.daemonActive {
 		m.log.Log(logger.LevelInfo, logger.CatAuto, "Auto-snapshots managed by another process (stop it to take over)")
 		m.updateLogViewContent()
@@ -261,6 +265,15 @@ func (m Model) handleAutoSnapToggle() (tea.Model, tea.Cmd) {
 		m.updateLogViewContent()
 		return m, nil
 	}
+	// Defense-in-depth: if the service was installed during this session but
+	// serviceInstalled is currently false (transient status glitch), do not
+	// start TUI auto-snapping. Trigger a status re-check instead.
+	if m.serviceEverInstalled && m.serviceCtrl != nil {
+		m.log.Log(logger.LevelInfo, logger.CatService, "Service state unclear; rechecking...")
+		m.updateLogViewContent()
+		return m, doServiceStatus(m.serviceCtrl, m.serviceLabel)
+	}
+
 	// Enabling: acquire the persistent lock first.
 	if m.cfg.LogDir != "" {
 		lockPath := service.DefaultLockPath(m.cfg.LogDir)
@@ -287,6 +300,164 @@ func (m Model) handleAutoSnapToggle() (tea.Model, tea.Cmd) {
 	))
 	m.updateLogViewContent()
 	return m, uiTick()
+}
+
+func (m Model) handleServiceMsg(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case ServiceStatusResultMsg:
+		return m.handleServiceStatusResult(msg)
+	case ServiceToggleResultMsg:
+		return m.handleServiceToggleResult(msg)
+	}
+	return m, nil
+}
+
+func (m Model) handleOpenLogDirResult(msg OpenLogDirResultMsg) (tea.Model, tea.Cmd) {
+	if msg.Err != nil {
+		m.log.Log(logger.LevelError, logger.CatOpen, fmt.Sprintf("Failed to open log directory: %v", msg.Err))
+		m.updateLogViewContent()
+	}
+	return m, nil
+}
+
+func (m Model) handleServiceToggle() (tea.Model, tea.Cmd) {
+	if m.serviceToggling {
+		return m, nil
+	}
+	m.serviceToggling = true
+
+	if m.serviceRunning {
+		m.log.Log(logger.LevelInfo, logger.CatService, "Stopping service...")
+		m.updateLogViewContent()
+		return m, doServiceStop(m.serviceCtrl, m.serviceLabel)
+	}
+
+	// If the TUI is auto-snapshotting, disable it and release the lock
+	// so the service process can acquire it.
+	if m.auto.Enabled() {
+		m.auto.Toggle(m.now())
+		m.log.Log(logger.LevelInfo, logger.CatAuto, "Auto-snapshots disabled (handing off to service)")
+	}
+	if m.lock != nil && !m.autoSnapshotting {
+		m.releaseLock()
+	} else if m.lock != nil {
+		m.lockReleasePending = true
+	}
+
+	m.log.Log(logger.LevelInfo, logger.CatService, "Starting service...")
+	m.updateLogViewContent()
+	return m, doServiceStart(m.serviceCtrl, m.serviceLabel)
+}
+
+func (m Model) handleServiceStatusResult(msg ServiceStatusResultMsg) (tea.Model, tea.Cmd) {
+	if msg.Err != nil {
+		m.log.Log(logger.LevelWarn, logger.CatService, fmt.Sprintf("Service status check failed: %v", msg.Err))
+		m.updateLogViewContent()
+		return m, nil
+	}
+
+	if msg.Info == nil {
+		m.log.Log(logger.LevelWarn, logger.CatService, "Service status returned nil info")
+		m.updateLogViewContent()
+		return m, nil
+	}
+
+	wasInstalled := m.serviceInstalled
+	wasRunning := m.serviceRunning
+
+	m.applyServiceStatus(msg.Info)
+	m.logServiceTransitions(wasInstalled, wasRunning, msg.Info.PID)
+
+	m.updateAutoSnapHelpText()
+	m.updateLogViewContent()
+
+	// First time seeing Installed=false after being installed: trigger
+	// an immediate re-check to confirm before committing to the transition.
+	if wasInstalled && !msg.Info.Installed && m.serviceConsecutiveUninstalled == 1 {
+		return m, doServiceStatus(m.serviceCtrl, m.serviceLabel)
+	}
+
+	return m, nil
+}
+
+// applyServiceStatus updates serviceInstalled and serviceRunning from a
+// status probe. Transitions to not-installed are debounced: two consecutive
+// probes must report Installed=false before the change is accepted.
+func (m *Model) applyServiceStatus(info *service.Info) {
+	if info.Installed {
+		m.serviceInstalled = true
+		m.serviceRunning = info.Running
+		m.serviceConsecutiveUninstalled = 0
+		m.serviceEverInstalled = true
+		return
+	}
+	if m.serviceConsecutiveUninstalled < 2 {
+		m.serviceConsecutiveUninstalled++
+	}
+	m.serviceRunning = false
+	if !m.serviceInstalled || m.serviceConsecutiveUninstalled >= 2 {
+		m.serviceInstalled = false
+		m.serviceEverInstalled = false
+	}
+}
+
+func (m *Model) logServiceTransitions(wasInstalled, wasRunning bool, pid int) {
+	if m.serviceInstalled && !wasInstalled {
+		m.log.Log(logger.LevelInfo, logger.CatService, "Service installed")
+	} else if !m.serviceInstalled && wasInstalled {
+		m.log.Log(logger.LevelInfo, logger.CatService, "Service uninstalled")
+	}
+
+	if m.serviceRunning && !wasRunning {
+		m.log.Log(logger.LevelInfo, logger.CatService,
+			fmt.Sprintf("Service started (PID %d)", pid))
+	} else if !m.serviceRunning && wasRunning && m.serviceInstalled {
+		m.log.Log(logger.LevelInfo, logger.CatService, "Service stopped")
+	}
+}
+
+func (m Model) handleServiceToggleResult(msg ServiceToggleResultMsg) (tea.Model, tea.Cmd) {
+	m.serviceToggling = false
+
+	if msg.Err != nil {
+		m.log.Log(logger.LevelError, logger.CatService,
+			fmt.Sprintf("Service %s failed: %v", msg.Action, msg.Err))
+		m.updateLogViewContent()
+		if m.serviceCtrl != nil {
+			return m, doServiceStatus(m.serviceCtrl, m.serviceLabel)
+		}
+		return m, nil
+	}
+
+	switch msg.Action {
+	case "start":
+		m.serviceRunning = true
+		m.log.Log(logger.LevelInfo, logger.CatService, "Service started")
+	case "stop":
+		m.serviceRunning = false
+		m.log.Log(logger.LevelInfo, logger.CatService, "Service stopped")
+	}
+
+	m.updateAutoSnapHelpText()
+	m.updateLogViewContent()
+
+	if m.serviceCtrl != nil {
+		// After a stop, delay the follow-up check so the process has time
+		// to exit. An immediate check would catch it mid-shutdown and
+		// falsely report "Service started."
+		if msg.Action == "stop" {
+			return m, doDelayedServiceStatus(m.serviceCtrl, m.serviceLabel, serviceStopSettleDelay)
+		}
+		// After a start, also trigger a data refresh so the service's
+		// first snapshot appears in the TUI promptly.
+		cmds := []tea.Cmd{doServiceStatus(m.serviceCtrl, m.serviceLabel)}
+		if !m.refreshing {
+			m.refreshing = true
+			cmds = append(cmds, doRefresh(m.runner, m.apfsVolume, m.apfsContainer))
+		}
+		return m, tea.Batch(cmds...)
+	}
+	return m, nil
 }
 
 func (m Model) handleMouseClick(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
@@ -491,6 +662,12 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 	}
 	cmds = append(cmds, refreshTick(m.cfg.RefreshInterval))
 
+	// Periodic service status check so CLI-driven install/uninstall/start/stop
+	// is picked up by the TUI.
+	if m.serviceCtrl != nil {
+		cmds = append(cmds, doServiceStatus(m.serviceCtrl, m.serviceLabel))
+	}
+
 	return m, tea.Batch(cmds...)
 }
 
@@ -516,7 +693,14 @@ func (m *Model) syncDaemonState(now time.Time) {
 		if m.auto.Enabled() {
 			m.auto.Toggle(now)
 		}
-		m.log.Log(logger.LevelInfo, logger.CatAuto, "Another snappy process detected; TUI auto-snapshots disabled")
+		// When the service is known to be running, the lock detection is
+		// expected. Only log the "another process" message for genuinely
+		// unexpected external processes.
+		if m.serviceRunning {
+			m.log.Log(logger.LevelInfo, logger.CatService, "Service acquired auto-snapshot lock")
+		} else {
+			m.log.Log(logger.LevelInfo, logger.CatAuto, "Another snappy process detected; TUI auto-snapshots disabled")
+		}
 		m.updateLogViewContent()
 
 	case !lockHeld && m.daemonActive:
@@ -657,7 +841,11 @@ func (m *Model) logDiffChanges(prev, current []snapshot.Snapshot) {
 			if _, ok := m.recentCreated[s.Date]; ok {
 				continue
 			}
-			m.log.Log(logger.LevelInfo, logger.CatAdded, "Snapshot appeared: "+s.Date)
+			if m.serviceRunning {
+				m.log.Log(logger.LevelInfo, logger.CatAdded, "Service snapshot: "+s.Date)
+			} else {
+				m.log.Log(logger.LevelInfo, logger.CatAdded, "Snapshot appeared: "+s.Date)
+			}
 		}
 	}
 	clear(m.recentCreated)
@@ -1044,7 +1232,7 @@ func logEntryStyle(s modelStyles, level logger.Level, cat logger.Category) lipgl
 		return s.textYellow
 	default:
 		switch cat {
-		case logger.CatAuto:
+		case logger.CatAuto, logger.CatService:
 			return s.textCyan
 		case logger.CatStartup:
 			return s.textMagenta

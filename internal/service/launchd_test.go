@@ -1,8 +1,10 @@
 package service
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -379,5 +381,164 @@ func TestServiceTarget(t *testing.T) {
 	}
 	if !strings.HasSuffix(st, "/com.cboone.snappy") {
 		t.Errorf("serviceTarget() missing label suffix: %q", st)
+	}
+}
+
+type launchctlStep struct {
+	args []string
+	out  string
+	err  error
+}
+
+func setTestHome(t *testing.T) {
+	t.Helper()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+}
+
+func writeInstalledPlist(t *testing.T, label string) string {
+	t.Helper()
+	plistPath, err := PlistPath(label)
+	if err != nil {
+		t.Fatalf("PlistPath() error = %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(plistPath), 0o755); err != nil {
+		t.Fatalf("MkdirAll() error = %v", err)
+	}
+	if err := os.WriteFile(plistPath, []byte("plist"), 0o644); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+	return plistPath
+}
+
+func mockLaunchctl(t *testing.T, steps []launchctlStep) {
+	t.Helper()
+	orig := runLaunchctl
+	idx := 0
+	runLaunchctl = func(args ...string) ([]byte, error) {
+		t.Helper()
+		if idx >= len(steps) {
+			t.Fatalf("unexpected launchctl call %v", args)
+		}
+		step := steps[idx]
+		idx++
+		if !reflect.DeepEqual(args, step.args) {
+			t.Fatalf("launchctl call %d = %v, want %v", idx, args, step.args)
+		}
+		return []byte(step.out), step.err
+	}
+	t.Cleanup(func() {
+		runLaunchctl = orig
+		if idx != len(steps) {
+			t.Errorf("launchctl calls = %d, want %d", idx, len(steps))
+		}
+	})
+}
+
+func TestStartFallsBackToBootstrapWhenKickstartServiceMissing(t *testing.T) {
+	setTestHome(t)
+	target := serviceTarget(DefaultLabel)
+	plistPath, err := PlistPath(DefaultLabel)
+	if err != nil {
+		t.Fatalf("PlistPath() error = %v", err)
+	}
+
+	mockLaunchctl(t, []launchctlStep{
+		{args: []string{"enable", target}},
+		{
+			args: []string{"kickstart", target},
+			out:  "Could not find service \"com.cboone.snappy\" in domain for uid: 502",
+			err:  errors.New("exit status 3"),
+		},
+		{args: []string{"bootstrap", domainTarget(), plistPath}},
+	})
+
+	if err := Start(DefaultLabel); err != nil {
+		t.Fatalf("Start() error = %v", err)
+	}
+}
+
+func TestStartReturnsKickstartErrorWhenServiceExistsButCannotStart(t *testing.T) {
+	setTestHome(t)
+	target := serviceTarget(DefaultLabel)
+
+	mockLaunchctl(t, []launchctlStep{
+		{args: []string{"enable", target}},
+		{
+			args: []string{"kickstart", target},
+			out:  "Operation not permitted",
+			err:  errors.New("exit status 1"),
+		},
+	})
+
+	err := Start(DefaultLabel)
+	if err == nil {
+		t.Fatal("Start() should return error when kickstart fails with a non-fallback error")
+	}
+	if !strings.Contains(err.Error(), "launchctl kickstart") {
+		t.Fatalf("Start() error = %v, want launchctl kickstart context", err)
+	}
+}
+
+func TestStopFallsBackToLegacyBootoutWhenServiceTargetFails(t *testing.T) {
+	setTestHome(t)
+	target := serviceTarget(DefaultLabel)
+	plistPath := writeInstalledPlist(t, DefaultLabel)
+
+	mockLaunchctl(t, []launchctlStep{
+		{args: []string{"disable", target}},
+		{
+			args: []string{"bootout", target},
+			out:  "Boot-out failed: 125: Domain does not support specified action",
+			err:  errors.New("exit status 125"),
+		},
+		{args: []string{"bootout", domainTarget(), plistPath}},
+	})
+
+	if err := Stop(DefaultLabel); err != nil {
+		t.Fatalf("Stop() error = %v", err)
+	}
+}
+
+func TestStopFallsBackToUnloadWhenBootoutVariantsFail(t *testing.T) {
+	setTestHome(t)
+	target := serviceTarget(DefaultLabel)
+	plistPath := writeInstalledPlist(t, DefaultLabel)
+
+	mockLaunchctl(t, []launchctlStep{
+		{args: []string{"disable", target}},
+		{
+			args: []string{"bootout", target},
+			out:  "Boot-out failed: 5: Input/output error",
+			err:  errors.New("exit status 5"),
+		},
+		{
+			args: []string{"bootout", domainTarget(), plistPath},
+			out:  "Boot-out failed: 5: Input/output error",
+			err:  errors.New("exit status 5"),
+		},
+		{args: []string{"unload", plistPath}},
+	})
+
+	if err := Stop(DefaultLabel); err != nil {
+		t.Fatalf("Stop() error = %v", err)
+	}
+}
+
+func TestStopTreatsNotLoadedAsSuccess(t *testing.T) {
+	setTestHome(t)
+	target := serviceTarget(DefaultLabel)
+
+	mockLaunchctl(t, []launchctlStep{
+		{args: []string{"disable", target}},
+		{
+			args: []string{"bootout", target},
+			out:  "Could not find service \"com.cboone.snappy\" in domain for uid: 502",
+			err:  errors.New("exit status 3"),
+		},
+	})
+
+	if err := Stop(DefaultLabel); err != nil {
+		t.Fatalf("Stop() error = %v", err)
 	}
 }

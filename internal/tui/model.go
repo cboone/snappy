@@ -111,6 +111,18 @@ type Model struct {
 	daemonRefreshCount int
 	lock               *service.LockFile
 
+	serviceCtrl                   ServiceController
+	serviceInstalled              bool
+	serviceRunning                bool
+	serviceLabel                  string
+	serviceToggling               bool
+	serviceConsecutiveUninstalled int
+	// serviceEverInstalled is a sticky "maybe installed" flag used for
+	// debouncing transient uninstall statuses. It is explicitly cleared
+	// after a confirmed uninstall (two consecutive probes), so it does
+	// not literally mean "ever installed" for all time.
+	serviceEverInstalled bool
+
 	width              int
 	height             int
 	quitting           bool
@@ -158,13 +170,16 @@ type Model struct {
 // ModelParams groups the string and boolean parameters for NewModel,
 // preventing accidental argument reordering at call sites.
 type ModelParams struct {
-	APFSVolume    string
-	APFSContainer string
-	TMStatus      string
-	VolumeName    string
-	Version       string
-	Lock          *service.LockFile // pre-acquired persistent lock, or nil
-	DaemonActive  bool
+	APFSVolume       string
+	APFSContainer    string
+	TMStatus         string
+	VolumeName       string
+	Version          string
+	Lock             *service.LockFile // pre-acquired persistent lock, or nil
+	DaemonActive     bool
+	ServiceCtrl      ServiceController // nil disables service features
+	ServiceInstalled bool
+	ServiceRunning   bool
 }
 
 // NewModel creates a Model with the given dependencies. When DaemonActive is
@@ -173,8 +188,14 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 	now := time.Now()
 	hasDarkBG := true
 
+	// ServiceInstalled/ServiceRunning are meaningless without a controller.
+	if params.ServiceCtrl == nil {
+		params.ServiceInstalled = false
+		params.ServiceRunning = false
+	}
+
 	autoEnabled := cfg.AutoEnabled
-	if params.DaemonActive {
+	if params.DaemonActive || params.ServiceInstalled {
 		autoEnabled = false
 	}
 
@@ -201,39 +222,56 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 	)
 
 	m := Model{
-		cfg:             cfg,
-		runner:          runner,
-		log:             log,
-		auto:            snapshot.NewAutoManager(autoEnabled, cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence, now),
-		apfsVolume:      params.APFSVolume,
-		tmStatus:        params.TMStatus,
-		volumeName:      params.VolumeName,
-		daemonActive:    params.DaemonActive,
-		lock:            params.Lock,
-		apfsContainer:   params.APFSContainer,
-		refreshing:      true,
-		thinPinned:      make(map[string]struct{}),
-		recentCreated:   make(map[string]struct{}),
-		recentThinned:   make(map[string]struct{}),
-		version:         params.Version,
-		width:           80,
-		height:          24,
-		keys:            keys,
-		help:            h,
-		snapTable:       st,
-		snapVisibleRows: defaultTableHeight - 1, // minus header row
-		logView:         lv,
-		spinner:         s,
-		styles:          styles,
-		focusPanel:      panelSnap,
-		hasDarkBG:       hasDarkBG,
-		now:             time.Now,
+		cfg:                  cfg,
+		runner:               runner,
+		log:                  log,
+		auto:                 snapshot.NewAutoManager(autoEnabled, cfg.AutoSnapshotInterval, cfg.ThinAgeThreshold, cfg.ThinCadence, now),
+		apfsVolume:           params.APFSVolume,
+		tmStatus:             params.TMStatus,
+		volumeName:           params.VolumeName,
+		daemonActive:         params.DaemonActive,
+		lock:                 params.Lock,
+		apfsContainer:        params.APFSContainer,
+		serviceCtrl:          params.ServiceCtrl,
+		serviceInstalled:     params.ServiceInstalled,
+		serviceRunning:       params.ServiceRunning,
+		serviceLabel:         service.DefaultLabel,
+		serviceEverInstalled: params.ServiceInstalled,
+		refreshing:           true,
+		thinPinned:           make(map[string]struct{}),
+		recentCreated:        make(map[string]struct{}),
+		recentThinned:        make(map[string]struct{}),
+		version:              params.Version,
+		width:                80,
+		height:               24,
+		keys:                 keys,
+		help:                 h,
+		snapTable:            st,
+		snapVisibleRows:      defaultTableHeight - 1, // minus header row
+		logView:              lv,
+		spinner:              s,
+		styles:               styles,
+		focusPanel:           panelSnap,
+		hasDarkBG:            hasDarkBG,
+		now:                  time.Now,
 	}
 
+	m.updateAutoSnapHelpText()
 	m.updateSnapViewContent()
 	m.updateLogViewContent()
 
 	return m
+}
+
+func (m *Model) updateAutoSnapHelpText() {
+	switch {
+	case m.serviceInstalled && m.serviceRunning:
+		m.keys.AutoSnap.SetHelp("a", "stop service")
+	case m.serviceInstalled:
+		m.keys.AutoSnap.SetHelp("a", "start service")
+	default:
+		m.keys.AutoSnap.SetHelp("a", "auto-snap")
+	}
 }
 
 // Init returns the initial commands: a refresh, a tick timer, and a

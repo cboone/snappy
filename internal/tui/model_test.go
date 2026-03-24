@@ -2790,3 +2790,504 @@ func TestDaemonRefreshCountResetsOnDeactivation(t *testing.T) {
 		t.Errorf("expected daemonRefreshCount reset to 0 on deactivation, got %d", model.daemonRefreshCount)
 	}
 }
+
+// mockServiceController implements ServiceController for testing.
+type mockServiceController struct {
+	statusFn func(string) (*service.Info, error)
+	startFn  func(string) error
+	stopFn   func(string) error
+}
+
+func (m *mockServiceController) Status(label string) (*service.Info, error) {
+	if m.statusFn != nil {
+		return m.statusFn(label)
+	}
+	return &service.Info{Label: label}, nil
+}
+
+func (m *mockServiceController) Start(label string) error {
+	if m.startFn != nil {
+		return m.startFn(label)
+	}
+	return nil
+}
+
+func (m *mockServiceController) Stop(label string) error {
+	if m.stopFn != nil {
+		return m.stopFn(label)
+	}
+	return nil
+}
+
+func testModelWithService(installed, running bool) Model {
+	cfg := testConfig()
+	log := logger.New(logger.Options{MaxEntries: 50})
+	runner := &mockRunner{responses: map[string]mockResponse{}}
+	m := NewModel(cfg, runner, log, ModelParams{
+		APFSVolume:       "disk3s5",
+		APFSContainer:    "disk3",
+		TMStatus:         "Configured",
+		VolumeName:       "/",
+		Version:          "dev",
+		DaemonActive:     running,
+		ServiceCtrl:      &mockServiceController{},
+		ServiceInstalled: installed,
+		ServiceRunning:   running,
+	})
+	m.width = 80
+	m.height = 40
+	return m
+}
+
+func TestAutoToggleStopsServiceWhenRunning(t *testing.T) {
+	m := testModelWithService(true, true)
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model := updated.(Model)
+
+	if !model.serviceToggling {
+		t.Error("expected serviceToggling = true")
+	}
+	if cmd == nil {
+		t.Fatal("expected a command to be returned")
+	}
+
+	entries := model.log.Entries()
+	found := false
+	for _, e := range entries {
+		if strings.Contains(e.Message, "Stopping service") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected log message about stopping service")
+	}
+}
+
+func TestAutoToggleStartsServiceWhenStopped(t *testing.T) {
+	m := testModelWithService(true, false)
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model := updated.(Model)
+
+	if !model.serviceToggling {
+		t.Error("expected serviceToggling = true")
+	}
+	if cmd == nil {
+		t.Fatal("expected a command to be returned")
+	}
+
+	entries := model.log.Entries()
+	found := false
+	for _, e := range entries {
+		if strings.Contains(e.Message, "Starting service") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected log message about starting service")
+	}
+}
+
+func TestAutoSnapDisabledAtStartupWhenServiceInstalled(t *testing.T) {
+	m := testModelWithService(true, false)
+	if m.auto.Enabled() {
+		t.Error("expected TUI auto-snap to be disabled when service is installed")
+	}
+}
+
+func TestAutoToggleDisablesTUIAutoSnapWhenStartingService(t *testing.T) {
+	// Simulate edge case: service installed mid-session while TUI auto-snap
+	// was already running. Manually enable auto to test the handoff.
+	m := testModelWithService(true, false)
+	m.auto.Toggle(m.now()) // force-enable auto-snap
+	if !m.auto.Enabled() {
+		t.Fatal("precondition: auto should be enabled after manual toggle")
+	}
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model := updated.(Model)
+
+	if model.auto.Enabled() {
+		t.Error("expected TUI auto-snap to be disabled when starting service")
+	}
+	if cmd == nil {
+		t.Fatal("expected a command to be returned")
+	}
+
+	entries := model.log.Entries()
+	foundDisable := false
+	foundStart := false
+	for _, e := range entries {
+		if strings.Contains(e.Message, "handing off to service") {
+			foundDisable = true
+		}
+		if strings.Contains(e.Message, "Starting service") {
+			foundStart = true
+		}
+	}
+	if !foundDisable {
+		t.Error("expected log message about disabling auto-snap for service handoff")
+	}
+	if !foundStart {
+		t.Error("expected log message about starting service")
+	}
+}
+
+func TestAutoToggleFallsBackWhenServiceNotInstalled(t *testing.T) {
+	m := testModel()
+
+	// Initially auto is enabled; toggle off
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model := updated.(Model)
+
+	if model.auto.Enabled() {
+		t.Error("expected auto disabled after toggle")
+	}
+
+	// Toggle back on
+	updated, _ = model.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model = updated.(Model)
+
+	if !model.auto.Enabled() {
+		t.Error("expected auto enabled after second toggle")
+	}
+}
+
+func TestAutoToggleIgnoredWhileServiceToggling(t *testing.T) {
+	m := testModelWithService(true, true)
+	m.serviceToggling = true
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model := updated.(Model)
+
+	if cmd != nil {
+		t.Error("expected no command while service is toggling")
+	}
+	if !model.serviceToggling {
+		t.Error("serviceToggling should remain true")
+	}
+}
+
+func TestServiceToggleResultSuccess(t *testing.T) {
+	m := testModelWithService(true, true)
+	m.serviceCtrl = &mockServiceController{
+		statusFn: func(string) (*service.Info, error) {
+			return &service.Info{Installed: true, Running: false}, nil
+		},
+	}
+
+	updated, cmd := m.Update(ServiceToggleResultMsg{Action: "stop"})
+	model := updated.(Model)
+
+	if model.serviceToggling {
+		t.Error("expected serviceToggling = false after result")
+	}
+	if model.serviceRunning {
+		t.Error("expected serviceRunning = false after stop")
+	}
+	if cmd == nil {
+		t.Error("expected follow-up status check command")
+	}
+
+	entries := model.log.Entries()
+	found := false
+	for _, e := range entries {
+		if strings.Contains(e.Message, "Service stopped") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected log message about service stopped")
+	}
+}
+
+func TestServiceToggleResultError(t *testing.T) {
+	m := testModelWithService(true, true)
+	m.serviceToggling = true
+	m.serviceCtrl = &mockServiceController{
+		statusFn: func(string) (*service.Info, error) {
+			return &service.Info{Installed: true, Running: true, PID: 123}, nil
+		},
+	}
+
+	updated, cmd := m.Update(ServiceToggleResultMsg{
+		Action: "stop",
+		Err:    fmt.Errorf("launchctl kill failed"),
+	})
+	model := updated.(Model)
+
+	if model.serviceToggling {
+		t.Error("expected serviceToggling = false after error")
+	}
+	if cmd == nil {
+		t.Error("expected status recheck command after error")
+	}
+
+	entries := model.log.Entries()
+	found := false
+	for _, e := range entries {
+		if e.Level == logger.LevelError && strings.Contains(e.Message, "Service stop failed") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected error log message")
+	}
+}
+
+func TestServiceStatusResultUpdatesState(t *testing.T) {
+	m := testModelWithService(false, false)
+
+	updated, _ := m.Update(ServiceStatusResultMsg{
+		Info: &service.Info{Installed: true, Running: true, PID: 1234},
+	})
+	model := updated.(Model)
+
+	if !model.serviceInstalled {
+		t.Error("expected serviceInstalled = true")
+	}
+	if !model.serviceRunning {
+		t.Error("expected serviceRunning = true")
+	}
+
+	entries := model.log.Entries()
+	var sawInstalled, sawStarted bool
+	for _, e := range entries {
+		if strings.Contains(e.Message, "Service installed") {
+			sawInstalled = true
+		}
+		if strings.Contains(e.Message, "Service started") && strings.Contains(e.Message, "PID 1234") {
+			sawStarted = true
+		}
+	}
+	if !sawInstalled {
+		t.Error("expected log message about service installed")
+	}
+	if !sawStarted {
+		t.Error("expected log message about service started with PID")
+	}
+}
+
+func TestServiceStatusResultDetectsUninstall(t *testing.T) {
+	m := testModelWithService(true, true)
+
+	// First Installed=false: debounced, serviceInstalled stays true.
+	updated, cmd := m.Update(ServiceStatusResultMsg{
+		Info: &service.Info{Installed: false},
+	})
+	model := updated.(Model)
+
+	if !model.serviceInstalled {
+		t.Error("expected serviceInstalled to remain true after first false reading")
+	}
+	if model.serviceRunning {
+		t.Error("expected serviceRunning = false")
+	}
+	if cmd == nil {
+		t.Error("expected re-check command after first false reading")
+	}
+
+	// Second Installed=false: confirmed uninstall.
+	updated, _ = model.Update(ServiceStatusResultMsg{
+		Info: &service.Info{Installed: false},
+	})
+	model = updated.(Model)
+
+	if model.serviceInstalled {
+		t.Error("expected serviceInstalled = false after two consecutive false readings")
+	}
+	if model.serviceEverInstalled {
+		t.Error("expected serviceEverInstalled = false after confirmed uninstall")
+	}
+
+	entries := model.log.Entries()
+	found := false
+	for _, e := range entries {
+		if strings.Contains(e.Message, "Service uninstalled") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected log message about service uninstalled")
+	}
+}
+
+func TestServiceStatusTransientUninstallDebounced(t *testing.T) {
+	m := testModelWithService(true, true)
+
+	// Single Installed=false: debounced.
+	updated, cmd := m.Update(ServiceStatusResultMsg{
+		Info: &service.Info{Installed: false},
+	})
+	model := updated.(Model)
+
+	if !model.serviceInstalled {
+		t.Error("expected serviceInstalled to remain true after single false reading")
+	}
+	if !model.serviceEverInstalled {
+		t.Error("expected serviceEverInstalled to remain true")
+	}
+	if cmd == nil {
+		t.Error("expected re-check command after transient uninstall")
+	}
+
+	// Follow-up check returns Installed=true: state restored.
+	updated, _ = model.Update(ServiceStatusResultMsg{
+		Info: &service.Info{Installed: true, Running: false},
+	})
+	model = updated.(Model)
+
+	if !model.serviceInstalled {
+		t.Error("expected serviceInstalled = true after corrective check")
+	}
+	if model.serviceConsecutiveUninstalled != 0 {
+		t.Errorf("expected counter reset to 0, got %d", model.serviceConsecutiveUninstalled)
+	}
+}
+
+func TestAutoToggleBlockedWhenServiceRecentlyInstalled(t *testing.T) {
+	// Start with service running so auto.Enabled()=false (daemonActive=true at init).
+	m := testModelWithService(true, true)
+	// Simulate transient state: serviceInstalled cleared but serviceEverInstalled still true.
+	m.serviceInstalled = false
+	m.serviceRunning = false
+	m.daemonActive = false
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model := updated.(Model)
+
+	if model.auto.Enabled() {
+		t.Error("TUI auto-snapping should not start when serviceEverInstalled is true")
+	}
+	if cmd == nil {
+		t.Error("expected status re-check command")
+	}
+
+	entries := model.log.Entries()
+	found := false
+	for _, e := range entries {
+		if strings.Contains(e.Message, "Service state unclear") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected log message about unclear service state")
+	}
+}
+
+func TestAutoToggleAllowedAfterConfirmedUninstall(t *testing.T) {
+	// Start with service running so auto.Enabled()=false (daemonActive=true at init).
+	m := testModelWithService(true, true)
+	// Simulate confirmed uninstall: both flags cleared, daemon gone.
+	m.serviceInstalled = false
+	m.serviceRunning = false
+	m.serviceEverInstalled = false
+	m.serviceConsecutiveUninstalled = 2
+	m.daemonActive = false
+
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	model := updated.(Model)
+
+	if !model.auto.Enabled() {
+		t.Error("expected TUI auto-snapping to start after confirmed uninstall")
+	}
+}
+
+func TestHelpTextChangesWithServiceState(t *testing.T) {
+	m := testModelWithService(true, true)
+
+	if m.keys.AutoSnap.Help().Desc != "stop service" {
+		t.Errorf("help text = %q, want %q", m.keys.AutoSnap.Help().Desc, "stop service")
+	}
+
+	// Simulate service stopped
+	updated, _ := m.Update(ServiceStatusResultMsg{
+		Info: &service.Info{Installed: true, Running: false},
+	})
+	model := updated.(Model)
+
+	if model.keys.AutoSnap.Help().Desc != "start service" {
+		t.Errorf("help text = %q, want %q", model.keys.AutoSnap.Help().Desc, "start service")
+	}
+
+	// Simulate service uninstalled (two consecutive checks to confirm).
+	updated, _ = model.Update(ServiceStatusResultMsg{
+		Info: &service.Info{Installed: false},
+	})
+	model = updated.(Model)
+	updated, _ = model.Update(ServiceStatusResultMsg{
+		Info: &service.Info{Installed: false},
+	})
+	model = updated.(Model)
+
+	if model.keys.AutoSnap.Help().Desc != "auto-snap" {
+		t.Errorf("help text = %q, want %q", model.keys.AutoSnap.Help().Desc, "auto-snap")
+	}
+}
+
+func TestViewAutoStatusServiceRunning(t *testing.T) {
+	m := testModelWithService(true, true)
+	v := viewContent(m)
+
+	if !strings.Contains(v, "Service:") {
+		t.Error("view missing 'Service:' label when service installed")
+	}
+	if !strings.Contains(v, "running") {
+		t.Error("view missing 'running' status when service is running")
+	}
+}
+
+func TestRefreshTickTriggersServiceStatusCheck(t *testing.T) {
+	statusCalls := 0
+	m := testModelWithService(true, true)
+	m.serviceCtrl = &mockServiceController{
+		statusFn: func(string) (*service.Info, error) {
+			statusCalls++
+			return &service.Info{Installed: true, Running: true, PID: 42}, nil
+		},
+	}
+	// Mark refreshing so handleTick skips the slow doRefresh command,
+	// and use a tiny refresh interval so tea.Tick returns quickly.
+	m.refreshing = true
+	m.cfg.RefreshInterval = time.Millisecond
+
+	before := statusCalls
+	_, cmd := m.Update(RefreshTickMsg{})
+
+	if cmd == nil {
+		t.Fatal("expected non-nil cmd batch from handleTick")
+	}
+
+	// Execute the returned batch to verify a service status check is included.
+	msg := cmd()
+	if batchMsg, ok := msg.(tea.BatchMsg); ok {
+		for _, c := range batchMsg {
+			if c != nil {
+				c()
+			}
+		}
+	}
+
+	if statusCalls <= before {
+		t.Error("expected at least one service status check during tick")
+	}
+}
+
+func TestViewAutoStatusServiceStopped(t *testing.T) {
+	m := testModelWithService(true, false)
+	v := viewContent(m)
+
+	if !strings.Contains(v, "Service:") {
+		t.Error("view missing 'Service:' label when service installed")
+	}
+	if !strings.Contains(v, "stopped") {
+		t.Error("view missing 'stopped' status when service is stopped")
+	}
+}

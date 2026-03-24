@@ -38,7 +38,7 @@ func (m Model) View() tea.View {
 
 func (m Model) buildDotIndicator() string {
 	dot := indicatorOff
-	if m.auto.Enabled() || m.daemonActive {
+	if m.auto.Enabled() || m.daemonActive || (m.serviceInstalled && m.serviceRunning) {
 		dot = indicatorOn
 	}
 	if m.loading {
@@ -191,6 +191,22 @@ func (m Model) renderHelpBar(_ int) string {
 
 func (m Model) formatAutoStatus() string {
 	label := m.styles.infoLabel.Render
+
+	if m.serviceInstalled {
+		dot := indicatorOn
+		status := m.styles.textCyan.Render("running")
+		if !m.serviceRunning {
+			dot = indicatorOff
+			status = m.styles.statusOff.Render("stopped")
+		}
+		return label("Service:") + " " + dot + " " + status +
+			fmt.Sprintf("    %s %ds    %s >%dm to %ds",
+				label("every"), int(m.cfg.AutoSnapshotInterval.Seconds()),
+				label("thin"), int(m.cfg.ThinAgeThreshold.Minutes()),
+				int(m.cfg.ThinCadence.Seconds()),
+			)
+	}
+
 	if m.daemonActive {
 		return label("Auto-snapshot:") + " " + indicatorOn + " " +
 			m.styles.textCyan.Render("service") +
