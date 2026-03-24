@@ -2,7 +2,7 @@
 
 Base: main (merge base: 226df88)
 Commits: 1
-Files changed: 4 (1 added, 3 modified, 0 deleted, 0 renamed)
+Files changed: 5 (2 added, 3 modified, 0 deleted, 0 renamed)
 Reviewed through: c644057
 
 ## Summary
@@ -25,24 +25,20 @@ Added `Help key.Binding` field to `keyMap`, wired into `defaultKeyMap()` with `?
 
 Added 4 test functions: `TestHelpToggle` (toggle on/off and description changes), `TestHelpToggleRelayoutsPanels` (panels shrink when help expands), `TestViewShowsHelpHint` (`?` appears in default view), `TestFullHelpShowsAllBindings` (navigation bindings visible when expanded).
 
-**Documentation** (`docs/plans/todo/2026-03-24-add-in-tui-help.md`)
+**Documentation** (`docs/plans/done/2026-03-24-add-in-tui-help.md`)
 
 Plan document describing the feature design and implementation approach.
 
 ## File Inventory
 
-- **New files (1):** `docs/plans/todo/2026-03-24-add-in-tui-help.md`
+- **New files (2):** `docs/plans/done/2026-03-24-add-in-tui-help.md`, `docs/reviews/2026-03-24-feature-add-help.md`
 - **Modified files (3):** `internal/tui/model.go`, `internal/tui/update.go`, `internal/tui/model_test.go`
 - **Deleted files (0):** none
 - **Renamed files (0):** none
 
-## Notable Changes
-
-- The plan file is in `docs/plans/todo/` despite the work being complete. It should likely be moved to `docs/plans/done/` or equivalent.
-
 ## Plan Compliance
 
-**Plan:** `docs/plans/todo/2026-03-24-add-in-tui-help.md`
+**Plan:** `docs/plans/done/2026-03-24-add-in-tui-help.md`
 
 **Compliance verdict:** Excellent compliance. The implementation follows the plan faithfully in both letter and spirit. Every plan item is fully implemented, and the code matches the plan's specified approaches precisely.
 
