@@ -745,6 +745,8 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 
 	m.lastRefresh = m.now()
 
+	isFirstRefresh := !m.hadFirstRefresh
+
 	prev := m.snapshots
 	m.prevSnapshots = prev
 	m.snapshots = msg.Snapshots
@@ -756,6 +758,10 @@ func (m Model) handleRefreshResult(msg RefreshResultMsg) (tea.Model, tea.Cmd) {
 	m.updateLogViewContent()
 
 	var cmds []tea.Cmd
+
+	if isFirstRefresh {
+		cmds = m.maybeStartupSnapshot(cmds)
+	}
 
 	// If a refresh was requested while this one was in flight, re-refresh.
 	if m.refreshPending {
@@ -869,6 +875,39 @@ func (m *Model) logRefreshSummary() {
 		m.log.Log(logger.LevelInfo, logger.CatRefresh, summary)
 		m.lastRefreshSummary = summary
 	}
+}
+
+// maybeStartupSnapshot fires an immediate auto-snapshot on first refresh
+// when auto-snap is enabled. If a recent snapshot already exists (younger
+// than the auto-snap interval), creation is skipped and the timer is
+// aligned to that snapshot so the next auto-snapshot fires at the right time.
+func (m *Model) maybeStartupSnapshot(cmds []tea.Cmd) []tea.Cmd {
+	if !m.auto.Enabled() || m.snapshotting {
+		return cmds
+	}
+
+	now := m.now()
+
+	// If a snapshot exists that is younger than the interval, skip
+	// creation but align the timer so the next auto-snapshot fires
+	// relative to the last actual snapshot, not TUI startup.
+	if n := len(m.snapshots); n > 0 {
+		newest := m.snapshots[n-1]
+		if now.Sub(newest.Time) < m.auto.Interval() {
+			m.auto.RecordSnapshot(newest.Time)
+			return cmds
+		}
+	}
+
+	m.snapshotting = true
+	m.autoSnapshotting = true
+	m.loading = true
+	m.auto.RecordSnapshot(now)
+	m.log.Log(logger.LevelInfo, logger.CatAuto, "Creating startup auto-snapshot...")
+	m.updateLogViewContent()
+	lockPath := service.DefaultLockPath(m.cfg.LogDir)
+	cmds = append(cmds, doAutoCreateSnapshot(m.runner, lockPath, m.lock != nil), m.spinner.Tick)
+	return cmds
 }
 
 func (m *Model) maybeThin(cmds []tea.Cmd) []tea.Cmd {

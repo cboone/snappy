@@ -2898,6 +2898,202 @@ func TestAutoSnapDisabledAtStartupWhenServiceInstalled(t *testing.T) {
 	}
 }
 
+func TestFirstRefreshTriggersStartupSnapshot(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	// Newest snapshot is older than the auto-snap interval (2 min old, 60s interval).
+	updated, cmd := m.Update(RefreshResultMsg{
+		Snapshots: []snapshot.Snapshot{
+			{Date: "2026-03-01-145800", Time: now.Add(-2 * time.Minute)},
+		},
+		TMStatus: "Configured",
+		DiskInfo: platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	if !model.snapshotting {
+		t.Error("expected snapshotting = true for startup snapshot")
+	}
+	if !model.autoSnapshotting {
+		t.Error("expected autoSnapshotting = true for startup snapshot")
+	}
+	if cmd == nil {
+		t.Error("expected non-nil cmd for startup snapshot")
+	}
+
+	entries := model.log.Entries()
+	found := false
+	for _, e := range entries {
+		if e.Category == logger.CatAuto && strings.Contains(e.Message, "startup auto-snapshot") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected log message about startup auto-snapshot")
+	}
+}
+
+func TestFirstRefreshSkipsStartupSnapshotWhenRecent(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	// Newest snapshot is only 20s old (interval is 60s), should skip.
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: []snapshot.Snapshot{
+			{Date: "2026-03-01-145940", Time: now.Add(-20 * time.Second)},
+		},
+		TMStatus: "Configured",
+		DiskInfo: platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	if model.snapshotting {
+		t.Error("expected snapshotting = false when newest snapshot is recent")
+	}
+
+	entries := model.log.Entries()
+	for _, e := range entries {
+		if strings.Contains(e.Message, "startup auto-snapshot") {
+			t.Error("should not log startup auto-snapshot when newest snapshot is recent")
+		}
+	}
+}
+
+func TestFirstRefreshTriggersStartupSnapshotWhenEmpty(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	// No existing snapshots at all.
+	updated, cmd := m.Update(RefreshResultMsg{
+		Snapshots: nil,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	if !model.snapshotting {
+		t.Error("expected snapshotting = true when no snapshots exist")
+	}
+	if cmd == nil {
+		t.Error("expected non-nil cmd for startup snapshot")
+	}
+}
+
+func TestFirstRefreshNoStartupSnapshotWhenAutoDisabled(t *testing.T) {
+	cfg := testConfig()
+	cfg.AutoEnabled = false
+	log := logger.New(logger.Options{MaxEntries: 50})
+	runner := &mockRunner{responses: map[string]mockResponse{}}
+	m := NewModel(cfg, runner, log, ModelParams{
+		APFSVolume:    "disk3s5",
+		APFSContainer: "disk3",
+		TMStatus:      "Configured",
+		VolumeName:    "/",
+		Version:       "dev",
+	})
+	m.width = 80
+	m.height = 40
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: nil,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	if model.snapshotting {
+		t.Error("expected snapshotting = false when auto-snap is disabled")
+	}
+}
+
+func TestSecondRefreshDoesNotTriggerStartupSnapshot(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+	m.hadFirstRefresh = true
+
+	// Old snapshots, but second refresh should not trigger startup snapshot.
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: []snapshot.Snapshot{
+			{Date: "2026-03-01-145800", Time: now.Add(-2 * time.Minute)},
+		},
+		TMStatus: "Configured",
+		DiskInfo: platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	if model.snapshotting {
+		t.Error("expected snapshotting = false on second refresh")
+	}
+
+	entries := model.log.Entries()
+	for _, e := range entries {
+		if strings.Contains(e.Message, "startup auto-snapshot") {
+			t.Error("should not log startup auto-snapshot on second refresh")
+		}
+	}
+}
+
+func TestFirstRefreshStartupSnapshotAlignsTimer(t *testing.T) {
+	m := testModel()
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	// Newest snapshot is 20s old; interval is 60s. Timer should align
+	// so next auto-snapshot fires in ~40s.
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: []snapshot.Snapshot{
+			{Date: "2026-03-01-145940", Time: now.Add(-20 * time.Second)},
+		},
+		TMStatus: "Configured",
+		DiskInfo: platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	got := model.auto.NextIn(now)
+	want := 40 * time.Second
+	if got != want {
+		t.Errorf("NextIn() = %v, want %v", got, want)
+	}
+}
+
+func TestFirstRefreshStartupSnapshotSkippedWhenDaemonActive(t *testing.T) {
+	cfg := testConfig()
+	cfg.LogDir = t.TempDir()
+	log := logger.New(logger.Options{MaxEntries: 50})
+	runner := &mockRunner{responses: map[string]mockResponse{}}
+	m := NewModel(cfg, runner, log, ModelParams{
+		APFSVolume:    "disk3s5",
+		APFSContainer: "disk3",
+		TMStatus:      "Configured",
+		VolumeName:    "/",
+		Version:       "dev",
+		DaemonActive:  true,
+	})
+	m.width = 80
+	m.height = 40
+	now := time.Date(2026, 3, 1, 15, 0, 0, 0, time.Local)
+	m.now = func() time.Time { return now }
+
+	updated, _ := m.Update(RefreshResultMsg{
+		Snapshots: nil,
+		TMStatus:  "Configured",
+		DiskInfo:  platform.DiskInfo{Total: "460Gi", Used: "215Gi", Available: "242Gi", Percent: "48%"},
+	})
+	model := updated.(Model)
+
+	if model.snapshotting {
+		t.Error("expected snapshotting = false when daemon is active")
+	}
+}
+
 func TestAutoToggleDisablesTUIAutoSnapWhenStartingService(t *testing.T) {
 	// Simulate edge case: service installed mid-session while TUI auto-snap
 	// was already running. Manually enable auto to test the handoff.
