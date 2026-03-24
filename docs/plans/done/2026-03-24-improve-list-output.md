@@ -35,6 +35,7 @@ type columnTable struct {
 ```
 
 Methods:
+
 - `addRow(cells ...string)` - appends a row
 - `render(w io.Writer, showHeader bool) error` - computes max width per column (headers + cells), writes header (if enabled) then data rows. Left-aligned: `fmt.Sprintf("%-*s", w, val)`. Right-aligned: `fmt.Sprintf("%*s", w, val)`. Two-space column separator. Two-space row indentation.
 
@@ -79,10 +80,12 @@ Delta changes from `"delta:50"` to `"50"` in its own column.
 ### 4. Update `cmd/list_test.go`
 
 **Update existing tests:**
+
 - `TestListHumanWithSnapshots`: Check for human date format `"2026-03-01 14:01:00"`, check header contains `DATE` and `AGE` but not `XID` or `UUID` (no APFS data)
 - `TestListHumanWithAPFSDetails`: Check for `DELTA` header, `50` as column value (not `delta:50`), `pinned, limits shrink` with comma, `ABC-123` UUID
 
 **Add new tests:**
+
 - `TestListHumanNoHeader` - verifies summary line present but no `DATE`/`AGE` header labels
 - `TestListHumanNoHeaderWithAPFS` - same with APFS data
 - `TestListHumanColumnAlignment` - verifies consistent column positions across rows
@@ -103,7 +106,7 @@ Run `make lint` and `make fmt`.
 ## Files to modify
 
 | File | Action |
-|------|--------|
+| ------- | ---------- |
 | `cmd/table.go` | Create |
 | `cmd/table_test.go` | Create |
 | `cmd/list.go` | Modify |
