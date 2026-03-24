@@ -356,6 +356,12 @@ func (m Model) handleServiceStatusResult(msg ServiceStatusResultMsg) (tea.Model,
 		return m, nil
 	}
 
+	if msg.Info == nil {
+		m.log.Log(logger.LevelWarn, logger.CatService, "Service status returned nil info")
+		m.updateLogViewContent()
+		return m, nil
+	}
+
 	wasInstalled := m.serviceInstalled
 	wasRunning := m.serviceRunning
 

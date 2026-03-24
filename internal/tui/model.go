@@ -117,7 +117,11 @@ type Model struct {
 	serviceLabel                  string
 	serviceToggling               bool
 	serviceConsecutiveUninstalled int
-	serviceEverInstalled          bool
+	// serviceEverInstalled is a sticky "maybe installed" flag used for
+	// debouncing transient uninstall statuses. It is explicitly cleared
+	// after a confirmed uninstall (two consecutive probes), so it does
+	// not literally mean "ever installed" for all time.
+	serviceEverInstalled bool
 
 	width              int
 	height             int

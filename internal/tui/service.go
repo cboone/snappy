@@ -17,12 +17,12 @@ func (LaunchdController) Status(label string) (*service.Info, error) {
 	return service.Status(label)
 }
 
-// Start sends a kickstart signal to the agent.
+// Start enables and starts the agent (kickstart), falling back to bootstrap if needed.
 func (LaunchdController) Start(label string) error {
 	return service.Start(label)
 }
 
-// Stop sends SIGTERM to the agent process.
+// Stop disables and unloads the launchd agent via bootout.
 func (LaunchdController) Stop(label string) error {
 	return service.Stop(label)
 }
