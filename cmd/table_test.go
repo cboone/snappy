@@ -56,8 +56,9 @@ func TestColumnTableRightAlign(t *testing.T) {
 	if len(lines) != 3 {
 		t.Fatalf("got %d lines, want 3:\n%s", len(lines), buf.String())
 	}
-	if lines[0] != "   #  COUNT" {
-		t.Errorf("header = %q, want %q", lines[0], "   #  COUNT")
+	// Headers are always left-aligned, even for right-aligned columns.
+	if lines[0] != "  #   COUNT" {
+		t.Errorf("header = %q, want %q", lines[0], "  #   COUNT")
 	}
 	if lines[1] != "   1     42" {
 		t.Errorf("row 1 = %q, want %q", lines[1], "   1     42")

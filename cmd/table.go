@@ -44,27 +44,29 @@ func (ct *columnTable) render(w io.Writer, showHeader bool) error {
 	}
 
 	if showHeader {
-		if err := ct.writeLine(w, ct.headerCells(), widths); err != nil {
+		if err := ct.writeHeader(w, widths); err != nil {
 			return err
 		}
 	}
 	for _, row := range ct.rows {
-		if err := ct.writeLine(w, row, widths); err != nil {
+		if err := ct.writeRow(w, row, widths); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (ct *columnTable) headerCells() []string {
-	cells := make([]string, len(ct.cols))
+func (ct *columnTable) writeHeader(w io.Writer, widths []int) error {
+	parts := make([]string, len(ct.cols))
 	for i, col := range ct.cols {
-		cells[i] = col.title
+		parts[i] = fmt.Sprintf("%-*s", widths[i], col.title)
 	}
-	return cells
+	line := strings.TrimRight("  "+strings.Join(parts, "  "), " ")
+	_, err := fmt.Fprintln(w, line)
+	return err
 }
 
-func (ct *columnTable) writeLine(w io.Writer, cells []string, widths []int) error {
+func (ct *columnTable) writeRow(w io.Writer, cells []string, widths []int) error {
 	parts := make([]string, len(cells))
 	for i, cell := range cells {
 		if ct.cols[i].align == alignRight {
