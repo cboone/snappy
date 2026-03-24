@@ -1,15 +1,15 @@
-## Branch Review: feature/add-help
+# Branch Review: feature/add-help
 
 Base: main (merge base: 226df88)
 Commits: 1
 Files changed: 4 (1 added, 3 modified, 0 deleted, 0 renamed)
 Reviewed through: c644057
 
-### Summary
+## Summary
 
 This branch adds an in-TUI help toggle activated by the `?` key, addressing issue #56. When pressed, the help bar expands from a single-line compact view (primary actions only) to a full multi-column display showing all keybindings, including previously hidden navigation keys. The snapshot and log panels dynamically resize to accommodate the expanded help. A layout refactor extracts `recalcLayout()` and `helpBarHeight()` to eliminate hardcoded height assumptions, and an `handleOpenLog()` method is split out of `handleKey()` for cyclomatic complexity.
 
-### Changes by Area
+## Changes by Area
 
 **TUI / Keybindings** (`internal/tui/model.go`)
 
@@ -29,18 +29,18 @@ Added 4 test functions: `TestHelpToggle` (toggle on/off and description changes)
 
 Plan document describing the feature design and implementation approach.
 
-### File Inventory
+## File Inventory
 
 - **New files (1):** `docs/plans/todo/2026-03-24-add-in-tui-help.md`
 - **Modified files (3):** `internal/tui/model.go`, `internal/tui/update.go`, `internal/tui/model_test.go`
 - **Deleted files (0):** none
 - **Renamed files (0):** none
 
-### Notable Changes
+## Notable Changes
 
 - The plan file is in `docs/plans/todo/` despite the work being complete. It should likely be moved to `docs/plans/done/` or equivalent.
 
-### Plan Compliance
+## Plan Compliance
 
 **Plan:** `docs/plans/todo/2026-03-24-add-in-tui-help.md`
 
@@ -70,7 +70,7 @@ Plan document describing the feature design and implementation approach.
 
 **Fidelity concerns:** None. The implementation closely matches the plan's design intent.
 
-### Code Quality Assessment
+## Code Quality Assessment
 
 **Overall quality:** This code is ready to merge. It is clean, well-structured, and follows the existing codebase patterns precisely.
 

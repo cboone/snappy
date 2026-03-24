@@ -19,12 +19,14 @@ expanded help, and adds tests.
 
 - Add `Help key.Binding` field to the `keyMap` struct (after `ShiftTab`)
 - In `defaultKeyMap()`, add:
+
   ```go
   Help: key.NewBinding(
       key.WithKeys("?"),
       key.WithHelp("?", "help"),
   ),
   ```
+
 - Update `ShortHelp()` to append `k.Help` as the last item
 - Update `FullHelp()` to append `k.Help` to the second (navigation) group, making both
   groups 5 items tall for a clean rectangular layout
@@ -32,6 +34,7 @@ expanded help, and adds tests.
 ### 2. Extract layout helper and add help height logic (`internal/tui/update.go`)
 
 - Add a `helpBarHeight()` method:
+
   ```go
   const fullHelpHeight = 5
 
@@ -42,6 +45,7 @@ expanded help, and adds tests.
       return 1
   }
   ```
+
 - Extract layout logic from `handleWindowSize` into a `recalcLayout()` method that uses
   `m.helpBarHeight()` instead of the hardcoded `1` in `fixedHeight`
 - Simplify `handleWindowSize` to set width/height then call `m.recalcLayout()`
@@ -77,11 +81,11 @@ expands from 1 to 5 lines (or shrinks back).
 
 ## Files to modify
 
-| File | What changes |
-|------|-------------|
-| `internal/tui/model.go` | Add `Help` field to `keyMap`, update `ShortHelp`, `FullHelp`, `defaultKeyMap` |
-| `internal/tui/update.go` | Extract `recalcLayout`, add `helpBarHeight`, add `?` case in `handleKey`, refactor `handleWindowSize` |
-| `internal/tui/model_test.go` | Add 4 test functions |
+| File                         | What changes                                                                                          |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `internal/tui/model.go`      | Add `Help` field to `keyMap`, update `ShortHelp`, `FullHelp`, `defaultKeyMap`                         |
+| `internal/tui/update.go`     | Extract `recalcLayout`, add `helpBarHeight`, add `?` case in `handleKey`, refactor `handleWindowSize` |
+| `internal/tui/model_test.go` | Add 4 test functions                                                                                  |
 
 No new files. No changes to `view.go`, `styles.go`, `messages.go`, or `commands.go`.
 
