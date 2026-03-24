@@ -137,12 +137,15 @@ func TestColumnTableHeaderOnly(t *testing.T) {
 }
 
 func TestColumnTableWidthFromHeader(t *testing.T) {
+	// Use two columns so the first column's header-derived padding is
+	// observable (trailing padding on the last column is always trimmed).
 	ct := &columnTable{
 		cols: []columnDef{
 			{title: "LONGHEADER", align: alignLeft},
+			{title: "B", align: alignLeft},
 		},
 	}
-	ct.addRow("x")
+	ct.addRow("x", "y")
 
 	var buf bytes.Buffer
 	if err := ct.render(&buf, true); err != nil {
@@ -153,8 +156,8 @@ func TestColumnTableWidthFromHeader(t *testing.T) {
 	if len(lines) != 2 {
 		t.Fatalf("got %d lines, want 2:\n%s", len(lines), buf.String())
 	}
-	// Data cell should be padded to header width.
-	if lines[1] != "  x" {
-		t.Errorf("row = %q, want %q", lines[1], "  x")
+	// First column should be padded to header width (10 chars for "LONGHEADER").
+	if lines[1] != "  x           y" {
+		t.Errorf("row = %q, want %q", lines[1], "  x           y")
 	}
 }

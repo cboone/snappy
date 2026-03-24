@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -363,8 +364,20 @@ func TestListHumanWithAPFSDetails(t *testing.T) {
 		t.Errorf("output missing XID header, got:\n%s", output)
 	}
 	// Delta is now a standalone column value (not "delta:50").
-	if !strings.Contains(output, "50") {
-		t.Errorf("output missing delta value '50', got:\n%s", output)
+	// Check for "50" as a distinct field on the DEF-456 row to avoid
+	// matching the substring in XID 1050.
+	var deltaRow string
+	for _, line := range strings.Split(output, "\n") {
+		if strings.Contains(line, "DEF-456") {
+			deltaRow = line
+			break
+		}
+	}
+	if deltaRow == "" {
+		t.Fatalf("output missing DEF-456 row, got:\n%s", output)
+	}
+	if !slices.Contains(strings.Fields(deltaRow), "50") {
+		t.Errorf("DEF-456 row missing delta value 50, got:\n%s", deltaRow)
 	}
 	if strings.Contains(output, "delta:") {
 		t.Errorf("output should not contain 'delta:' prefix, got:\n%s", output)
@@ -453,8 +466,20 @@ func TestListHumanNoHeaderWithAPFS(t *testing.T) {
 	if !strings.Contains(output, "ABC-123") {
 		t.Errorf("output missing UUID data, got:\n%s", output)
 	}
-	if !strings.Contains(output, "50") {
-		t.Errorf("output missing delta value, got:\n%s", output)
+	// Check for "50" as a distinct field on the DEF-456 row to avoid
+	// matching the substring in XID 1050.
+	var deltaRow string
+	for _, line := range strings.Split(output, "\n") {
+		if strings.Contains(line, "DEF-456") {
+			deltaRow = line
+			break
+		}
+	}
+	if deltaRow == "" {
+		t.Fatalf("output missing DEF-456 row, got:\n%s", output)
+	}
+	if !slices.Contains(strings.Fields(deltaRow), "50") {
+		t.Errorf("DEF-456 row missing delta value 50, got:\n%s", deltaRow)
 	}
 }
 
