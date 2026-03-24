@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-03-24
+
+### Added
+
+- Column table builder for aligned CLI output (#96)
+- Improved snappy list output with aligned columns and header (#96)
+- Configurable log scrollback setting for TUI display depth (#104)
+- Startup auto-snapshot on first TUI refresh (#106)
+- TUI refresh after service start with service snapshot labeling
+- Launchd service control via smart 'a' toggle in TUI
+- Exclude .md from Prettier, rely on markdownlint-cli2
+
+### Fixed
+
+- Left-align column headers regardless of data alignment (#96)
+- Improve test assertions for delta value and header-derived width
+- Cap debounce counter and guard service flags when ctrl is nil
+- Correct doc comments and add nil guard for service status
+- Use contextual log message when service acquires lock
+- Clarify startup log when auto-snap is deferred to service
+- Disable TUI auto-snap at startup when service is installed
+- Use bootout to stop service, preventing KeepAlive respawn
+- Disable TUI auto-snap and release lock before starting service
+- Fall back to bootstrap when kickstart fails after stop
+- Delay status check after service stop to avoid false restart
+- Debounce service-installed status to prevent TUI auto-snap fallthrough
+- Disable/enable agent around stop/start to prevent respawn
+- Set runs-on to macos-latest for go-ci workflow
+- Remove unnecessary GITHUB_TOKEN secret from release workflow
+- Prevent duplicate UITick chain when loading during daemon detection
+- Pause daemon refresh counter while refresh in flight
+- Prevent duplicate UITick chain when daemon detected during auto-snap
+- Keep TUI updating every second when daemon is active
+
+### Changed
+
+- Extract stop-settle delay constant and add tick test
+- Run scrut CLI tests with isolated HOME
+- Cover launchctl start/stop fallback paths in tests
+- Narrow lint to Go-only, make fmt a check, update go-ci.yml to @v2
+- Pin gh-actions to v1
+- Migrate CI workflows to gh-actions reusable workflows
+
 ## [0.9.0] - 2026-03-08
 
 ### Added
@@ -332,7 +375,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add shellcheckrc with all checks enabled
 
-[unreleased]: https://github.com/cboone/snappy/compare/v0.9.0...HEAD
+[unreleased]: https://github.com/cboone/snappy/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/cboone/snappy/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/cboone/snappy/compare/v0.8.3...v0.9.0
 [0.8.3]: https://github.com/cboone/snappy/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/cboone/snappy/compare/v0.8.1...v0.8.2
