@@ -145,19 +145,15 @@ func (m *Model) helpBarHeight() int {
 		return 1
 	}
 
-	// Derive expanded help height from the current keymap so layout stays
-	// correct if keybindings are added, removed, or regrouped.
-	groups := m.keys.FullHelp()
-	maxLen := 0
-	for _, g := range groups {
-		if l := len(g); l > maxLen {
-			maxLen = l
-		}
-	}
-	if maxLen == 0 {
+	// Derive expanded help height from the actual rendered help view at the
+	// current width so layout matches what View() will display, including any
+	// wrapping or vertical stacking performed by the help model.
+	view := m.help.View(m.keys)
+	h := lipgloss.Height(view)
+	if h < 1 {
 		return 1
 	}
-	return maxLen
+	return h
 }
 
 // recalcLayout recomputes panel sizes and Y offsets from the current
