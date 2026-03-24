@@ -12,6 +12,7 @@ refresh: 1m0s
 log_dir: */.local/share/snappy (glob)
 log_max_size: 5242880
 log_max_files: 3
+log_scrollback: 200
 auto_enabled: true
 auto_snapshot_interval: 1m0s
 thin_age_threshold: 10m0s
@@ -29,7 +30,7 @@ Config file created: /tmp/snappy-scrut-config-test.yaml
 
 ```scrut
 $ grep -c '^#' /tmp/snappy-scrut-config-test.yaml
-11
+12
 ```
 
 ## Config init fails when file exists

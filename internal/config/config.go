@@ -21,6 +21,7 @@ type Config struct {
 	LogDir               string
 	LogMaxSize           int64 // max log file size in bytes; 0 = no rotation
 	LogMaxFiles          int   // number of rotated backup files to keep
+	LogScrollback        int   // number of log entries to display in the TUI
 	AutoEnabled          bool
 	AutoSnapshotInterval time.Duration
 	ThinAgeThreshold     time.Duration
@@ -32,10 +33,11 @@ type Config struct {
 const DefaultMount = "/"
 
 const (
-	defaultLogDir      = ""
-	defaultLogMaxSize  = int64(5 * 1024 * 1024) // 5 MB
-	defaultLogMaxFiles = 3
-	defaultAutoEnabled = true
+	defaultLogDir        = ""
+	defaultLogMaxSize    = int64(5 * 1024 * 1024) // 5 MB
+	defaultLogMaxFiles   = 3
+	defaultLogScrollback = 200
+	defaultAutoEnabled   = true
 )
 
 const (
@@ -53,6 +55,7 @@ func Load() *Config {
 		LogDir:               viper.GetString("log_dir"),
 		LogMaxSize:           viper.GetInt64("log_max_size"),
 		LogMaxFiles:          viper.GetInt("log_max_files"),
+		LogScrollback:        viper.GetInt("log_scrollback"),
 		AutoEnabled:          viper.GetBool("auto_enabled"),
 		AutoSnapshotInterval: parseSecondsOrDuration(viper.Get("auto_snapshot_interval"), defaultAutoSnapshotInterval),
 		ThinAgeThreshold:     parseSecondsOrDuration(viper.Get("thin_age_threshold"), defaultThinAgeThreshold),
@@ -75,6 +78,7 @@ func SetDefaults() {
 	viper.SetDefault("log_dir", defaultLogDir)
 	viper.SetDefault("log_max_size", defaultLogMaxSize)
 	viper.SetDefault("log_max_files", defaultLogMaxFiles)
+	viper.SetDefault("log_scrollback", defaultLogScrollback)
 	viper.SetDefault("auto_enabled", defaultAutoEnabled)
 	viper.SetDefault("auto_snapshot_interval", defaultAutoSnapshotInterval)
 	viper.SetDefault("thin_age_threshold", defaultThinAgeThreshold)
@@ -107,6 +111,9 @@ log_max_size: {{.LogMaxSize}}
 # Number of rotated backup log files to keep.
 log_max_files: {{.LogMaxFiles}}
 
+# Number of log entries to display in the TUI scrollback.
+log_scrollback: {{.LogScrollback}}
+
 # Whether to enable auto-snapshots at startup.
 auto_enabled: {{.AutoEnabled}}
 
@@ -127,6 +134,7 @@ func WriteDefaultConfig(w io.Writer) error {
 		LogDir               string
 		LogMaxSize           int64
 		LogMaxFiles          int
+		LogScrollback        int
 		AutoEnabled          bool
 		AutoSnapshotInterval string
 		ThinAgeThreshold     string
@@ -136,6 +144,7 @@ func WriteDefaultConfig(w io.Writer) error {
 		LogDir:               defaultLogDir,
 		LogMaxSize:           defaultLogMaxSize,
 		LogMaxFiles:          defaultLogMaxFiles,
+		LogScrollback:        defaultLogScrollback,
 		AutoEnabled:          defaultAutoEnabled,
 		AutoSnapshotInterval: formatDurationAsSeconds(defaultAutoSnapshotInterval),
 		ThinAgeThreshold:     formatDurationAsSeconds(defaultThinAgeThreshold),
@@ -157,6 +166,7 @@ refresh: {{.Refresh}}
 log_dir:{{if .LogDir}} {{.LogDir}}{{end}}
 log_max_size: {{.LogMaxSize}}
 log_max_files: {{.LogMaxFiles}}
+log_scrollback: {{.LogScrollback}}
 auto_enabled: {{.AutoEnabled}}
 auto_snapshot_interval: {{.AutoSnapshotInterval}}
 thin_age_threshold: {{.ThinAgeThreshold}}
@@ -174,6 +184,7 @@ func FormatConfig(w io.Writer, cfg *Config, configFile string) error {
 		LogDir               string
 		LogMaxSize           int64
 		LogMaxFiles          int
+		LogScrollback        int
 		AutoEnabled          bool
 		AutoSnapshotInterval string
 		ThinAgeThreshold     string
@@ -184,6 +195,7 @@ func FormatConfig(w io.Writer, cfg *Config, configFile string) error {
 		LogDir:               cfg.LogDir,
 		LogMaxSize:           cfg.LogMaxSize,
 		LogMaxFiles:          cfg.LogMaxFiles,
+		LogScrollback:        cfg.LogScrollback,
 		AutoEnabled:          cfg.AutoEnabled,
 		AutoSnapshotInterval: cfg.AutoSnapshotInterval.String(),
 		ThinAgeThreshold:     cfg.ThinAgeThreshold.String(),

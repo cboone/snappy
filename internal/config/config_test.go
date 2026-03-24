@@ -81,6 +81,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.LogMaxFiles != 3 {
 		t.Errorf("LogMaxFiles = %d, want %d", cfg.LogMaxFiles, 3)
 	}
+	if cfg.LogScrollback != 200 {
+		t.Errorf("LogScrollback = %d, want %d", cfg.LogScrollback, 200)
+	}
 	if cfg.AutoEnabled != true {
 		t.Errorf("AutoEnabled = %v, want %v", cfg.AutoEnabled, true)
 	}
@@ -123,6 +126,13 @@ func TestLoadEnvOverrides(t *testing.T) {
 			envVal:  "5",
 			checkFn: func(c *Config) bool { return c.LogMaxFiles == 5 },
 			desc:    "LogMaxFiles",
+		},
+		{
+			name:    "log_scrollback override",
+			envVar:  "SNAPPY_LOG_SCROLLBACK",
+			envVal:  "500",
+			checkFn: func(c *Config) bool { return c.LogScrollback == 500 },
+			desc:    "LogScrollback",
 		},
 		{
 			name:    "auto_enabled override",
@@ -280,7 +290,7 @@ func TestWriteDefaultConfig(t *testing.T) {
 	}
 
 	keys := []string{
-		"refresh:", "log_dir:", "log_max_size:", "log_max_files:",
+		"refresh:", "log_dir:", "log_max_size:", "log_max_files:", "log_scrollback:",
 		"auto_enabled:", "auto_snapshot_interval:", "thin_age_threshold:", "thin_cadence:",
 	}
 	for _, key := range keys {
@@ -296,6 +306,7 @@ func TestFormatConfig(t *testing.T) {
 		LogDir:               "",
 		LogMaxSize:           5 * 1024 * 1024,
 		LogMaxFiles:          3,
+		LogScrollback:        200,
 		AutoEnabled:          true,
 		AutoSnapshotInterval: 60 * time.Second,
 		ThinAgeThreshold:     600 * time.Second,
@@ -317,6 +328,7 @@ func TestFormatConfig(t *testing.T) {
 		"refresh: 1m0s",
 		"log_max_size: 5242880",
 		"log_max_files: 3",
+		"log_scrollback: 200",
 		"auto_enabled: true",
 		"auto_snapshot_interval: 1m0s",
 		"thin_age_threshold: 10m0s",
@@ -332,6 +344,7 @@ func TestFormatConfig(t *testing.T) {
 func TestFormatConfigNoFile(t *testing.T) {
 	cfg := &Config{
 		RefreshInterval:      60 * time.Second,
+		LogScrollback:        200,
 		AutoSnapshotInterval: 60 * time.Second,
 		ThinAgeThreshold:     600 * time.Second,
 		ThinCadence:          300 * time.Second,
@@ -372,6 +385,9 @@ func TestLoadWithoutSetDefaults(t *testing.T) {
 	}
 	if cfg.LogMaxFiles != 0 {
 		t.Errorf("LogMaxFiles = %d, want 0", cfg.LogMaxFiles)
+	}
+	if cfg.LogScrollback != 0 {
+		t.Errorf("LogScrollback = %d, want 0", cfg.LogScrollback)
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
