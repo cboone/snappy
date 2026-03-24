@@ -140,10 +140,25 @@ func helpStyles(s modelStyles) help.Styles {
 	}
 }
 
-func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
-	m.width = msg.Width
-	m.height = msg.Height
+func (m *Model) helpBarHeight() int {
+	if !m.help.ShowAll {
+		return 1
+	}
 
+	// Derive expanded help height from the actual rendered help view at the
+	// current width so layout matches what View() will display, including any
+	// wrapping or vertical stacking performed by the help model.
+	view := m.help.View(m.keys)
+	h := lipgloss.Height(view)
+	if h < 1 {
+		return 1
+	}
+	return h
+}
+
+// recalcLayout recomputes panel sizes and Y offsets from the current
+// terminal dimensions and help bar state.
+func (m *Model) recalcLayout() {
 	cw := contentWidth(m.width)
 	m.help.SetWidth(m.width)
 
@@ -151,11 +166,9 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	// Info panel: 3 body lines + 2 borders = 5.
 	// Snap panel: 2 borders (visible rows set via snapVisibleRows).
 	// Log panel: 2 borders.
-	// Help bar: 1.
-	const (
-		infoHeight  = 5
-		fixedHeight = infoHeight + 2 + 2 + 1 // 10
-	)
+	const infoHeight = 5
+	fixedHeight := infoHeight + 2 + 2 + m.helpBarHeight()
+
 	snapH, logH := flexPanelHeights(m.height, fixedHeight)
 
 	m.snapPanelY = infoHeight
@@ -169,7 +182,12 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 
 	m.updateSnapViewContent()
 	m.updateLogViewContent()
+}
 
+func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
+	m.width = msg.Width
+	m.height = msg.Height
+	m.recalcLayout()
 	return m, nil
 }
 
@@ -199,14 +217,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m.handleAutoSnapToggle()
 
 	case key.Matches(msg, m.keys.OpenLog):
-		if m.cfg.LogDir == "" {
-			m.log.Log(logger.LevelWarn, logger.CatOpen, "Log directory unavailable")
-			m.updateLogViewContent()
-			return m, nil
-		}
-		m.log.Log(logger.LevelInfo, logger.CatOpen, "Opening log directory...")
-		m.updateLogViewContent()
-		return m, doOpenLogDir(m.cfg.LogDir)
+		return m.handleOpenLog()
 
 	case key.Matches(msg, m.keys.Quit):
 		m.log.Log(logger.LevelInfo, logger.CatShutdown, "Shutting down")
@@ -232,11 +243,36 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.flash.reverse = true
 		return m, cmd
 
+	case key.Matches(msg, m.keys.Help):
+		return m.handleHelpToggle()
+
 	case key.Matches(msg, m.keys.ScrollUp, m.keys.ScrollDown):
 		return m.handleScroll(msg)
 	}
 
 	return m, nil
+}
+
+func (m Model) handleHelpToggle() (tea.Model, tea.Cmd) {
+	m.help.ShowAll = !m.help.ShowAll
+	if m.help.ShowAll {
+		m.keys.Help.SetHelp("?", "close help")
+	} else {
+		m.keys.Help.SetHelp("?", "help")
+	}
+	m.recalcLayout()
+	return m, nil
+}
+
+func (m Model) handleOpenLog() (tea.Model, tea.Cmd) {
+	if m.cfg.LogDir == "" {
+		m.log.Log(logger.LevelWarn, logger.CatOpen, "Log directory unavailable")
+		m.updateLogViewContent()
+		return m, nil
+	}
+	m.log.Log(logger.LevelInfo, logger.CatOpen, "Opening log directory...")
+	m.updateLogViewContent()
+	return m, doOpenLogDir(m.cfg.LogDir)
 }
 
 func (m Model) handleAutoSnapToggle() (tea.Model, tea.Cmd) {
