@@ -31,7 +31,7 @@ func TestConfigShow(t *testing.T) {
 	}
 
 	keys := []string{
-		"refresh:", "log_dir:", "log_max_size:", "log_max_files:",
+		"refresh:", "log_dir:", "log_max_size:", "log_max_files:", "log_scrollback:",
 		"auto_enabled:", "auto_snapshot_interval:", "thin_age_threshold:", "thin_cadence:",
 	}
 	for _, key := range keys {

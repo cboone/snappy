@@ -149,7 +149,7 @@ func runTUI(_ *cobra.Command, _ []string) error {
 
 	log := logger.New(logger.Options{
 		LogDir:     cfg.LogDir,
-		MaxEntries: 50,
+		MaxEntries: cfg.LogScrollback,
 		MaxSize:    cfg.LogMaxSize,
 		MaxFiles:   cfg.LogMaxFiles,
 	})
