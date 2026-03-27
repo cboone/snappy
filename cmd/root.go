@@ -205,6 +205,7 @@ func runTUI(_ *cobra.Command, _ []string) error {
 		ServiceCtrl:      svcCtrl,
 		ServiceInstalled: svcInstalled,
 		ServiceRunning:   svcRunning,
+		ConfigFile:       resolveConfigFile(),
 	})
 	p := tea.NewProgram(model)
 
@@ -276,4 +277,26 @@ func acquireAutoSnapLock(cfg *config.Config, log *logger.Logger, svcInstalled, s
 		log.Log(logger.LevelInfo, logger.CatStartup, "Another snappy process detected; TUI auto-snapshots disabled")
 	}
 	return daemonActive, lock
+}
+
+// resolveConfigFile returns the absolute path of the active config file,
+// applying the same tilde-expansion and Abs logic used by runServiceInstall.
+// Returns empty when no explicit config was specified.
+func resolveConfigFile() string {
+	configPath := cfgFile
+	if configPath == "" {
+		return ""
+	}
+	if configPath == "~" || strings.HasPrefix(configPath, "~/") {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return configPath
+		}
+		configPath = filepath.Join(home, strings.TrimPrefix(configPath[1:], "/"))
+	}
+	absPath, err := filepath.Abs(configPath)
+	if err != nil {
+		return configPath
+	}
+	return absPath
 }
