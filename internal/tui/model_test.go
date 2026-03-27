@@ -2793,9 +2793,12 @@ func TestDaemonRefreshCountResetsOnDeactivation(t *testing.T) {
 
 // mockServiceController implements ServiceController for testing.
 type mockServiceController struct {
-	statusFn func(string) (*service.Info, error)
-	startFn  func(string) error
-	stopFn   func(string) error
+	statusFn    func(string) (*service.Info, error)
+	startFn     func(string) error
+	stopFn      func(string) error
+	installFn   func(service.PlistConfig) error
+	uninstallFn func(string) error
+	resolveFn   func() (string, error)
 }
 
 func (m *mockServiceController) Status(label string) (*service.Info, error) {
@@ -2817,6 +2820,27 @@ func (m *mockServiceController) Stop(label string) error {
 		return m.stopFn(label)
 	}
 	return nil
+}
+
+func (m *mockServiceController) Install(cfg service.PlistConfig) error {
+	if m.installFn != nil {
+		return m.installFn(cfg)
+	}
+	return nil
+}
+
+func (m *mockServiceController) Uninstall(label string) error {
+	if m.uninstallFn != nil {
+		return m.uninstallFn(label)
+	}
+	return nil
+}
+
+func (m *mockServiceController) ResolveBinaryPath() (string, error) {
+	if m.resolveFn != nil {
+		return m.resolveFn()
+	}
+	return "/usr/local/bin/snappy", nil
 }
 
 func testModelWithService(installed, running bool) Model {
