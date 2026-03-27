@@ -67,7 +67,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case OpenLogDirResultMsg:
 		return m.handleOpenLogDirResult(msg)
 
-	case ServiceStatusResultMsg, ServiceToggleResultMsg:
+	case ServiceStatusResultMsg, ServiceToggleResultMsg,
+		ServiceInstallResultMsg, ServiceUninstallResultMsg:
 		return m.handleServiceMsg(msg)
 	}
 
@@ -216,6 +217,9 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.AutoSnap):
 		return m.handleAutoSnapToggle()
 
+	case key.Matches(msg, m.keys.ServiceInstall):
+		return m.handleServiceInstallToggle()
+
 	case key.Matches(msg, m.keys.OpenLog):
 		return m.handleOpenLog()
 
@@ -348,6 +352,10 @@ func (m Model) handleServiceMsg(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleServiceStatusResult(msg)
 	case ServiceToggleResultMsg:
 		return m.handleServiceToggleResult(msg)
+	case ServiceInstallResultMsg:
+		return m.handleServiceInstallResult(msg)
+	case ServiceUninstallResultMsg:
+		return m.handleServiceUninstallResult(msg)
 	}
 	return m, nil
 }
@@ -409,6 +417,7 @@ func (m Model) handleServiceStatusResult(msg ServiceStatusResultMsg) (tea.Model,
 	m.logServiceTransitions(wasInstalled, wasRunning, msg.Info.PID)
 
 	m.updateAutoSnapHelpText()
+	m.updateServiceInstallHelpText()
 	m.updateLogViewContent()
 
 	// First time seeing Installed=false after being installed: trigger
@@ -496,6 +505,114 @@ func (m Model) handleServiceToggleResult(msg ServiceToggleResultMsg) (tea.Model,
 			cmds = append(cmds, doRefresh(m.runner, m.apfsVolume, m.apfsContainer))
 		}
 		return m, tea.Batch(cmds...)
+	}
+	return m, nil
+}
+
+func (m Model) handleServiceInstallToggle() (tea.Model, tea.Cmd) {
+	if m.serviceCtrl == nil || m.serviceToggling {
+		return m, nil
+	}
+	m.serviceToggling = true
+
+	if m.serviceInstalled {
+		m.log.Log(logger.LevelInfo, logger.CatService, "Uninstalling service...")
+		m.updateLogViewContent()
+		return m, doServiceUninstall(m.serviceCtrl, m.serviceLabel)
+	}
+
+	binPath, err := m.serviceCtrl.ResolveBinaryPath()
+	if err != nil {
+		m.serviceToggling = false
+		m.log.Log(logger.LevelError, logger.CatService,
+			fmt.Sprintf("Failed to resolve binary path: %v", err))
+		m.updateLogViewContent()
+		return m, nil
+	}
+
+	if m.auto.Enabled() {
+		m.auto.Toggle(m.now())
+		m.log.Log(logger.LevelInfo, logger.CatAuto,
+			"Auto-snapshots disabled (handing off to service)")
+	}
+	if m.lock != nil && !m.autoSnapshotting {
+		m.releaseLock()
+	} else if m.lock != nil {
+		m.lockReleasePending = true
+	}
+
+	plistCfg := service.PlistConfig{
+		Label:      m.serviceLabel,
+		BinaryPath: binPath,
+		LogDir:     m.cfg.LogDir,
+		ConfigFile: m.configFile,
+	}
+
+	m.log.Log(logger.LevelInfo, logger.CatService, "Installing service...")
+	m.updateLogViewContent()
+	return m, doServiceInstall(m.serviceCtrl, plistCfg)
+}
+
+func (m Model) handleServiceInstallResult(msg ServiceInstallResultMsg) (tea.Model, tea.Cmd) {
+	m.serviceToggling = false
+
+	if msg.Err != nil {
+		m.log.Log(logger.LevelError, logger.CatService,
+			fmt.Sprintf("Service install failed: %v", msg.Err))
+		m.updateLogViewContent()
+		if m.serviceCtrl != nil {
+			return m, doServiceStatus(m.serviceCtrl, m.serviceLabel)
+		}
+		return m, nil
+	}
+
+	m.serviceInstalled = true
+	m.serviceRunning = true
+	m.serviceEverInstalled = true
+	m.serviceConsecutiveUninstalled = 0
+	m.daemonActive = true
+
+	m.log.Log(logger.LevelInfo, logger.CatService, "Service installed and started")
+	m.updateAutoSnapHelpText()
+	m.updateServiceInstallHelpText()
+	m.updateLogViewContent()
+
+	cmds := []tea.Cmd{doServiceStatus(m.serviceCtrl, m.serviceLabel)}
+	if !m.refreshing {
+		m.refreshing = true
+		cmds = append(cmds, doRefresh(m.runner, m.apfsVolume, m.apfsContainer))
+	}
+	cmds = append(cmds, uiTick())
+	return m, tea.Batch(cmds...)
+}
+
+func (m Model) handleServiceUninstallResult(msg ServiceUninstallResultMsg) (tea.Model, tea.Cmd) {
+	m.serviceToggling = false
+
+	if msg.Err != nil {
+		m.log.Log(logger.LevelError, logger.CatService,
+			fmt.Sprintf("Service uninstall failed: %v", msg.Err))
+		m.updateLogViewContent()
+		if m.serviceCtrl != nil {
+			return m, doServiceStatus(m.serviceCtrl, m.serviceLabel)
+		}
+		return m, nil
+	}
+
+	m.serviceInstalled = false
+	m.serviceRunning = false
+	m.serviceEverInstalled = false
+	m.serviceConsecutiveUninstalled = 0
+	m.daemonActive = false
+	m.daemonRefreshCount = 0
+
+	m.log.Log(logger.LevelInfo, logger.CatService, "Service uninstalled")
+	m.updateAutoSnapHelpText()
+	m.updateServiceInstallHelpText()
+	m.updateLogViewContent()
+
+	if m.serviceCtrl != nil {
+		return m, doDelayedServiceStatus(m.serviceCtrl, m.serviceLabel, serviceStopSettleDelay)
 	}
 	return m, nil
 }
