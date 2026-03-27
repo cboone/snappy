@@ -3574,3 +3574,346 @@ func TestFullHelpShowsAllBindings(t *testing.T) {
 		}
 	}
 }
+
+// --- Service install/uninstall tests ---
+
+func TestServiceInstallKeyWhenNotInstalled(t *testing.T) {
+	m := testModelWithService(false, false)
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'i', Text: "i"})
+	model := updated.(Model)
+
+	if !model.serviceToggling {
+		t.Error("expected serviceToggling=true after pressing i")
+	}
+	if cmd == nil {
+		t.Error("expected a command to be returned for install")
+	}
+
+	entries := model.log.Entries()
+	found := false
+	for _, e := range entries {
+		if strings.Contains(e.Message, "Installing service...") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected log message about installing service")
+	}
+}
+
+func TestServiceInstallKeyWhenInstalled(t *testing.T) {
+	m := testModelWithService(true, true)
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'i', Text: "i"})
+	model := updated.(Model)
+
+	if !model.serviceToggling {
+		t.Error("expected serviceToggling=true after pressing i for uninstall")
+	}
+	if cmd == nil {
+		t.Error("expected a command to be returned for uninstall")
+	}
+
+	entries := model.log.Entries()
+	found := false
+	for _, e := range entries {
+		if strings.Contains(e.Message, "Uninstalling service...") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected log message about uninstalling service")
+	}
+}
+
+func TestServiceInstallKeyDisabledWithoutController(t *testing.T) {
+	m := testModel()
+	m.serviceCtrl = nil
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'i', Text: "i"})
+	model := updated.(Model)
+
+	if model.serviceToggling {
+		t.Error("expected serviceToggling=false without controller")
+	}
+	if cmd != nil {
+		t.Error("expected no command without controller")
+	}
+}
+
+func TestServiceInstallKeyIgnoredWhileToggling(t *testing.T) {
+	m := testModelWithService(false, false)
+	m.serviceToggling = true
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'i', Text: "i"})
+	model := updated.(Model)
+
+	if cmd != nil {
+		t.Error("expected no command while already toggling")
+	}
+	if !model.serviceToggling {
+		t.Error("serviceToggling should remain true")
+	}
+}
+
+func TestServiceInstallResultSuccess(t *testing.T) {
+	m := testModelWithService(false, false)
+	m.serviceToggling = true
+
+	updated, cmd := m.Update(ServiceInstallResultMsg{Err: nil})
+	model := updated.(Model)
+
+	if model.serviceToggling {
+		t.Error("expected serviceToggling=false after success")
+	}
+	if !model.serviceInstalled {
+		t.Error("expected serviceInstalled=true")
+	}
+	if !model.serviceRunning {
+		t.Error("expected serviceRunning=true")
+	}
+	if !model.daemonActive {
+		t.Error("expected daemonActive=true")
+	}
+	if cmd == nil {
+		t.Error("expected follow-up commands (status check, refresh)")
+	}
+
+	entries := model.log.Entries()
+	found := false
+	for _, e := range entries {
+		if strings.Contains(e.Message, "Service installed and started") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected success log message")
+	}
+}
+
+func TestServiceInstallResultError(t *testing.T) {
+	m := testModelWithService(false, false)
+	m.serviceToggling = true
+
+	updated, cmd := m.Update(ServiceInstallResultMsg{Err: fmt.Errorf("plist write failed")})
+	model := updated.(Model)
+
+	if model.serviceToggling {
+		t.Error("expected serviceToggling=false after error")
+	}
+	if model.serviceInstalled {
+		t.Error("expected serviceInstalled=false after error")
+	}
+	if cmd == nil {
+		t.Error("expected status recheck command after error")
+	}
+
+	entries := model.log.Entries()
+	found := false
+	for _, e := range entries {
+		if strings.Contains(e.Message, "Service install failed") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected error log message")
+	}
+}
+
+func TestServiceUninstallResultSuccess(t *testing.T) {
+	m := testModelWithService(true, true)
+	m.serviceToggling = true
+
+	updated, cmd := m.Update(ServiceUninstallResultMsg{Err: nil})
+	model := updated.(Model)
+
+	if model.serviceToggling {
+		t.Error("expected serviceToggling=false after success")
+	}
+	if model.serviceInstalled {
+		t.Error("expected serviceInstalled=false")
+	}
+	if model.serviceRunning {
+		t.Error("expected serviceRunning=false")
+	}
+	if model.daemonActive {
+		t.Error("expected daemonActive=false")
+	}
+	if model.serviceEverInstalled {
+		t.Error("expected serviceEverInstalled=false")
+	}
+	if cmd == nil {
+		t.Error("expected delayed status recheck command")
+	}
+
+	entries := model.log.Entries()
+	found := false
+	for _, e := range entries {
+		if strings.Contains(e.Message, "Service uninstalled") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected success log message")
+	}
+}
+
+func TestServiceUninstallResultError(t *testing.T) {
+	m := testModelWithService(true, true)
+	m.serviceToggling = true
+
+	updated, cmd := m.Update(ServiceUninstallResultMsg{Err: fmt.Errorf("bootout failed")})
+	model := updated.(Model)
+
+	if model.serviceToggling {
+		t.Error("expected serviceToggling=false after error")
+	}
+	if cmd == nil {
+		t.Error("expected status recheck command after error")
+	}
+
+	entries := model.log.Entries()
+	found := false
+	for _, e := range entries {
+		if strings.Contains(e.Message, "Service uninstall failed") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected error log message")
+	}
+}
+
+func TestServiceInstallDisablesLocalAutoSnap(t *testing.T) {
+	m := testModelWithService(false, false)
+	// testModelWithService(false, false) starts with auto-snap enabled
+	// (from config defaults, since no service/daemon is active).
+	if !m.auto.Enabled() {
+		t.Fatal("precondition: auto-snap should be enabled")
+	}
+
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'i', Text: "i"})
+	model := updated.(Model)
+
+	if model.auto.Enabled() {
+		t.Error("expected auto-snap to be disabled after pressing i to install")
+	}
+
+	entries := model.log.Entries()
+	found := false
+	for _, e := range entries {
+		if strings.Contains(e.Message, "Auto-snapshots disabled (handing off to service)") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected log message about disabling auto-snap")
+	}
+}
+
+func TestServiceInstallHelpTextUpdates(t *testing.T) {
+	m := testModelWithService(false, false)
+
+	if m.keys.ServiceInstall.Help().Desc != "install" {
+		t.Errorf("expected help text 'install' when not installed, got %q", m.keys.ServiceInstall.Help().Desc)
+	}
+
+	// Simulate successful install.
+	updated, _ := m.Update(ServiceInstallResultMsg{Err: nil})
+	model := updated.(Model)
+
+	if model.keys.ServiceInstall.Help().Desc != "uninstall" {
+		t.Errorf("expected help text 'uninstall' after install, got %q", model.keys.ServiceInstall.Help().Desc)
+	}
+
+	// Simulate successful uninstall.
+	model.serviceToggling = false
+	updated2, _ := model.Update(ServiceUninstallResultMsg{Err: nil})
+	model2 := updated2.(Model)
+
+	if model2.keys.ServiceInstall.Help().Desc != "install" {
+		t.Errorf("expected help text 'install' after uninstall, got %q", model2.keys.ServiceInstall.Help().Desc)
+	}
+}
+
+func TestServiceInstallBinaryResolveFails(t *testing.T) {
+	m := testModelWithService(false, false)
+	m.serviceCtrl = &mockServiceController{
+		resolveFn: func() (string, error) {
+			return "", fmt.Errorf("no such file")
+		},
+	}
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'i', Text: "i"})
+	model := updated.(Model)
+
+	if model.serviceToggling {
+		t.Error("expected serviceToggling=false after binary resolve failure")
+	}
+	if cmd != nil {
+		t.Error("expected no command after binary resolve failure")
+	}
+
+	entries := model.log.Entries()
+	found := false
+	for _, e := range entries {
+		if strings.Contains(e.Message, "Failed to resolve binary path") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected error log message about binary path")
+	}
+}
+
+func TestServiceInstallPassesConfigFile(t *testing.T) {
+	m := testModelWithService(false, false)
+	m.configFile = "/Users/test/.config/snappy/config.yaml"
+
+	var capturedCfg service.PlistConfig
+	m.serviceCtrl = &mockServiceController{
+		installFn: func(cfg service.PlistConfig) error {
+			capturedCfg = cfg
+			return nil
+		},
+		resolveFn: func() (string, error) {
+			return "/usr/local/bin/snappy", nil
+		},
+	}
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Code: 'i', Text: "i"})
+	_ = updated.(Model)
+
+	if cmd == nil {
+		t.Fatal("expected a command to be returned")
+	}
+
+	// Execute the command to trigger the install.
+	msg := cmd()
+	result, ok := msg.(ServiceInstallResultMsg)
+	if !ok {
+		t.Fatalf("expected ServiceInstallResultMsg, got %T", msg)
+	}
+	if result.Err != nil {
+		t.Fatalf("unexpected error: %v", result.Err)
+	}
+
+	if capturedCfg.ConfigFile != "/Users/test/.config/snappy/config.yaml" {
+		t.Errorf("expected ConfigFile=%q, got %q", "/Users/test/.config/snappy/config.yaml", capturedCfg.ConfigFile)
+	}
+	if capturedCfg.BinaryPath != "/usr/local/bin/snappy" {
+		t.Errorf("expected BinaryPath=%q, got %q", "/usr/local/bin/snappy", capturedCfg.BinaryPath)
+	}
+	if capturedCfg.Label != service.DefaultLabel {
+		t.Errorf("expected Label=%q, got %q", service.DefaultLabel, capturedCfg.Label)
+	}
+}
