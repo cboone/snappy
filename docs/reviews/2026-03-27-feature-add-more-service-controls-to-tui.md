@@ -1,15 +1,15 @@
-## Branch Review: feature/add-more-service-controls-to-tui
+# Branch Review: feature/add-more-service-controls-to-tui
 
 Base: main (merge base: 897dd8f)
 Commits: 10
 Files changed: 9 (2 added, 7 modified, 0 deleted, 0 renamed)
 Reviewed through: 99f72c1
 
-### Summary
+## Summary
 
 This branch adds service install and uninstall controls to the TUI, completing the service management story so users can set up and tear down the background launchd service without leaving the TUI. The `i` key acts as a context-aware toggle: installing the service when none exists and uninstalling when one is present. The implementation includes a full plan document, 12 new test cases, and a minor refactor extracting `handleQuit` from `handleKey`.
 
-### Changes by Area
+## Changes by Area
 
 **TUI Service Interface** (`internal/tui/service.go`)
 Extended `ServiceController` with `Install`, `Uninstall`, and `ResolveBinaryPath` methods. Added corresponding implementations on `LaunchdController` that delegate to the `service` package.
@@ -35,13 +35,15 @@ Added a detailed plan document covering context, design, keybinding, state trans
 **Configuration** (`.claude/settings.json`)
 Updated permission allowlist (housekeeping).
 
-### File Inventory
+## File Inventory
 
 **New files (2):**
+
 - `docs/plans/todo/2026-03-27-tui-service-install-uninstall.md`
 - `internal/tui/service.go` (extended, but already existed; diff shows modifications)
 
 **Modified files (7):**
+
 - `.claude/settings.json`
 - `cmd/root.go`
 - `internal/tui/commands.go`
@@ -50,13 +52,13 @@ Updated permission allowlist (housekeeping).
 - `internal/tui/model_test.go`
 - `internal/tui/update.go`
 
-### Notable Changes
+## Notable Changes
 
 - **Interface extension**: `ServiceController` gains three new methods, which is a breaking change for any external implementations (though currently only `LaunchdController` and test mocks implement it).
 - **Config file passthrough**: The resolved config file path is now threaded from CLI flags through `ModelParams` to the TUI model, enabling correct plist generation at install time.
 - **Auto-snap handoff**: The install path disables local auto-snap and releases the flock, cleanly handing off snapshot responsibility to the launchd service.
 
-### Plan Compliance
+## Plan Compliance
 
 **Plan**: `docs/plans/todo/2026-03-27-tui-service-install-uninstall.md`
 
@@ -110,7 +112,7 @@ Updated permission allowlist (housekeeping).
 
 **Note**: The plan file is still in `docs/plans/todo/`. It should be moved to `docs/plans/done/` since the work is complete.
 
-### Code Quality Assessment
+## Code Quality Assessment
 
 **Overall quality**: This code is ready to merge. The implementation is clean, thorough, and follows established codebase patterns precisely.
 
