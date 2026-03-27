@@ -220,19 +220,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m.handleOpenLog()
 
 	case key.Matches(msg, m.keys.Quit):
-		m.log.Log(logger.LevelInfo, logger.CatShutdown, "Shutting down")
-		if m.autoSnapshotting && m.lock != nil {
-			m.quitAfterSnapshot = true
-			m.lockReleasePending = true
-			m.log.Log(logger.LevelInfo, logger.CatShutdown, "Waiting for auto-snapshot to finish before releasing lock and quitting")
-			m.updateLogViewContent()
-			return m, nil
-		}
-		if m.lock != nil {
-			m.releaseLock()
-		}
-		m.quitting = true
-		return m, tea.Quit
+		return m.handleQuit()
 
 	case key.Matches(msg, m.keys.Tab):
 		cmd := m.setFocusPanel((m.focusPanel + 1) % 3)
@@ -262,6 +250,22 @@ func (m Model) handleHelpToggle() (tea.Model, tea.Cmd) {
 	}
 	m.recalcLayout()
 	return m, nil
+}
+
+func (m Model) handleQuit() (tea.Model, tea.Cmd) {
+	m.log.Log(logger.LevelInfo, logger.CatShutdown, "Shutting down")
+	if m.autoSnapshotting && m.lock != nil {
+		m.quitAfterSnapshot = true
+		m.lockReleasePending = true
+		m.log.Log(logger.LevelInfo, logger.CatShutdown, "Waiting for auto-snapshot to finish before releasing lock and quitting")
+		m.updateLogViewContent()
+		return m, nil
+	}
+	if m.lock != nil {
+		m.releaseLock()
+	}
+	m.quitting = true
+	return m, tea.Quit
 }
 
 func (m Model) handleOpenLog() (tea.Model, tea.Cmd) {
