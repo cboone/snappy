@@ -218,6 +218,20 @@ func doServiceStop(ctrl ServiceController, label string) tea.Cmd {
 	}
 }
 
+func doServiceInstall(ctrl ServiceController, cfg service.PlistConfig) tea.Cmd {
+	return func() tea.Msg {
+		err := ctrl.Install(cfg)
+		return ServiceInstallResultMsg{Err: err}
+	}
+}
+
+func doServiceUninstall(ctrl ServiceController, label string) tea.Cmd {
+	return func() tea.Msg {
+		err := ctrl.Uninstall(label)
+		return ServiceUninstallResultMsg{Err: err}
+	}
+}
+
 func doOpenLogDir(dir string) tea.Cmd {
 	return func() tea.Msg {
 		if dir == "" {

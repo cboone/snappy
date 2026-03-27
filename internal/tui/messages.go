@@ -64,3 +64,13 @@ type ServiceToggleResultMsg struct {
 	Action string // "start" or "stop"
 	Err    error
 }
+
+// ServiceInstallResultMsg carries the result of a service install attempt.
+type ServiceInstallResultMsg struct {
+	Err error
+}
+
+// ServiceUninstallResultMsg carries the result of a service uninstall attempt.
+type ServiceUninstallResultMsg struct {
+	Err error
+}
