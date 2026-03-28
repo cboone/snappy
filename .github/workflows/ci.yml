@@ -30,7 +30,7 @@ concurrency:
 
 jobs:
   ci:
-    uses: cboone/gh-actions/.github/workflows/go-ci.yml@v2
+    uses: cboone/gh-actions/.github/workflows/go-ci.yml@v2.1.2
     with:
       runs-on: macos-latest
       run-lint: true
@@ -38,13 +38,13 @@ jobs:
       run-format-check: true
 
   text-lint:
-    uses: cboone/gh-actions/.github/workflows/text-lint.yml@v1
+    uses: cboone/gh-actions/.github/workflows/text-lint.yml@v2.1.2
 
   shell-lint:
-    uses: cboone/gh-actions/.github/workflows/shell-lint.yml@v1
+    uses: cboone/gh-actions/.github/workflows/shell-lint.yml@v2.1.2
 
   github-lint:
-    uses: cboone/gh-actions/.github/workflows/github-lint.yml@v1
+    uses: cboone/gh-actions/.github/workflows/github-lint.yml@v2.1.2
 
   test-scrut:
     name: Test CLI (Scrut)
@@ -57,7 +57,7 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - uses: cboone/gh-actions/actions/setup-scrut@v1
+      - uses: cboone/gh-actions/actions/setup-scrut@v2.1.2
 
       - name: Run scrut CLI tests
         run: make test-scrut
