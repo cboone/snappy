@@ -194,6 +194,11 @@ func runTUI(_ *cobra.Command, _ []string) error {
 	}
 	log.Log(logger.LevelInfo, logger.CatStartup, autoStatus)
 
+	configFile, err := resolveConfigPath(cfgFile)
+	if err != nil {
+		return fmt.Errorf("config path: %w", err)
+	}
+
 	model := tui.NewModel(cfg, runner, log, tui.ModelParams{
 		APFSVolume:       apfsVolume,
 		APFSContainer:    apfsContainer,
@@ -205,6 +210,7 @@ func runTUI(_ *cobra.Command, _ []string) error {
 		ServiceCtrl:      svcCtrl,
 		ServiceInstalled: svcInstalled,
 		ServiceRunning:   svcRunning,
+		ConfigFile:       configFile,
 	})
 	p := tea.NewProgram(model)
 
@@ -276,4 +282,25 @@ func acquireAutoSnapLock(cfg *config.Config, log *logger.Logger, svcInstalled, s
 		log.Log(logger.LevelInfo, logger.CatStartup, "Another snappy process detected; TUI auto-snapshots disabled")
 	}
 	return daemonActive, lock
+}
+
+// resolveConfigPath expands tilde prefixes and resolves the given path to an
+// absolute path suitable for embedding in a launchd plist. Returns ("", nil)
+// when path is empty.
+func resolveConfigPath(path string) (string, error) {
+	if path == "" {
+		return "", nil
+	}
+	if path == "~" || strings.HasPrefix(path, "~/") {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("expanding config path: %w", err)
+		}
+		path = filepath.Join(home, strings.TrimPrefix(path[1:], "/"))
+	}
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return "", fmt.Errorf("resolving config path: %w", err)
+	}
+	return absPath, nil
 }

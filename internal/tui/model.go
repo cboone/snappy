@@ -18,25 +18,26 @@ import (
 )
 
 type keyMap struct {
-	Snapshot   key.Binding
-	Refresh    key.Binding
-	AutoSnap   key.Binding
-	OpenLog    key.Binding
-	Quit       key.Binding
-	ScrollUp   key.Binding
-	ScrollDown key.Binding
-	Tab        key.Binding
-	ShiftTab   key.Binding
-	Help       key.Binding
+	Snapshot       key.Binding
+	Refresh        key.Binding
+	AutoSnap       key.Binding
+	ServiceInstall key.Binding
+	OpenLog        key.Binding
+	Quit           key.Binding
+	ScrollUp       key.Binding
+	ScrollDown     key.Binding
+	Tab            key.Binding
+	ShiftTab       key.Binding
+	Help           key.Binding
 }
 
 func (k keyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Snapshot, k.Refresh, k.AutoSnap, k.OpenLog, k.Quit, k.Help}
+	return []key.Binding{k.Snapshot, k.Refresh, k.AutoSnap, k.ServiceInstall, k.OpenLog, k.Quit, k.Help}
 }
 
 func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Snapshot, k.Refresh, k.AutoSnap, k.OpenLog, k.Quit},
+		{k.Snapshot, k.Refresh, k.AutoSnap, k.ServiceInstall, k.OpenLog, k.Quit},
 		{k.ScrollUp, k.ScrollDown, k.Tab, k.ShiftTab, k.Help},
 	}
 }
@@ -54,6 +55,11 @@ func defaultKeyMap() keyMap {
 		AutoSnap: key.NewBinding(
 			key.WithKeys("a", "A"),
 			key.WithHelp("a", "auto-snap"),
+		),
+		ServiceInstall: key.NewBinding(
+			key.WithKeys("i", "I"),
+			key.WithHelp("i", "install"),
+			key.WithDisabled(),
 		),
 		OpenLog: key.NewBinding(
 			key.WithKeys("l", "L"),
@@ -122,6 +128,7 @@ type Model struct {
 	serviceLabel                  string
 	serviceToggling               bool
 	serviceConsecutiveUninstalled int
+	configFile                    string
 	// serviceEverInstalled is a sticky "maybe installed" flag used for
 	// debouncing transient uninstall statuses. It is explicitly cleared
 	// after a confirmed uninstall (two consecutive probes), so it does
@@ -185,6 +192,7 @@ type ModelParams struct {
 	ServiceCtrl      ServiceController // nil disables service features
 	ServiceInstalled bool
 	ServiceRunning   bool
+	ConfigFile       string // resolved config file path for service plist
 }
 
 // NewModel creates a Model with the given dependencies. When DaemonActive is
@@ -242,6 +250,7 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 		serviceRunning:       params.ServiceRunning,
 		serviceLabel:         service.DefaultLabel,
 		serviceEverInstalled: params.ServiceInstalled,
+		configFile:           params.ConfigFile,
 		refreshing:           true,
 		thinPinned:           make(map[string]struct{}),
 		recentCreated:        make(map[string]struct{}),
@@ -261,7 +270,11 @@ func NewModel(cfg *config.Config, runner platform.CommandRunner, log *logger.Log
 		now:                  time.Now,
 	}
 
+	if params.ServiceCtrl != nil {
+		m.keys.ServiceInstall.SetEnabled(true)
+	}
 	m.updateAutoSnapHelpText()
+	m.updateServiceInstallHelpText()
 	m.updateSnapViewContent()
 	m.updateLogViewContent()
 
@@ -276,6 +289,17 @@ func (m *Model) updateAutoSnapHelpText() {
 		m.keys.AutoSnap.SetHelp("a", "start service")
 	default:
 		m.keys.AutoSnap.SetHelp("a", "auto-snap")
+	}
+}
+
+func (m *Model) updateServiceInstallHelpText() {
+	if m.serviceCtrl == nil {
+		return
+	}
+	if m.serviceInstalled {
+		m.keys.ServiceInstall.SetHelp("i", "uninstall")
+	} else {
+		m.keys.ServiceInstall.SetHelp("i", "install")
 	}
 }
 
