@@ -284,6 +284,11 @@ func (m Model) handleOpenLog() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleAutoSnapToggle() (tea.Model, tea.Cmd) {
+	// Block while a service install/uninstall is in progress.
+	if m.serviceToggling {
+		return m, nil
+	}
+
 	// When the launchd service is installed, 'a' controls the service.
 	if m.serviceInstalled && m.serviceCtrl != nil {
 		return m.handleServiceToggle()
@@ -577,7 +582,10 @@ func (m Model) handleServiceInstallResult(msg ServiceInstallResultMsg) (tea.Mode
 	m.updateServiceInstallHelpText()
 	m.updateLogViewContent()
 
-	cmds := []tea.Cmd{doServiceStatus(m.serviceCtrl, m.serviceLabel)}
+	var cmds []tea.Cmd
+	if m.serviceCtrl != nil {
+		cmds = append(cmds, doServiceStatus(m.serviceCtrl, m.serviceLabel))
+	}
 	if !m.refreshing {
 		m.refreshing = true
 		cmds = append(cmds, doRefresh(m.runner, m.apfsVolume, m.apfsContainer))

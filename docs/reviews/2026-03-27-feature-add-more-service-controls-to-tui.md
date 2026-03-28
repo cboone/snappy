@@ -110,7 +110,7 @@ Updated permission allowlist (housekeeping).
 
 **Fidelity concerns**: None. The implementation matches the plan's intent throughout.
 
-**Note**: The plan file is still in `docs/plans/todo/`. It should be moved to `docs/plans/done/` since the work is complete.
+**Note**: The plan file has been moved to `docs/plans/done/2026-03-27-tui-service-install-uninstall.md`.
 
 ## Code Quality Assessment
 
