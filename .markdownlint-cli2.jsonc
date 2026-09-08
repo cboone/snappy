@@ -11,6 +11,12 @@
 
     // Allow bare URLs without angle brackets
     "MD034": false,
+
+    // Table column style: disabled. Prettier owns table alignment and fixes it
+    // automatically; markdownlint has no fixer for this rule, and its default
+    // "any" style reports against whichever style is the closest match, which
+    // pushes a nearly-aligned table toward compact.
+    "MD060": false,
   },
 
   // Files to ignore
