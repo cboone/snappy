@@ -9,5 +9,6 @@ go.sum
 # Generated files
 coverage/
 
-# Markdown (formatted by markdownlint-cli2, not Prettier)
-*.md
+# Historical plan snapshots: records of what was decided, not living docs.
+# Reformatting them rewrites history and can mangle template syntax in fences.
+docs/plans/done/
