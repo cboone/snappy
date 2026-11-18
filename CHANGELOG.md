@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.2] - 2026-11-18
+
 ### Fixed
 
 - Skip thinning during a Time Machine backup, or when backup status cannot be determined, in the CLI, service, TUI, and snappy-ez (#119)
@@ -400,7 +402,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add shellcheckrc with all checks enabled
 
-[unreleased]: https://github.com/cboone/snappy/compare/v0.11.1...HEAD
+[unreleased]: https://github.com/cboone/snappy/compare/v0.11.2...HEAD
+[0.11.2]: https://github.com/cboone/snappy/compare/v0.11.1...v0.11.2
 [0.11.1]: https://github.com/cboone/snappy/compare/v0.10.0...v0.11.1
 [0.10.0]: https://github.com/cboone/snappy/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/cboone/snappy/compare/v0.8.3...v0.9.0
