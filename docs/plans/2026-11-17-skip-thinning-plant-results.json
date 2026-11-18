@@ -1,0 +1,584 @@
+{
+  "schema": 1,
+  "manifest": "/Users/ctm/Development/snappy-119/thinning-plant.json",
+  "complete": true,
+  "success": true,
+  "inputs": {
+    "manifest": {
+      "sha256": "d46c6754c641cc97cab7cb606b16e389ff5076dc449bf20969f6ece28cd3c42c",
+      "mode": 420
+    },
+    "runner": {
+      "sha256": "cb67f0c0f2fdca7533d4a392b2d396cca80523f0fc38d064f6b48c4503b27ef7",
+      "mode": 493,
+      "core": {
+        "sha256": "5df16673e84af61c9729913d89fc74ce6c335070ed2e51356b4206e8002ae543",
+        "mode": 420
+      }
+    },
+    "go.mod": {
+      "sha256": "f10dbf19e39ee5175bcd689a1f898fd5e52f828c318d859d89c8617164dd87a9",
+      "mode": 420
+    },
+    "go.sum": {
+      "sha256": "73d52a4acbbdc731dc7eaf8b0b95b4889ca3b1e52aed7347e2eb9d5dcf3f8cd6",
+      "mode": 420
+    },
+    "internal/platform/disk.go": {
+      "sha256": "b6a1550e620ee70cb1da57628cb90547f8c00e16abba522a7fd17794febb6cc6",
+      "mode": 420
+    },
+    "internal/platform/diskutil.go": {
+      "sha256": "a5e7ea47e3ef07ae319b6a45fd11765016789ac9bd6cc7916c457fe28d6835ee",
+      "mode": 420
+    },
+    "internal/platform/exec.go": {
+      "sha256": "8b55aaf7cc7d4c2c614f39649dcfa979db7353d50432fcf3c5d4e9a23955e022",
+      "mode": 420
+    },
+    "internal/platform/platform_test.go": {
+      "sha256": "104158394616036db6655b417757966fe2cc1254d7c0ef4021155f6d60e8f96a",
+      "mode": 420
+    },
+    "internal/platform/tmutil.go": {
+      "sha256": "ac41dfd57ad45648c568918a650fc3a9ac1803cb33843f6a99a9f47f5691ff37",
+      "mode": 420
+    },
+    "internal/platform/tmutil_test.go": {
+      "sha256": "d49f7707512b00ca7a5197fc5e03243dc9e6ce3e3e01f203fd05823f5dac7dbd",
+      "mode": 420
+    },
+    "tests/plants/backup-status-setup.sh": {
+      "sha256": "413c52676c5a6563498a16baf032b716e6605202d9871953df6318f85d1c376b",
+      "mode": 420
+    },
+    "tests/plants/backup-status-check.sh": {
+      "sha256": "36938ee1f8ffdb5e9faa8a4d4d30cf137677eff2967067856fa762a0aa1b028e",
+      "mode": 420
+    },
+    "tests/plants/disable-backup-protection.patch": {
+      "sha256": "989fa33713b8547b872eb4f358ca52a595b5bead06ed0b293abc375a13f5aa34",
+      "mode": 420
+    }
+  },
+  "inputs_unchanged": true,
+  "results": [
+    {
+      "kind": "plant",
+      "name": "disable-active-backup-protection",
+      "status": "red",
+      "reason": "named assertion reached",
+      "restored": true,
+      "green_passed": true,
+      "execution_plan": [
+        {
+          "name": "baseline_setup",
+          "timeout": 60,
+          "kind": "setup"
+        },
+        {
+          "name": "baseline",
+          "timeout": 60,
+          "kind": "check"
+        },
+        {
+          "name": "git_init",
+          "timeout": 60,
+          "kind": "git"
+        },
+        {
+          "name": "git_validate",
+          "timeout": 60,
+          "kind": "git"
+        },
+        {
+          "name": "git_apply",
+          "timeout": 60,
+          "kind": "git"
+        },
+        {
+          "name": "red_setup",
+          "timeout": 60,
+          "kind": "setup"
+        },
+        {
+          "name": "red",
+          "timeout": 60,
+          "kind": "check"
+        },
+        {
+          "name": "green_setup",
+          "timeout": 60,
+          "kind": "setup"
+        },
+        {
+          "name": "green",
+          "timeout": 60,
+          "kind": "check"
+        }
+      ],
+      "executed_steps": [
+        {
+          "step": {
+            "name": "baseline_setup",
+            "timeout": 60,
+            "kind": "setup"
+          },
+          "supervision": {
+            "audit": "/Users/ctm/Development/snappy-119/.thinning-plant-run/groups.jsonl",
+            "scope": "87cc5cd868134b2ca205d663d9c766aa",
+            "allocation": {
+              "scope": "87cc5cd868134b2ca205d663d9c766aa",
+              "parent": "ac4b2950547248c4bb7178436280517b",
+              "started_at": 95793.901053333,
+              "deadline": 95853.901053333,
+              "execution_deadline": 95823.901053333,
+              "term_deadline": 95838.901053333,
+              "group_deadline": 95846.401053333,
+              "reserve": 15,
+              "requested": 60,
+              "step": {
+                "name": "baseline_setup",
+                "timeout": 60,
+                "kind": "setup"
+              }
+            }
+          }
+        },
+        {
+          "step": {
+            "name": "baseline",
+            "timeout": 60,
+            "kind": "check"
+          },
+          "supervision": {
+            "audit": "/Users/ctm/Development/snappy-119/.thinning-plant-run/groups.jsonl",
+            "scope": "f8005b60001b43b8bc5ab37f1808d244",
+            "allocation": {
+              "scope": "f8005b60001b43b8bc5ab37f1808d244",
+              "parent": "ac4b2950547248c4bb7178436280517b",
+              "started_at": 95794.127185291,
+              "deadline": 95854.127185291,
+              "execution_deadline": 95824.127185291,
+              "term_deadline": 95839.127185291,
+              "group_deadline": 95846.627185291,
+              "reserve": 15,
+              "requested": 60,
+              "step": {
+                "name": "baseline",
+                "timeout": 60,
+                "kind": "check"
+              }
+            }
+          }
+        },
+        {
+          "step": {
+            "name": "git_init",
+            "timeout": 60,
+            "kind": "git"
+          },
+          "supervision": {
+            "audit": "/Users/ctm/Development/snappy-119/.thinning-plant-run/groups.jsonl",
+            "scope": "9eef4627928942679d903873daf91a4c",
+            "allocation": {
+              "scope": "9eef4627928942679d903873daf91a4c",
+              "parent": "ac4b2950547248c4bb7178436280517b",
+              "started_at": 95794.323359875,
+              "deadline": 95854.323359875,
+              "execution_deadline": 95824.323359875,
+              "term_deadline": 95839.323359875,
+              "group_deadline": 95846.823359875,
+              "reserve": 15,
+              "requested": 60,
+              "step": {
+                "name": "git_init",
+                "timeout": 60,
+                "kind": "git"
+              }
+            }
+          }
+        },
+        {
+          "step": {
+            "name": "git_validate",
+            "timeout": 60,
+            "kind": "git"
+          },
+          "supervision": {
+            "audit": "/Users/ctm/Development/snappy-119/.thinning-plant-run/groups.jsonl",
+            "scope": "c41aed82f4214184912bbfaa99458fb9",
+            "allocation": {
+              "scope": "c41aed82f4214184912bbfaa99458fb9",
+              "parent": "ac4b2950547248c4bb7178436280517b",
+              "started_at": 95794.356799125,
+              "deadline": 95854.356799125,
+              "execution_deadline": 95824.356799125,
+              "term_deadline": 95839.356799125,
+              "group_deadline": 95846.856799125,
+              "reserve": 15,
+              "requested": 60,
+              "step": {
+                "name": "git_validate",
+                "timeout": 60,
+                "kind": "git"
+              }
+            }
+          }
+        },
+        {
+          "step": {
+            "name": "git_apply",
+            "timeout": 60,
+            "kind": "git"
+          },
+          "supervision": {
+            "audit": "/Users/ctm/Development/snappy-119/.thinning-plant-run/groups.jsonl",
+            "scope": "53e6a352e69d4c3995bbc6b7b1ddb22c",
+            "allocation": {
+              "scope": "53e6a352e69d4c3995bbc6b7b1ddb22c",
+              "parent": "ac4b2950547248c4bb7178436280517b",
+              "started_at": 95794.387707333,
+              "deadline": 95854.387707333,
+              "execution_deadline": 95824.387707333,
+              "term_deadline": 95839.387707333,
+              "group_deadline": 95846.887707333,
+              "reserve": 15,
+              "requested": 60,
+              "step": {
+                "name": "git_apply",
+                "timeout": 60,
+                "kind": "git"
+              }
+            }
+          }
+        },
+        {
+          "step": {
+            "name": "red_setup",
+            "timeout": 60,
+            "kind": "setup"
+          },
+          "supervision": {
+            "audit": "/Users/ctm/Development/snappy-119/.thinning-plant-run/groups.jsonl",
+            "scope": "a700fe1775ce4b2aa90928fe1f92204f",
+            "allocation": {
+              "scope": "a700fe1775ce4b2aa90928fe1f92204f",
+              "parent": "ac4b2950547248c4bb7178436280517b",
+              "started_at": 95794.418589,
+              "deadline": 95854.418589,
+              "execution_deadline": 95824.418589,
+              "term_deadline": 95839.418589,
+              "group_deadline": 95846.918589,
+              "reserve": 15,
+              "requested": 60,
+              "step": {
+                "name": "red_setup",
+                "timeout": 60,
+                "kind": "setup"
+              }
+            }
+          }
+        },
+        {
+          "step": {
+            "name": "red",
+            "timeout": 60,
+            "kind": "check"
+          },
+          "supervision": {
+            "audit": "/Users/ctm/Development/snappy-119/.thinning-plant-run/groups.jsonl",
+            "scope": "0637763e6f3e4b07b99c03e8a089907a",
+            "allocation": {
+              "scope": "0637763e6f3e4b07b99c03e8a089907a",
+              "parent": "ac4b2950547248c4bb7178436280517b",
+              "started_at": 95794.629462,
+              "deadline": 95854.629462,
+              "execution_deadline": 95824.629462,
+              "term_deadline": 95839.629462,
+              "group_deadline": 95847.129462,
+              "reserve": 15,
+              "requested": 60,
+              "step": {
+                "name": "red",
+                "timeout": 60,
+                "kind": "check"
+              }
+            }
+          }
+        },
+        {
+          "step": {
+            "name": "green_setup",
+            "timeout": 60,
+            "kind": "setup"
+          },
+          "supervision": {
+            "audit": "/Users/ctm/Development/snappy-119/.thinning-plant-run/groups.jsonl",
+            "scope": "0155f4c0226142d0ba88d6c6b6a6f8b5",
+            "allocation": {
+              "scope": "0155f4c0226142d0ba88d6c6b6a6f8b5",
+              "parent": "ac4b2950547248c4bb7178436280517b",
+              "started_at": 95794.840147083,
+              "deadline": 95854.840147083,
+              "execution_deadline": 95824.840147083,
+              "term_deadline": 95839.840147083,
+              "group_deadline": 95847.340147083,
+              "reserve": 15,
+              "requested": 60,
+              "step": {
+                "name": "green_setup",
+                "timeout": 60,
+                "kind": "setup"
+              }
+            }
+          }
+        },
+        {
+          "step": {
+            "name": "green",
+            "timeout": 60,
+            "kind": "check"
+          },
+          "supervision": {
+            "audit": "/Users/ctm/Development/snappy-119/.thinning-plant-run/groups.jsonl",
+            "scope": "23909374312142e3bcd4652fbffe02ff",
+            "allocation": {
+              "scope": "23909374312142e3bcd4652fbffe02ff",
+              "parent": "ac4b2950547248c4bb7178436280517b",
+              "started_at": 95795.013613583,
+              "deadline": 95855.013613583,
+              "execution_deadline": 95825.013613583,
+              "term_deadline": 95840.013613583,
+              "group_deadline": 95847.513613583,
+              "reserve": 15,
+              "requested": 60,
+              "step": {
+                "name": "green",
+                "timeout": 60,
+                "kind": "check"
+              }
+            }
+          }
+        }
+      ],
+      "baseline_setup": {
+        "exit_code": 0,
+        "stdout": "Compiling backup-status regression test\n",
+        "stderr": "",
+        "timed_out": false,
+        "termination_requested": true,
+        "terminated": false,
+        "reaped": true,
+        "output_truncated": false,
+        "capture_error": null,
+        "pgid": 84858,
+        "remaining_pids": [],
+        "cleanup_error": null,
+        "phase_expirations": [],
+        "possibly_live_pgids": [],
+        "supervision": {
+          "audit": "/Users/ctm/Development/snappy-119/.thinning-plant-run/groups.jsonl",
+          "scope": "87cc5cd868134b2ca205d663d9c766aa",
+          "allocation": {
+            "scope": "87cc5cd868134b2ca205d663d9c766aa",
+            "parent": "ac4b2950547248c4bb7178436280517b",
+            "started_at": 95793.901053333,
+            "deadline": 95853.901053333,
+            "execution_deadline": 95823.901053333,
+            "term_deadline": 95838.901053333,
+            "group_deadline": 95846.401053333,
+            "reserve": 15,
+            "requested": 60,
+            "step": {
+              "name": "baseline_setup",
+              "timeout": 60,
+              "kind": "setup"
+            }
+          }
+        }
+      },
+      "baseline": {
+        "exit_code": 0,
+        "stdout": "Checking active-backup protection\n=== RUN   TestThinningSkipReason\n=== RUN   TestThinningSkipReason/running\n--- PASS: TestThinningSkipReason (0.00s)\n    --- PASS: TestThinningSkipReason/running (0.00s)\nPASS\n",
+        "stderr": "",
+        "timed_out": false,
+        "termination_requested": true,
+        "terminated": false,
+        "reaped": true,
+        "output_truncated": false,
+        "capture_error": null,
+        "pgid": 84870,
+        "remaining_pids": [],
+        "cleanup_error": null,
+        "phase_expirations": [],
+        "possibly_live_pgids": [],
+        "supervision": {
+          "audit": "/Users/ctm/Development/snappy-119/.thinning-plant-run/groups.jsonl",
+          "scope": "f8005b60001b43b8bc5ab37f1808d244",
+          "allocation": {
+            "scope": "f8005b60001b43b8bc5ab37f1808d244",
+            "parent": "ac4b2950547248c4bb7178436280517b",
+            "started_at": 95794.127185291,
+            "deadline": 95854.127185291,
+            "execution_deadline": 95824.127185291,
+            "term_deadline": 95839.127185291,
+            "group_deadline": 95846.627185291,
+            "reserve": 15,
+            "requested": 60,
+            "step": {
+              "name": "baseline",
+              "timeout": 60,
+              "kind": "check"
+            }
+          }
+        }
+      },
+      "red_setup": {
+        "exit_code": 0,
+        "stdout": "Compiling backup-status regression test\n",
+        "stderr": "",
+        "timed_out": false,
+        "termination_requested": true,
+        "terminated": false,
+        "reaped": true,
+        "output_truncated": false,
+        "capture_error": null,
+        "pgid": 84914,
+        "remaining_pids": [],
+        "cleanup_error": null,
+        "phase_expirations": [],
+        "possibly_live_pgids": [],
+        "supervision": {
+          "audit": "/Users/ctm/Development/snappy-119/.thinning-plant-run/groups.jsonl",
+          "scope": "a700fe1775ce4b2aa90928fe1f92204f",
+          "allocation": {
+            "scope": "a700fe1775ce4b2aa90928fe1f92204f",
+            "parent": "ac4b2950547248c4bb7178436280517b",
+            "started_at": 95794.418589,
+            "deadline": 95854.418589,
+            "execution_deadline": 95824.418589,
+            "term_deadline": 95839.418589,
+            "group_deadline": 95846.918589,
+            "reserve": 15,
+            "requested": 60,
+            "step": {
+              "name": "red_setup",
+              "timeout": 60,
+              "kind": "setup"
+            }
+          }
+        }
+      },
+      "red": {
+        "exit_code": 1,
+        "stdout": "Checking active-backup protection\n=== RUN   TestThinningSkipReason\n=== RUN   TestThinningSkipReason/running\n    tmutil_test.go:35: ThinningSkipReason() = \"\", want \"backup is running\"\n--- FAIL: TestThinningSkipReason (0.00s)\n    --- FAIL: TestThinningSkipReason/running (0.00s)\nFAIL\n",
+        "stderr": "",
+        "timed_out": false,
+        "termination_requested": true,
+        "terminated": false,
+        "reaped": true,
+        "output_truncated": false,
+        "capture_error": null,
+        "pgid": 84936,
+        "remaining_pids": [],
+        "cleanup_error": null,
+        "phase_expirations": [],
+        "possibly_live_pgids": [],
+        "supervision": {
+          "audit": "/Users/ctm/Development/snappy-119/.thinning-plant-run/groups.jsonl",
+          "scope": "0637763e6f3e4b07b99c03e8a089907a",
+          "allocation": {
+            "scope": "0637763e6f3e4b07b99c03e8a089907a",
+            "parent": "ac4b2950547248c4bb7178436280517b",
+            "started_at": 95794.629462,
+            "deadline": 95854.629462,
+            "execution_deadline": 95824.629462,
+            "term_deadline": 95839.629462,
+            "group_deadline": 95847.129462,
+            "reserve": 15,
+            "requested": 60,
+            "step": {
+              "name": "red",
+              "timeout": 60,
+              "kind": "check"
+            }
+          }
+        }
+      },
+      "green_setup": {
+        "exit_code": 0,
+        "stdout": "Compiling backup-status regression test\n",
+        "stderr": "",
+        "timed_out": false,
+        "termination_requested": true,
+        "terminated": false,
+        "reaped": true,
+        "output_truncated": false,
+        "capture_error": null,
+        "pgid": 85002,
+        "remaining_pids": [],
+        "cleanup_error": null,
+        "phase_expirations": [],
+        "possibly_live_pgids": [],
+        "supervision": {
+          "audit": "/Users/ctm/Development/snappy-119/.thinning-plant-run/groups.jsonl",
+          "scope": "0155f4c0226142d0ba88d6c6b6a6f8b5",
+          "allocation": {
+            "scope": "0155f4c0226142d0ba88d6c6b6a6f8b5",
+            "parent": "ac4b2950547248c4bb7178436280517b",
+            "started_at": 95794.840147083,
+            "deadline": 95854.840147083,
+            "execution_deadline": 95824.840147083,
+            "term_deadline": 95839.840147083,
+            "group_deadline": 95847.340147083,
+            "reserve": 15,
+            "requested": 60,
+            "step": {
+              "name": "green_setup",
+              "timeout": 60,
+              "kind": "setup"
+            }
+          }
+        }
+      },
+      "green": {
+        "exit_code": 0,
+        "stdout": "Checking active-backup protection\n=== RUN   TestThinningSkipReason\n=== RUN   TestThinningSkipReason/running\n--- PASS: TestThinningSkipReason (0.00s)\n    --- PASS: TestThinningSkipReason/running (0.00s)\nPASS\n",
+        "stderr": "",
+        "timed_out": false,
+        "termination_requested": true,
+        "terminated": false,
+        "reaped": true,
+        "output_truncated": false,
+        "capture_error": null,
+        "pgid": 85025,
+        "remaining_pids": [],
+        "cleanup_error": null,
+        "phase_expirations": [],
+        "possibly_live_pgids": [],
+        "supervision": {
+          "audit": "/Users/ctm/Development/snappy-119/.thinning-plant-run/groups.jsonl",
+          "scope": "23909374312142e3bcd4652fbffe02ff",
+          "allocation": {
+            "scope": "23909374312142e3bcd4652fbffe02ff",
+            "parent": "ac4b2950547248c4bb7178436280517b",
+            "started_at": 95795.013613583,
+            "deadline": 95855.013613583,
+            "execution_deadline": 95825.013613583,
+            "term_deadline": 95840.013613583,
+            "group_deadline": 95847.513613583,
+            "reserve": 15,
+            "requested": 60,
+            "step": {
+              "name": "green",
+              "timeout": 60,
+              "kind": "check"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "reason": "all variants verified"
+}

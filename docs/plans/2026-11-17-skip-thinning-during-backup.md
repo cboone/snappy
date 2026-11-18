@@ -38,4 +38,32 @@ The committed patch and check scripts reproduce the experiment.
 
 ## Results
 
-Validation and generated plant evidence will be recorded after execution.
+- `make test-all`: exit 0. Go unit tests passed; 66 CLI Scrut cases and
+  17 snappy-ez Scrut cases passed, with zero failed or skipped cases.
+- `make lint-all`: exit 0, covering Go, Markdown, Actions, and the man page.
+  Mandoc reported an outdated system index for four existing macOS references.
+- `make vet`, `make fmt`, and `make format-check`: each exit 0.
+- `bash -n bin/snappy-ez` and ShellCheck on the changed Bash script and plant
+  scripts: each exit 0.
+- The first unit-test run exposed a test-only logger fixture with no retained
+  entries; enabling retention corrected it. The first lint run required named
+  helper return values; that correction passed the subsequent full checks.
+- The additional Git whitespace check flags space-before-tab in standard
+  unified-diff context lines inside the deliberate plant patch. Checking the
+  production sources and user docs separately exits 0.
+- One local code review at Nit checked the deletion paths, skip propagation,
+  retry behavior, fixtures, and docs. No findings remained: clean at Nit.
+- Implementation and tests: signed commit
+  `0e1aaab3e59ef04d74d33f727a13654f6f962f00`.
+- No push, PR, GitHub metadata write, installed-binary change, or user
+  configuration change was performed.
+
+<!-- checked-plants:start -->
+
+## Verified plants and controls
+
+plant disable-active-backup-protection: named assertion reached; red exit 1; restored; green exit 0.
+
+Evidence: `/Users/ctm/Development/snappy-119/docs/plans/2026-11-17-skip-thinning-plant-results.json`.
+
+<!-- checked-plants:end -->
