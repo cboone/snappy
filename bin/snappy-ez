@@ -234,11 +234,14 @@ function thin_snapshots() {
   # Delete marked snapshots
   local snap_to_del
   local status
+  local line
   local running_field='^[[:blank:]]*Running[[:blank:]]*=[[:blank:]]*([01]);[[:blank:]]*$'
   local -i rc=0
   for snap_to_del in "${to_delete[@]+"${to_delete[@]}"}"; do
-    if ! status=$(tmutil status 2> /dev/null); then
-      log "THIN" "Thinning skipped: cannot determine Time Machine backup status"
+    rc=0
+    status=$(tmutil status 2>&1) || rc=$?
+    if ((rc != 0)); then
+      log "THIN" "Thinning skipped: cannot determine Time Machine backup status (exit ${rc}): ${status//$'\n'/ }"
       return
     fi
     local -a running=()
