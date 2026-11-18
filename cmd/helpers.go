@@ -77,14 +77,17 @@ func writeJSON(w io.Writer, v any) error {
 }
 
 // deleteSnapshots deletes each snapshot date with an individual timeout,
-// collecting failures. It returns the count of successful deletions and an
-// error summarizing any failures.
-func deleteSnapshots(ctx context.Context, runner platform.CommandRunner, targets []string) (int, error) {
-	deleted := 0
+// collecting failures. It returns the count of successful deletions, a skip
+// reason, and an error summarizing any failures.
+func deleteSnapshots(ctx context.Context, runner platform.CommandRunner, targets []string) (deleted int, skipped string, _ error) {
 	var failed []string
 
 	for _, date := range targets {
 		delCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		if skipped = platform.ThinningSkipReason(delCtx, runner); skipped != "" {
+			cancel()
+			break
+		}
 		err := platform.DeleteSnapshot(delCtx, runner, date)
 		cancel()
 
@@ -96,8 +99,8 @@ func deleteSnapshots(ctx context.Context, runner platform.CommandRunner, targets
 	}
 
 	if len(failed) > 0 {
-		return deleted, fmt.Errorf("%d snapshot deletion(s) failed: %s", len(failed), strings.Join(failed, "; "))
+		return deleted, skipped, fmt.Errorf("%d snapshot deletion(s) failed: %s", len(failed), strings.Join(failed, "; "))
 	}
 
-	return deleted, nil
+	return deleted, skipped, nil
 }

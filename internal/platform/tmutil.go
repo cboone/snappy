@@ -11,7 +11,25 @@ import (
 var (
 	snapshotDateRe    = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}-\d{6}$`)
 	snapshotDateExtRe = regexp.MustCompile(`\d{4}-\d{2}-\d{2}-\d{6}`)
+	backupRunningRe   = regexp.MustCompile(`(?m)^[ \t]*Running[ \t]*=[ \t]*([01]);[ \t]*$`)
 )
+
+// ThinningSkipReason returns an empty string only when Time Machine is idle.
+// Call immediately before each deletion, after listing thinning candidates.
+func ThinningSkipReason(ctx context.Context, r CommandRunner) string {
+	out, err := r.Run(ctx, "tmutil", "status")
+	if err != nil {
+		return fmt.Sprintf("Thinning skipped: cannot determine Time Machine backup status: %v", err)
+	}
+	matches := backupRunningRe.FindAllSubmatch(out, -1)
+	if len(matches) != 1 {
+		return "Thinning skipped: cannot determine Time Machine backup status (invalid Running field)"
+	}
+	if string(matches[0][1]) == "1" {
+		return "Thinning skipped: Time Machine backup is running"
+	}
+	return ""
+}
 
 // CheckStatus runs tmutil destinationinfo and returns a status string.
 func CheckStatus(ctx context.Context, r CommandRunner) string {

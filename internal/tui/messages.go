@@ -46,6 +46,7 @@ type FlashTickMsg struct {
 
 // ThinResultMsg signals that a thinning operation completed.
 type ThinResultMsg struct {
+	Skipped      string
 	Deleted      int
 	ThinnedDates []string
 	FailedDates  []string

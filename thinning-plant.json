@@ -1,0 +1,22 @@
+{
+  "inputs": ["go.mod", "go.sum", "internal/platform/disk.go", "internal/platform/diskutil.go", "internal/platform/exec.go", "internal/platform/platform_test.go", "internal/platform/tmutil.go", "internal/platform/tmutil_test.go", "tests/plants/backup-status-setup.sh", "tests/plants/backup-status-check.sh", "tests/plants/disable-backup-protection.patch"],
+  "setup": "tests/plants/backup-status-setup.sh",
+  "check": "tests/plants/backup-status-check.sh",
+  "timeout": 60,
+  "green": {
+    "exit_code": 0,
+    "contains": ["Checking active-backup protection", "--- PASS: TestThinningSkipReason/running", "\nPASS\n"],
+    "excludes": ["SKIP", "FAIL", "build failed"]
+  },
+  "variants": [
+    {
+      "name": "disable-active-backup-protection",
+      "patch": "tests/plants/disable-backup-protection.patch",
+      "red": {
+        "exit_code": 1,
+        "contains": ["Checking active-backup protection", "--- FAIL: TestThinningSkipReason/running", "want \"backup is running\""],
+        "excludes": ["SKIP", "build failed", "panic:"]
+      }
+    }
+  ]
+}

@@ -1136,6 +1136,9 @@ func (m Model) handleSnapshotCreated(msg SnapshotCreatedMsg) (tea.Model, tea.Cmd
 
 func (m Model) handleThinResult(msg ThinResultMsg) (tea.Model, tea.Cmd) {
 	m.thinning = false
+	if msg.Skipped != "" {
+		m.log.Log(logger.LevelInfo, logger.CatThinned, msg.Skipped)
+	}
 	if !m.snapshotting {
 		m.loading = false
 	}

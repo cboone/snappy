@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Skip thinning during a Time Machine backup, or when backup status cannot be determined, in the CLI, service, TUI, and snappy-ez (#119)
+
 ## [0.11.1] - 2026-03-27
 
 ### Added

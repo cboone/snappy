@@ -55,6 +55,11 @@ are reduced to one per
 .Va thin_cadence
 interval.
 Uses values from the configuration.
+Thinning is skipped and logged while a Time Machine backup is running or
+backup status cannot be determined.
+Backup status is checked before each deletion.
+This protection also applies to automatic thinning in the service and TUI,
+and to snappy-ez.
 .It Cm run
 Run the auto-snapshot loop as a foreground process.
 This is the command the background service executes; you generally do not

@@ -70,6 +70,7 @@ func TestThinWithTargets(t *testing.T) {
 			output: []byte(d1 + "\n" + d2 + "\n" + d3 + "\n"),
 		},
 		"diskutil info -plist /":            {err: fmt.Errorf("no device")},
+		"tmutil status":                     {output: []byte("Backup session status:\n{\n    Running = 0;\n}\n")},
 		"tmutil deletelocalsnapshots " + d2: {output: []byte("Deleted\n")},
 	}}
 	newRunner = func() platform.CommandRunner { return runner }
@@ -108,6 +109,7 @@ func TestThinPartialFailure(t *testing.T) {
 			output: []byte(d1 + "\n" + d2 + "\n" + d3 + "\n"),
 		},
 		"diskutil info -plist /":            {err: fmt.Errorf("no device")},
+		"tmutil status":                     {output: []byte("Backup session status:\n{\n    Running = 0;\n}\n")},
 		"tmutil deletelocalsnapshots " + d2: {err: fmt.Errorf("permission denied")},
 	}}
 	newRunner = func() platform.CommandRunner { return runner }
@@ -188,6 +190,7 @@ func TestThinJSONWithDeletions(t *testing.T) {
 			output: []byte(d1 + "\n" + d2 + "\n" + d3 + "\n"),
 		},
 		"diskutil info -plist /":            {err: fmt.Errorf("no device")},
+		"tmutil status":                     {output: []byte("Backup session status:\n{\n    Running = 0;\n}\n")},
 		"tmutil deletelocalsnapshots " + d2: {output: []byte("Deleted\n")},
 	}}
 	newRunner = func() platform.CommandRunner { return runner }

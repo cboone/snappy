@@ -1002,6 +1002,7 @@ func TestThinResultClearsThinningFlag(t *testing.T) {
 
 func TestDoThinSnapshotsReportsDeleteFailures(t *testing.T) {
 	runner := &mockRunner{responses: map[string]mockResponse{
+		"tmutil status": {output: []byte("Backup session status:\n{\n    Running = 0;\n}\n")},
 		"tmutil deletelocalsnapshots 2026-03-01-140000": {output: []byte("Deleted\n")},
 		"tmutil deletelocalsnapshots 2026-03-01-140100": {err: fmt.Errorf("permission denied")},
 	}}
@@ -1802,6 +1803,7 @@ func TestMaybeThinLogsThinningStart(t *testing.T) {
 
 func TestDoThinSnapshotsReturnsThinnedDates(t *testing.T) {
 	runner := &mockRunner{responses: map[string]mockResponse{
+		"tmutil status": {output: []byte("Backup session status:\n{\n    Running = 0;\n}\n")},
 		"tmutil deletelocalsnapshots 2026-03-01-140000": {output: []byte("Deleted\n")},
 		"tmutil deletelocalsnapshots 2026-03-01-140100": {err: fmt.Errorf("permission denied")},
 	}}
@@ -3915,5 +3917,68 @@ func TestServiceInstallPassesConfigFile(t *testing.T) {
 	}
 	if capturedCfg.Label != service.DefaultLabel {
 		t.Errorf("expected Label=%q, got %q", service.DefaultLabel, capturedCfg.Label)
+	}
+}
+
+type backupRunner struct {
+	checks     int
+	deleted    int
+	idleChecks int
+	statusErr  error
+}
+
+func (r *backupRunner) Run(_ context.Context, _ string, args ...string) ([]byte, error) {
+	switch args[0] {
+	case "status":
+		r.checks++
+		if r.statusErr != nil {
+			return nil, r.statusErr
+		}
+		if r.checks <= r.idleChecks {
+			return []byte("Running = 0;"), nil
+		}
+		return []byte("Running = 1;"), nil
+	case "deletelocalsnapshots":
+		r.deleted++
+		return nil, nil
+	default:
+		return nil, fmt.Errorf("unexpected command: %v", args)
+	}
+}
+
+func TestThinSnapshotsSkipsBackup(t *testing.T) {
+	for _, tt := range []struct {
+		name       string
+		idleChecks int
+		statusErr  error
+		want       int
+	}{
+		{name: "active backup"},
+		{name: "backup starts during pass", idleChecks: 1, want: 1},
+		{name: "status unavailable", statusErr: fmt.Errorf("unavailable")},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &backupRunner{idleChecks: tt.idleChecks, statusErr: tt.statusErr}
+			msg := doThinSnapshots(r, []string{"2026-11-17-114619", "2026-11-17-120115"})().(ThinResultMsg)
+			if msg.Skipped == "" || msg.Err != nil || msg.Deleted != tt.want || r.deleted != tt.want || len(msg.FailedDates) != 0 {
+				t.Fatalf("backup protection: msg=%+v deletion commands=%d", msg, r.deleted)
+			}
+			m := testModel()
+			m.thinning = true
+			result, _ := m.handleThinResult(msg)
+			updated := result.(Model)
+			if updated.thinning || len(updated.thinPinned) != 0 {
+				t.Fatalf("skip left thinning active or pinned snapshots: %+v", updated.thinPinned)
+			}
+			found := false
+			for _, entry := range updated.log.Entries() {
+				if entry.Message == msg.Skipped {
+					found = true
+				}
+			}
+			if !found {
+				t.Fatal("skip reason missing from TUI log")
+			}
+		})
 	}
 }

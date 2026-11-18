@@ -124,7 +124,12 @@ func runIteration(ctx context.Context, w io.Writer, log *logger.Logger, runner p
 	currentCount := len(snapshots)
 
 	if len(targets) > 0 {
-		deleted, deleteErr := deleteSnapshots(ctx, runner, targets)
+		deleted, skipped, deleteErr := deleteSnapshots(ctx, runner, targets)
+		if skipped != "" {
+			if err := dualLog(w, log, logger.LevelInfo, logger.CatThinned, "%s", skipped); err != nil {
+				return err
+			}
+		}
 		if deleteErr != nil {
 			if err := dualLog(w, log, logger.LevelError, logger.CatThinned, "thin: %v", deleteErr); err != nil {
 				return err
