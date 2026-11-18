@@ -128,8 +128,13 @@ func doThinSnapshots(runner platform.CommandRunner, targets []string) tea.Cmd {
 		var thinnedDates []string
 		var failedDates []string
 		var failedDetails []string
+		var skipped string
 		for _, date := range targets {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			if skipped = platform.ThinningSkipReason(ctx, runner); skipped != "" {
+				cancel()
+				break
+			}
 			err := platform.DeleteSnapshot(ctx, runner, date)
 			cancel()
 			if err != nil {
@@ -153,6 +158,7 @@ func doThinSnapshots(runner platform.CommandRunner, targets []string) tea.Cmd {
 		}
 
 		return ThinResultMsg{
+			Skipped:      skipped,
 			Deleted:      deleted,
 			ThinnedDates: thinnedDates,
 			FailedDates:  failedDates,

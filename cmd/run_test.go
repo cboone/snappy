@@ -106,6 +106,7 @@ func TestRunIterationLogsPostThinCount(t *testing.T) {
 		"tmutil listlocalsnapshotdates /": {
 			output: []byte(oldest + "\n" + middle + "\n"),
 		},
+		"tmutil status":                         {output: []byte("Backup session status:\n{\n    Running = 0;\n}\n")},
 		"tmutil deletelocalsnapshots " + middle: {},
 		"diskutil info -plist /":                {err: fmt.Errorf("no device")},
 	}}

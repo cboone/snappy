@@ -54,7 +54,12 @@ func runThin(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	deleted, deleteErr := deleteSnapshots(cmd.Context(), runner, targets)
+	deleted, skipped, deleteErr := deleteSnapshots(cmd.Context(), runner, targets)
+	if skipped != "" {
+		if _, err := fmt.Fprintln(cmd.ErrOrStderr(), skipped); err != nil {
+			return err
+		}
+	}
 
 	w := cmd.OutOrStdout()
 	if jsonOut {

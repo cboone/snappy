@@ -89,13 +89,17 @@ func TestWriteJSON(t *testing.T) {
 
 func TestDeleteSnapshotsSuccess(t *testing.T) {
 	runner := &mockRunner{responses: map[string]mockResponse{
+		"tmutil status": {output: []byte("Backup session status:\n{\n    Running = 0;\n}\n")},
 		"tmutil deletelocalsnapshots 2026-03-01-140000": {output: []byte("Deleted\n")},
 		"tmutil deletelocalsnapshots 2026-03-01-140100": {output: []byte("Deleted\n")},
 	}}
 
-	deleted, err := deleteSnapshots(context.Background(), runner, []string{"2026-03-01-140000", "2026-03-01-140100"})
+	deleted, skipped, err := deleteSnapshots(context.Background(), runner, []string{"2026-03-01-140000", "2026-03-01-140100"})
 	if err != nil {
 		t.Fatalf("deleteSnapshots() error = %v", err)
+	}
+	if skipped != "" {
+		t.Fatalf("unexpected skip: %s", skipped)
 	}
 	if deleted != 2 {
 		t.Errorf("deleteSnapshots() deleted = %d, want 2", deleted)
@@ -104,13 +108,17 @@ func TestDeleteSnapshotsSuccess(t *testing.T) {
 
 func TestDeleteSnapshotsPartialFailure(t *testing.T) {
 	runner := &mockRunner{responses: map[string]mockResponse{
+		"tmutil status": {output: []byte("Backup session status:\n{\n    Running = 0;\n}\n")},
 		"tmutil deletelocalsnapshots 2026-03-01-140000": {output: []byte("Deleted\n")},
 		"tmutil deletelocalsnapshots 2026-03-01-140100": {err: fmt.Errorf("permission denied")},
 	}}
 
-	deleted, err := deleteSnapshots(context.Background(), runner, []string{"2026-03-01-140000", "2026-03-01-140100"})
+	deleted, skipped, err := deleteSnapshots(context.Background(), runner, []string{"2026-03-01-140000", "2026-03-01-140100"})
 	if err == nil {
 		t.Error("deleteSnapshots() expected error for partial failure, got nil")
+	}
+	if skipped != "" {
+		t.Fatalf("unexpected skip: %s", skipped)
 	}
 	if deleted != 1 {
 		t.Errorf("deleteSnapshots() deleted = %d, want 1", deleted)
@@ -165,3 +173,63 @@ const testTMSnapshotsPlist = `<?xml version="1.0" encoding="UTF-8"?>
 	</array>
 </dict>
 </plist>`
+
+// backupRunner records every deletion and starts a backup after idleChecks probes.
+type backupRunner struct {
+	idleChecks int
+	checks     int
+	deleted    []string
+	statusErr  error
+}
+
+func (r *backupRunner) Run(_ context.Context, name string, args ...string) ([]byte, error) {
+	if name != "tmutil" {
+		return nil, fmt.Errorf("unexpected command: %s", name)
+	}
+	switch args[0] {
+	case "status":
+		r.checks++
+		if r.statusErr != nil {
+			return nil, r.statusErr
+		}
+		if r.checks <= r.idleChecks {
+			return []byte("Running = 0;"), nil
+		}
+		return []byte("Running = 1;"), nil
+	case "deletelocalsnapshots":
+		r.deleted = append(r.deleted, args[1])
+		return nil, nil
+	default:
+		return nil, fmt.Errorf("unexpected tmutil command: %s", args[0])
+	}
+}
+
+func TestDeleteSnapshotsSkipsBackup(t *testing.T) {
+	for _, tt := range []struct {
+		name       string
+		idleChecks int
+		statusErr  error
+		want       int
+	}{
+		{name: "active backup"},
+		{name: "backup starts during pass", idleChecks: 1, want: 1},
+		{name: "status unavailable", statusErr: fmt.Errorf("unavailable")},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &backupRunner{idleChecks: tt.idleChecks, statusErr: tt.statusErr}
+			deleted, skipped, err := deleteSnapshots(context.Background(), r,
+				[]string{"2026-11-17-114619", "2026-11-17-120115"})
+			if err != nil || skipped == "" || deleted != tt.want || len(r.deleted) != tt.want {
+				t.Fatalf("backup protection: deleted=%d commands=%v skipped=%q err=%v", deleted, r.deleted, skipped, err)
+			}
+			// The next pass must resume normally once the backup is idle.
+			r.statusErr = nil
+			r.idleChecks = r.checks + 2
+			deleted, skipped, err = deleteSnapshots(context.Background(), r,
+				[]string{"2026-11-17-114619", "2026-11-17-120115"})
+			if err != nil || skipped != "" || deleted != 2 {
+				t.Fatalf("idle retry: deleted=%d skipped=%q err=%v", deleted, skipped, err)
+			}
+		})
+	}
+}

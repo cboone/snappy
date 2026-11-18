@@ -23,6 +23,8 @@
 
 To add to your local hard drive's safety net. By default, Snappy tells macOS to take a complete snapshot of your drive every minute, then thins those snapshots down to 5 minute increments after 10 minutes. Then macOS thins backups older than 1 hour to hourly, then reduces the frequency to daily after 1 day, and weekly after 1 week.[<sup>✻</sup>](#how-time-machine-works)
 
+Thinning pauses while a Time Machine backup is running, so the backup can keep reading its snapshots. Snappy checks `tmutil status` before each deletion and logs when thinning is skipped. If backup status cannot be determined, thinning also pauses. The next thinning pass retries normally. This applies to the CLI, background service, TUI, and `snappy-ez`; snapshot creation continues as usual.
+
 ```text
 now            -10 min          -1 hour          -1 day           -1 week
  ├────────────────┼────────────────┼────────────────┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╶╶╶
